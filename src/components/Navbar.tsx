@@ -10,6 +10,7 @@ const navLinks = [
   { href: "/#angebot", label: "Angebot" },
   { href: "/#ueber-uns", label: "Über uns" },
   { href: "/kurse", label: "Kurse & Termine" },
+  { href: "/buchen", label: "Termin buchen" },
   { href: "/#kontakt", label: "Kontakt" },
 ];
 
