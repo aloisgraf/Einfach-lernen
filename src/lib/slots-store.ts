@@ -171,23 +171,39 @@ function getBuchungenMap(): Map<string, Buchung> {
 
 // ── Öffentliche API ───────────────────────────────────────────────────────────
 
-export async function getAlleSlots(): Promise<Zeitslot[]> {
-  if (isDbConfigured()) return dbGetAlleSlots();
+function memSlots(): Zeitslot[] {
   return Array.from(getSlotsMap().values()).sort(
     (a, b) => a.datum.localeCompare(b.datum) || a.uhrzeit_von.localeCompare(b.uhrzeit_von)
   );
 }
 
+function memBuchungen(): Buchung[] {
+  return Array.from(getBuchungenMap().values()).sort(
+    (a, b) => b.erstellt_am.localeCompare(a.erstellt_am)
+  );
+}
+
+export async function getAlleSlots(): Promise<Zeitslot[]> {
+  if (isDbConfigured()) {
+    try { return await dbGetAlleSlots(); } catch { /* fall through */ }
+  }
+  return memSlots();
+}
+
 export async function getFreigegebeneSlots(): Promise<Zeitslot[]> {
   if (isDbConfigured()) {
-    const sql = getDb()!;
-    return sql<Zeitslot[]>`SELECT * FROM zeitslots WHERE freigegeben = true ORDER BY datum ASC, uhrzeit_von ASC`;
+    try {
+      const sql = getDb()!;
+      return await sql<Zeitslot[]>`SELECT * FROM zeitslots WHERE freigegeben = true ORDER BY datum ASC, uhrzeit_von ASC`;
+    } catch { /* fall through */ }
   }
   return Array.from(getSlotsMap().values()).filter((s) => s.freigegeben);
 }
 
 export async function getSlot(id: string): Promise<Zeitslot | null> {
-  if (isDbConfigured()) return dbGetSlot(id);
+  if (isDbConfigured()) {
+    try { return await dbGetSlot(id); } catch { /* fall through */ }
+  }
   return getSlotsMap().get(id) ?? null;
 }
 
@@ -213,20 +229,24 @@ export async function deleteSlot(id: string): Promise<boolean> {
 }
 
 export async function getAlleBuchungen(): Promise<Buchung[]> {
-  if (isDbConfigured()) return dbGetAlleBuchungen();
-  return Array.from(getBuchungenMap().values()).sort(
-    (a, b) => b.erstellt_am.localeCompare(a.erstellt_am)
-  );
+  if (isDbConfigured()) {
+    try { return await dbGetAlleBuchungen(); } catch { /* fall through */ }
+  }
+  return memBuchungen();
 }
 
 export async function getBuchungenFuerSlot(slotId: string): Promise<Buchung[]> {
-  if (isDbConfigured()) return dbGetBuchungenFuerSlot(slotId);
-  return (await getAlleBuchungen()).filter((b) => b.zeitslot_id === slotId);
+  if (isDbConfigured()) {
+    try { return await dbGetBuchungenFuerSlot(slotId); } catch { /* fall through */ }
+  }
+  return memBuchungen().filter((b) => b.zeitslot_id === slotId);
 }
 
 export async function countBuchungenFuerSlot(slotId: string): Promise<number> {
-  if (isDbConfigured()) return dbCountBuchungenFuerSlot(slotId);
-  return (await getBuchungenFuerSlot(slotId)).length;
+  if (isDbConfigured()) {
+    try { return await dbCountBuchungenFuerSlot(slotId); } catch { /* fall through */ }
+  }
+  return memBuchungen().filter((b) => b.zeitslot_id === slotId).length;
 }
 
 export async function createBuchung(
