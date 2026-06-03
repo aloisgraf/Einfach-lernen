@@ -36,29 +36,25 @@ export default async function Home() {
                 Pongau
               </span>
             </div>
-            <a
-              href="/admin/login"
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color: "#1a5c4a",
-                border: "1.5px solid #1a5c4a",
-                borderRadius: 8,
-                padding: "7px 16px",
-                textDecoration: "none",
-                transition: "all 0.15s",
-              }}
-              onMouseOver={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "#1a5c4a";
-                (e.currentTarget as HTMLElement).style.color = "#fff";
-              }}
-              onMouseOut={(e) => {
-                (e.currentTarget as HTMLElement).style.background = "transparent";
-                (e.currentTarget as HTMLElement).style.color = "#1a5c4a";
-              }}
-            >
+            <a href="/admin/login" className="admin-btn">
               Admin
             </a>
+            <style>{`
+              .admin-btn {
+                font-size: 13px;
+                font-weight: 600;
+                color: #1a5c4a;
+                border: 1.5px solid #1a5c4a;
+                border-radius: 8px;
+                padding: 7px 16px;
+                text-decoration: none;
+                transition: all 0.15s;
+              }
+              .admin-btn:hover {
+                background: #1a5c4a;
+                color: #fff;
+              }
+            `}</style>
           </div>
         </div>
       </header>
