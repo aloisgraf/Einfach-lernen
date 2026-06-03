@@ -1,7 +1,6 @@
 import { getFreigegebeneSlots, getAlleBuchungen } from "@/lib/slots-store";
 import BuchungsSeite from "./buchen/BuchungsSeite";
 import { Metadata } from "next";
-import { BookOpen } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Termin buchen | Einfach Lernen Pongau",
@@ -23,39 +22,50 @@ export default async function Home() {
   }));
 
   return (
-    <div className="min-h-screen bg-[#f8faf9]">
+    <div className="min-h-screen bg-[#f7faf8]">
+
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#2d6a4f] flex items-center justify-center">
-            <BookOpen className="w-5 h-5 text-white" />
-          </div>
+      <header className="bg-white border-b border-[#e0ede7]">
+        <div className="max-w-5xl mx-auto px-6 py-6 flex items-center justify-between">
           <div>
-            <p className="font-bold text-[#1a1a2e] leading-tight">Einfach Lernen Pongau</p>
-            <p className="text-xs text-[#2d6a4f]">Nachhilfe & Lernförderung</p>
+            <p className="text-[10px] tracking-[0.25em] uppercase text-[#1a5c4a]/50 mb-0.5">
+              Nachhilfe &amp; Lernförderung
+            </p>
+            <h1 className="text-2xl font-bold tracking-[0.12em] uppercase text-[#1a5c4a]">
+              Einfach Lernen
+            </h1>
+          </div>
+          <div className="hidden sm:block text-right">
+            <p className="text-xs text-[#1a5c4a]/50 tracking-wide">Pongau</p>
           </div>
         </div>
+        {/* Logo-style underline */}
+        <div className="h-[2px] bg-gradient-to-r from-transparent via-[#1a5c4a] to-transparent" />
       </header>
 
       {/* Hero */}
-      <div className="bg-gradient-to-br from-[#2d6a4f] to-[#1b4332] text-white py-10 px-4">
-        <div className="max-w-5xl mx-auto">
-          <h1 className="text-2xl sm:text-3xl font-extrabold mb-2">
-            Termin buchen
-          </h1>
-          <p className="text-white/70 text-sm max-w-md">
-            Wähle einen freien Termin im Kalender und fülle das Formular aus.
-            Wir melden uns danach bei dir.
-          </p>
-        </div>
-      </div>
+      <section className="bg-white pt-16 pb-14 px-6 text-center border-b border-[#e0ede7]">
+        <p className="text-xs tracking-[0.3em] uppercase text-[#1a5c4a]/60 mb-4">
+          Online-Anmeldung
+        </p>
+        <h2 className="text-4xl sm:text-5xl font-bold tracking-[0.08em] uppercase text-[#1a5c4a] mb-5">
+          Termin buchen
+        </h2>
+        <p className="text-[#1a5c4a]/60 text-sm tracking-wide max-w-md mx-auto leading-relaxed">
+          Wähle einen freien Termin im Kalender und fülle das Formular aus.
+          <br className="hidden sm:block" />
+          Wir melden uns danach persönlich bei dir.
+        </p>
+      </section>
 
       {/* Booking */}
       <BuchungsSeite slots={slotsWithPlaetze} />
 
       {/* Footer */}
-      <footer className="border-t border-gray-100 mt-16 py-6 px-4 text-center text-xs text-gray-400">
-        © {new Date().getFullYear()} Einfach Lernen Pongau
+      <footer className="border-t border-[#e0ede7] mt-24 py-8 px-6 text-center">
+        <p className="text-[10px] tracking-[0.25em] uppercase text-[#1a5c4a]/40">
+          © {new Date().getFullYear()} Einfach Lernen Pongau
+        </p>
       </footer>
     </div>
   );
