@@ -53,8 +53,9 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json(slot, { status: 201 });
   } catch (e) {
-    console.error("createSlot:", e);
-    return NextResponse.json({ error: "Datenbankfehler. SQL-Tabellen prüfen." }, { status: 500 });
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("createSlot error:", msg);
+    return NextResponse.json({ error: `DB-Fehler: ${msg}` }, { status: 500 });
   }
 }
 
