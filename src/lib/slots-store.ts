@@ -1,18 +1,117 @@
 /**
- * In-Memory Datenspeicher – funktioniert sofort ohne Datenbank.
- * Daten gehen bei Server-Neustart verloren.
+ * Datenzugriffs-Schicht für Zeitslots und Buchungen.
  *
- * Supabase-Integration: Ersetze die Funktionen unten durch
- * Supabase-Aufrufe (gleiche Signaturen bleiben erhalten).
+ * Wenn NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY gesetzt sind,
+ * werden alle Daten in Supabase gespeichert.
+ * Andernfalls läuft alles im In-Memory-Speicher (Demo-Modus).
  *
- * Supabase-Tabellen:
- *   zeitslots (id, titel, beschreibung, datum, uhrzeit_von, uhrzeit_bis, max_teilnehmer, freigegeben, erstellt_am)
- *   buchungen  (id, zeitslot_id, vorname, nachname, alter, schulstufe, telefon, email, nachricht, erstellt_am)
+ * Benötigte Supabase-Tabellen:
+ *   zeitslots (id uuid PK, titel text, beschreibung text, datum date,
+ *              uhrzeit_von text, uhrzeit_bis text, max_teilnehmer int,
+ *              freigegeben bool default false, erstellt_am timestamptz default now())
+ *
+ *   buchungen (id uuid PK, zeitslot_id uuid, vorname text, nachname text,
+ *              email text, telefon text, name_kind text, schulstufe text,
+ *              kind_staerken text, kind_lernen text, erstellt_am timestamptz default now())
  */
 
 import { Buchung, Zeitslot } from "@/types/buchung";
 
-// ── Demo-Daten (ab heute + ein paar Wochen) ─────────────────────────────────
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+function isConfigured(): boolean {
+  return Boolean(SUPABASE_URL && SUPABASE_KEY);
+}
+
+async function sfetch(path: string, options: RequestInit = {}): Promise<Response> {
+  const url = `${SUPABASE_URL}/rest/v1${path}`;
+  return fetch(url, {
+    ...options,
+    headers: {
+      apikey: SUPABASE_KEY!,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+      Prefer: "return=representation",
+      ...(options.headers as Record<string, string>),
+    },
+    cache: "no-store",
+  });
+}
+
+// ── Supabase Slot-Operationen ─────────────────────────────────────────────────
+
+async function sbGetAlleSlots(): Promise<Zeitslot[]> {
+  const res = await sfetch("/zeitslots?order=datum.asc,uhrzeit_von.asc&select=*");
+  if (!res.ok) throw new Error("Fehler beim Laden der Slots");
+  return res.json();
+}
+
+async function sbGetSlot(id: string): Promise<Zeitslot | null> {
+  const res = await sfetch(`/zeitslots?id=eq.${id}&select=*`);
+  if (!res.ok) return null;
+  const data: Zeitslot[] = await res.json();
+  return data[0] ?? null;
+}
+
+async function sbCreateSlot(data: Omit<Zeitslot, "id" | "erstellt_am">): Promise<Zeitslot> {
+  const res = await sfetch("/zeitslots", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error("Fehler beim Erstellen des Slots");
+  const created: Zeitslot[] = await res.json();
+  return created[0];
+}
+
+async function sbUpdateSlot(id: string, patch: Partial<Zeitslot>): Promise<Zeitslot | null> {
+  const res = await sfetch(`/zeitslots?id=eq.${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) return null;
+  const updated: Zeitslot[] = await res.json();
+  return updated[0] ?? null;
+}
+
+async function sbDeleteSlot(id: string): Promise<boolean> {
+  const res = await sfetch(`/zeitslots?id=eq.${id}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" },
+  });
+  return res.ok;
+}
+
+// ── Supabase Buchungs-Operationen ─────────────────────────────────────────────
+
+async function sbGetAlleBuchungen(): Promise<Buchung[]> {
+  const res = await sfetch("/buchungen?order=erstellt_am.desc&select=*");
+  if (!res.ok) throw new Error("Fehler beim Laden der Buchungen");
+  return res.json();
+}
+
+async function sbGetBuchungenFuerSlot(slotId: string): Promise<Buchung[]> {
+  const res = await sfetch(`/buchungen?zeitslot_id=eq.${slotId}&select=*`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+async function sbCreateBuchung(data: Omit<Buchung, "id" | "erstellt_am">): Promise<Buchung> {
+  const res = await sfetch("/buchungen", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err);
+  }
+  const created: Buchung[] = await res.json();
+  return created[0];
+}
+
+// ── In-Memory Demo-Store ──────────────────────────────────────────────────────
+
 function demoSlots(): Zeitslot[] {
   const heute = new Date();
   const mkDatum = (offsetTage: number) => {
@@ -20,7 +119,6 @@ function demoSlots(): Zeitslot[] {
     d.setDate(d.getDate() + offsetTage);
     return d.toISOString().split("T")[0];
   };
-
   return [
     {
       id: "s1",
@@ -53,40 +151,9 @@ function demoSlots(): Zeitslot[] {
       freigegeben: true,
       erstellt_am: new Date().toISOString(),
     },
-    {
-      id: "s4",
-      titel: "Matura-Vorbereitung Mathematik",
-      datum: mkDatum(7),
-      uhrzeit_von: "09:00",
-      uhrzeit_bis: "11:00",
-      max_teilnehmer: 4,
-      freigegeben: false,
-      erstellt_am: new Date().toISOString(),
-    },
-    {
-      id: "s5",
-      titel: "Nachhilfe Mathematik",
-      datum: mkDatum(9),
-      uhrzeit_von: "15:00",
-      uhrzeit_bis: "16:30",
-      max_teilnehmer: 3,
-      freigegeben: true,
-      erstellt_am: new Date().toISOString(),
-    },
-    {
-      id: "s6",
-      titel: "Lerncoaching",
-      datum: mkDatum(10),
-      uhrzeit_von: "18:00",
-      uhrzeit_bis: "19:00",
-      max_teilnehmer: 1,
-      freigegeben: true,
-      erstellt_am: new Date().toISOString(),
-    },
   ];
 }
 
-// Singleton-Store
 declare global {
   // eslint-disable-next-line no-var
   var __slotsStore: Map<string, Zeitslot> | undefined;
@@ -108,33 +175,34 @@ function getBuchungenMap(): Map<string, Buchung> {
   return global.__buchungenStore;
 }
 
-// ── Slot-Operationen ─────────────────────────────────────────────────────────
+// ── Öffentliche API (alle Funktionen async) ───────────────────────────────────
 
-export function getAlleSlots(): Zeitslot[] {
+export async function getAlleSlots(): Promise<Zeitslot[]> {
+  if (isConfigured()) return sbGetAlleSlots();
   return Array.from(getSlotsMap().values()).sort(
     (a, b) => a.datum.localeCompare(b.datum) || a.uhrzeit_von.localeCompare(b.uhrzeit_von)
   );
 }
 
-export function getFreigegebeneSlots(): Zeitslot[] {
-  return getAlleSlots().filter((s) => s.freigegeben);
+export async function getFreigegebeneSlots(): Promise<Zeitslot[]> {
+  const slots = await getAlleSlots();
+  return slots.filter((s) => s.freigegeben);
 }
 
-export function getSlot(id: string): Zeitslot | null {
+export async function getSlot(id: string): Promise<Zeitslot | null> {
+  if (isConfigured()) return sbGetSlot(id);
   return getSlotsMap().get(id) ?? null;
 }
 
-export function createSlot(data: Omit<Zeitslot, "id" | "erstellt_am">): Zeitslot {
-  const slot: Zeitslot = {
-    ...data,
-    id: crypto.randomUUID(),
-    erstellt_am: new Date().toISOString(),
-  };
+export async function createSlot(data: Omit<Zeitslot, "id" | "erstellt_am">): Promise<Zeitslot> {
+  if (isConfigured()) return sbCreateSlot(data);
+  const slot: Zeitslot = { ...data, id: crypto.randomUUID(), erstellt_am: new Date().toISOString() };
   getSlotsMap().set(slot.id, slot);
   return slot;
 }
 
-export function updateSlot(id: string, patch: Partial<Zeitslot>): Zeitslot | null {
+export async function updateSlot(id: string, patch: Partial<Zeitslot>): Promise<Zeitslot | null> {
+  if (isConfigured()) return sbUpdateSlot(id, patch);
   const existing = getSlotsMap().get(id);
   if (!existing) return null;
   const updated = { ...existing, ...patch, id };
@@ -142,33 +210,38 @@ export function updateSlot(id: string, patch: Partial<Zeitslot>): Zeitslot | nul
   return updated;
 }
 
-export function deleteSlot(id: string): boolean {
+export async function deleteSlot(id: string): Promise<boolean> {
+  if (isConfigured()) return sbDeleteSlot(id);
   return getSlotsMap().delete(id);
 }
 
-// ── Buchungs-Operationen ─────────────────────────────────────────────────────
-
-export function getAlleBuchungen(): Buchung[] {
+export async function getAlleBuchungen(): Promise<Buchung[]> {
+  if (isConfigured()) return sbGetAlleBuchungen();
   return Array.from(getBuchungenMap().values()).sort(
     (a, b) => b.erstellt_am.localeCompare(a.erstellt_am)
   );
 }
 
-export function getBuchungenFuerSlot(slotId: string): Buchung[] {
-  return getAlleBuchungen().filter((b) => b.zeitslot_id === slotId);
+export async function getBuchungenFuerSlot(slotId: string): Promise<Buchung[]> {
+  if (isConfigured()) return sbGetBuchungenFuerSlot(slotId);
+  return (await getAlleBuchungen()).filter((b) => b.zeitslot_id === slotId);
 }
 
-export function countBuchungenFuerSlot(slotId: string): number {
-  return getBuchungenFuerSlot(slotId).length;
+export async function countBuchungenFuerSlot(slotId: string): Promise<number> {
+  return (await getBuchungenFuerSlot(slotId)).length;
 }
 
-export function createBuchung(data: Omit<Buchung, "id" | "erstellt_am">): Buchung | { error: string } {
-  const slot = getSlot(data.zeitslot_id);
+export async function createBuchung(
+  data: Omit<Buchung, "id" | "erstellt_am">
+): Promise<Buchung | { error: string }> {
+  const slot = await getSlot(data.zeitslot_id);
   if (!slot) return { error: "Zeitslot nicht gefunden." };
   if (!slot.freigegeben) return { error: "Dieser Zeitslot ist nicht verfügbar." };
 
-  const belegt = countBuchungenFuerSlot(slot.id);
+  const belegt = await countBuchungenFuerSlot(slot.id);
   if (belegt >= slot.max_teilnehmer) return { error: "Dieser Zeitslot ist bereits ausgebucht." };
+
+  if (isConfigured()) return sbCreateBuchung(data);
 
   const buchung: Buchung = {
     ...data,
@@ -179,8 +252,9 @@ export function createBuchung(data: Omit<Buchung, "id" | "erstellt_am">): Buchun
   return buchung;
 }
 
-export function getFreiePlaetze(slotId: string): number {
-  const slot = getSlot(slotId);
+export async function getFreiePlaetze(slotId: string): Promise<number> {
+  const slot = await getSlot(slotId);
   if (!slot) return 0;
-  return slot.max_teilnehmer - countBuchungenFuerSlot(slotId);
+  const belegt = await countBuchungenFuerSlot(slotId);
+  return slot.max_teilnehmer - belegt;
 }

@@ -2,8 +2,8 @@ export interface Zeitslot {
   id: string;
   titel: string;
   beschreibung?: string;
-  datum: string;           // ISO date string "YYYY-MM-DD"
-  uhrzeit_von: string;     // "HH:MM"
+  datum: string;
+  uhrzeit_von: string;
   uhrzeit_bis: string;
   max_teilnehmer: number;
   freigegeben: boolean;
@@ -15,11 +15,12 @@ export interface Buchung {
   zeitslot_id: string;
   vorname: string;
   nachname: string;
-  alter: number;
-  schulstufe: string;
-  telefon: string;
   email: string;
-  nachricht?: string;
+  telefon: string;
+  name_kind: string;
+  schulstufe: string;
+  kind_staerken: string;
+  kind_lernen: string;
   erstellt_am: string;
 }
 

@@ -5,7 +5,7 @@ import {
   createSlot,
   updateSlot,
   deleteSlot,
-  getFreiePlaetze,
+  countBuchungenFuerSlot,
 } from "@/lib/slots-store";
 
 async function guard() {
@@ -19,11 +19,14 @@ export async function GET() {
   const err = await guard();
   if (err) return err;
 
-  const slots = getAlleSlots().map((s) => ({
-    ...s,
-    freie_plaetze: getFreiePlaetze(s.id),
-  }));
-  return NextResponse.json(slots);
+  const slots = await getAlleSlots();
+  const slotsWithPlaetze = await Promise.all(
+    slots.map(async (s) => ({
+      ...s,
+      freie_plaetze: s.max_teilnehmer - (await countBuchungenFuerSlot(s.id)),
+    }))
+  );
+  return NextResponse.json(slotsWithPlaetze);
 }
 
 export async function POST(req: NextRequest) {
@@ -38,7 +41,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Pflichtfelder fehlen." }, { status: 400 });
   }
 
-  const slot = createSlot({
+  const slot = await createSlot({
     titel,
     beschreibung,
     datum,
@@ -58,7 +61,7 @@ export async function PATCH(req: NextRequest) {
   const { id, ...patch } = body;
   if (!id) return NextResponse.json({ error: "ID fehlt." }, { status: 400 });
 
-  const updated = updateSlot(id, patch);
+  const updated = await updateSlot(id, patch);
   if (!updated) return NextResponse.json({ error: "Slot nicht gefunden." }, { status: 404 });
   return NextResponse.json(updated);
 }
@@ -70,7 +73,7 @@ export async function DELETE(req: NextRequest) {
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: "ID fehlt." }, { status: 400 });
 
-  const ok = deleteSlot(id);
+  const ok = await deleteSlot(id);
   if (!ok) return NextResponse.json({ error: "Slot nicht gefunden." }, { status: 404 });
   return NextResponse.json({ success: true });
 }

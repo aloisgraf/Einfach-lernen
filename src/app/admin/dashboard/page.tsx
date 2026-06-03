@@ -1,12 +1,11 @@
 import AdminLayout from "@/components/AdminLayout";
-import { getAlleSlots, getAlleBuchungen, getFreiePlaetze } from "@/lib/slots-store";
+import { getAlleSlots, getAlleBuchungen, countBuchungenFuerSlot } from "@/lib/slots-store";
 import { CalendarClock, Users, CheckCircle2, Clock } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
-export default function DashboardPage() {
-  const slots = getAlleSlots();
-  const buchungen = getAlleBuchungen();
+export default async function DashboardPage() {
+  const [slots, buchungen] = await Promise.all([getAlleSlots(), getAlleBuchungen()]);
 
   const freigegeben = slots.filter((s) => s.freigegeben).length;
   const gesamt = slots.length;
@@ -17,6 +16,14 @@ export default function DashboardPage() {
   const naechsteSlots = slots
     .filter((s) => s.freigegeben && s.datum >= heuteStr)
     .slice(0, 5);
+
+  const freibePlaetzeMap = new Map<string, number>();
+  await Promise.all(
+    naechsteSlots.map(async (s) => {
+      const belegt = await countBuchungenFuerSlot(s.id);
+      freibePlaetzeMap.set(s.id, s.max_teilnehmer - belegt);
+    })
+  );
 
   const neueBuchungen = buchungen.slice(0, 5);
 
@@ -33,7 +40,6 @@ export default function DashboardPage() {
         <h1 className="text-2xl font-extrabold text-[#1a1a2e] mb-1">Dashboard</h1>
         <p className="text-gray-400 text-sm mb-8">Willkommen zurück!</p>
 
-        {/* Stats */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
           {stats.map(({ icon: Icon, label, value, sub, farbe }) => (
             <div key={label} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
@@ -48,7 +54,6 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
-          {/* Nächste Termine */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <h2 className="font-bold text-[#1a1a2e] mb-4">Nächste Termine</h2>
             {naechsteSlots.length === 0 ? (
@@ -56,7 +61,7 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-3">
                 {naechsteSlots.map((slot) => {
-                  const frei = getFreiePlaetze(slot.id);
+                  const frei = freibePlaetzeMap.get(slot.id) ?? 0;
                   return (
                     <div key={slot.id} className="flex items-center justify-between gap-3">
                       <div>
@@ -82,7 +87,6 @@ export default function DashboardPage() {
             )}
           </div>
 
-          {/* Neue Buchungen */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
             <h2 className="font-bold text-[#1a1a2e] mb-4">Letzte Buchungen</h2>
             {neueBuchungen.length === 0 ? (
@@ -92,9 +96,7 @@ export default function DashboardPage() {
                 {neueBuchungen.map((b) => (
                   <div key={b.id} className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-sm text-[#1a1a2e]">
-                        {b.vorname} {b.nachname}
-                      </p>
+                      <p className="font-semibold text-sm text-[#1a1a2e]">{b.name_kind}</p>
                       <p className="text-xs text-gray-400">{b.schulstufe} · {b.email}</p>
                     </div>
                     <span className="text-xs text-gray-400 whitespace-nowrap">

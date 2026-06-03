@@ -6,18 +6,19 @@ const schema = z.object({
   zeitslot_id: z.string().min(1),
   vorname: z.string().min(2),
   nachname: z.string().min(2),
-  alter: z.number().int().min(5).max(99),
-  schulstufe: z.string().min(1),
-  telefon: z.string().min(7),
   email: z.string().email(),
-  nachricht: z.string().optional(),
+  telefon: z.string().min(7),
+  name_kind: z.string().min(2),
+  schulstufe: z.string().min(1),
+  kind_staerken: z.string().min(5),
+  kind_lernen: z.string().min(5),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const data = schema.parse(body);
-    const result = createBuchung(data);
+    const result = await createBuchung(data);
 
     if ("error" in result) {
       return NextResponse.json({ error: result.error }, { status: 409 });
