@@ -10,7 +10,7 @@ const raleway = Raleway({
 });
 
 export const metadata: Metadata = {
-  title: "Einfach Lernen Pongau | Termin buchen",
+  title: "Termin buchen | Einfach Lernen Pongau",
   description: "Nachhilfe & Lernförderung im Pongau – jetzt Termin buchen.",
 };
 
@@ -21,7 +21,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de" className={raleway.variable}>
-      <body className="min-h-screen antialiased font-[family-name:var(--font-raleway)]">
+      <body
+        className="min-h-screen antialiased"
+        style={{ fontFamily: "var(--font-raleway), sans-serif" }}
+      >
         {children}
       </body>
     </html>

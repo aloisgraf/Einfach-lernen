@@ -22,49 +22,81 @@ export default async function Home() {
   }));
 
   return (
-    <div className="min-h-screen bg-[#f5f8f6]">
+    <div className="min-h-screen" style={{ background: "#f4f6f5" }}>
 
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-4xl mx-auto w-full px-6 py-5 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-[#1a5c4a]">Einfach Lernen</h1>
-            <p className="text-xs text-gray-400 mt-0.5">Nachhilfe &amp; Lernförderung · Pongau</p>
+      <header style={{ background: "#fff", borderBottom: "1px solid #e8eceb" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 24px" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
+            <div>
+              <span style={{ fontSize: 18, fontWeight: 700, color: "#1a5c4a", letterSpacing: 0.3 }}>
+                Einfach Lernen
+              </span>
+              <span style={{ fontSize: 13, color: "#9cac9c", marginLeft: 8, fontWeight: 400 }}>
+                Pongau
+              </span>
+            </div>
+            <a
+              href="/admin/login"
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                color: "#1a5c4a",
+                border: "1.5px solid #1a5c4a",
+                borderRadius: 8,
+                padding: "7px 16px",
+                textDecoration: "none",
+                transition: "all 0.15s",
+              }}
+              onMouseOver={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "#1a5c4a";
+                (e.currentTarget as HTMLElement).style.color = "#fff";
+              }}
+              onMouseOut={(e) => {
+                (e.currentTarget as HTMLElement).style.background = "transparent";
+                (e.currentTarget as HTMLElement).style.color = "#1a5c4a";
+              }}
+            >
+              Admin
+            </a>
           </div>
-          <a
-            href="/admin/login"
-            className="text-xs font-semibold text-[#1a5c4a] border border-[#1a5c4a]/30 px-4 py-2 rounded-lg hover:bg-[#1a5c4a] hover:text-white transition-colors"
-          >
-            Admin-Login
-          </a>
         </div>
-        <div className="h-0.5 bg-[#1a5c4a]" />
       </header>
 
       {/* Hero */}
-      <section className="bg-white border-b border-gray-200 py-14 px-6">
-        <div className="max-w-4xl mx-auto w-full text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold text-[#1a5c4a] mb-3">
+      <div style={{ background: "#fff", borderBottom: "1px solid #e8eceb", padding: "52px 24px 48px" }}>
+        <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
+          <div style={{
+            display: "inline-block",
+            background: "#eaf4ef",
+            color: "#1a5c4a",
+            fontSize: 12,
+            fontWeight: 600,
+            borderRadius: 20,
+            padding: "5px 14px",
+            marginBottom: 20,
+            letterSpacing: 0.5,
+          }}>
+            Online-Anmeldung
+          </div>
+          <h1 style={{ fontSize: 40, fontWeight: 800, color: "#111827", margin: 0, lineHeight: 1.15 }}>
             Termin buchen
-          </h2>
-          <p className="text-gray-500 text-sm max-w-sm mx-auto leading-relaxed">
-            Wähle einen freien Termin und fülle das Formular aus.
-            Wir melden uns danach persönlich bei dir.
+          </h1>
+          <p style={{ fontSize: 15, color: "#6b7280", marginTop: 14, lineHeight: 1.7, maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}>
+            Wähle einen freien Termin im Kalender, fülle das Formular aus – und wir melden uns persönlich bei dir.
           </p>
         </div>
-      </section>
+      </div>
 
-      {/* Booking */}
-      <div className="max-w-4xl mx-auto w-full">
+      {/* Content */}
+      <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 24px" }}>
         <BuchungsSeite slots={slotsWithPlaetze} />
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 mt-16 py-6 px-6 text-center">
-        <p className="text-xs text-gray-400">
-          © {new Date().getFullYear()} Einfach Lernen Pongau
-        </p>
-      </footer>
+      <div style={{ textAlign: "center", padding: "48px 24px 32px", color: "#9ca3af", fontSize: 12 }}>
+        © {new Date().getFullYear()} Einfach Lernen Pongau
+      </div>
     </div>
   );
 }

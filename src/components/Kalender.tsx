@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { Zeitslot } from "@/types/buchung";
 
 interface Props {
@@ -12,10 +11,7 @@ interface Props {
 }
 
 const WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-const MONATE = [
-  "Jänner", "Februar", "März", "April", "Mai", "Juni",
-  "Juli", "August", "September", "Oktober", "November", "Dezember",
-];
+const MONATE = ["Jänner", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
 export default function Kalender({ slots, ausgewaehlt, onSlotWaehlen }: Props) {
   const heute = new Date();
@@ -23,22 +19,12 @@ export default function Kalender({ slots, ausgewaehlt, onSlotWaehlen }: Props) {
   const [jahr, setJahr] = useState(heute.getFullYear());
   const [gewaehlterTag, setGewaehlterTag] = useState<string | null>(null);
 
-  function prevMonat() {
-    if (monat === 0) { setMonat(11); setJahr(j => j - 1); }
-    else setMonat(m => m - 1);
-  }
-  function nextMonat() {
-    if (monat === 11) { setMonat(0); setJahr(j => j + 1); }
-    else setMonat(m => m + 1);
-  }
+  function prevMonat() { monat === 0 ? (setMonat(11), setJahr(j => j - 1)) : setMonat(m => m - 1); }
+  function nextMonat() { monat === 11 ? (setMonat(0), setJahr(j => j + 1)) : setMonat(m => m + 1); }
 
-  const ersterTag = new Date(jahr, monat, 1);
-  const startOffset = (ersterTag.getDay() + 6) % 7;
+  const startOffset = (new Date(jahr, monat, 1).getDay() + 6) % 7;
   const tageImMonat = new Date(jahr, monat + 1, 0).getDate();
-  const tage: (number | null)[] = [
-    ...Array(startOffset).fill(null),
-    ...Array.from({ length: tageImMonat }, (_, i) => i + 1),
-  ];
+  const tage: (number | null)[] = [...Array(startOffset).fill(null), ...Array.from({ length: tageImMonat }, (_, i) => i + 1)];
 
   const slotsByDate = new Map<string, (Zeitslot & { freie_plaetze: number })[]>();
   for (const slot of slots) {
@@ -52,68 +38,82 @@ export default function Kalender({ slots, ausgewaehlt, onSlotWaehlen }: Props) {
   }
 
   function istVergangenheit(tag: number) {
-    const d = new Date(jahr, monat, tag);
-    return d < new Date(heute.getFullYear(), heute.getMonth(), heute.getDate());
+    return new Date(jahr, monat, tag) < new Date(heute.getFullYear(), heute.getMonth(), heute.getDate());
   }
 
   const tagSlots = gewaehlterTag ? (slotsByDate.get(gewaehlterTag) ?? []) : [];
+  const heuteStr = heute.toISOString().split("T")[0];
 
   return (
-    <div className="space-y-5">
+    <div>
       {/* Navigation */}
-      <div className="flex items-center justify-between">
-        <button onClick={prevMonat} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#1a5c4a] transition-colors">
-          <ChevronLeft className="w-4 h-4" />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+        <button onClick={prevMonat} style={{ border: "none", background: "#f3f4f6", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#6b7280" }}>
+          <ChevronLeft style={{ width: 16, height: 16 }} />
         </button>
-        <span className="text-sm font-bold text-[#1a5c4a]">
+        <span style={{ fontSize: 14, fontWeight: 700, color: "#111827", fontFamily: "inherit" }}>
           {MONATE[monat]} {jahr}
         </span>
-        <button onClick={nextMonat} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-[#1a5c4a] transition-colors">
-          <ChevronRight className="w-4 h-4" />
+        <button onClick={nextMonat} style={{ border: "none", background: "#f3f4f6", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#6b7280" }}>
+          <ChevronRight style={{ width: 16, height: 16 }} />
         </button>
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-7 gap-1">
-        {WOCHENTAGE.map((wt) => (
-          <div key={wt} className="text-center text-[11px] font-semibold text-gray-400 py-1">
-            {wt}
-          </div>
+      {/* Wochentage */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4, marginBottom: 6 }}>
+        {WOCHENTAGE.map(wt => (
+          <div key={wt} style={{ textAlign: "center", fontSize: 11, fontWeight: 700, color: "#9ca3af", padding: "4px 0" }}>{wt}</div>
         ))}
+      </div>
+
+      {/* Tage */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
         {tage.map((tag, i) => {
           if (!tag) return <div key={`e-${i}`} />;
           const dateStr = mkDateStr(tag);
           const tagesSlots = slotsByDate.get(dateStr) ?? [];
-          const hatFrei = tagesSlots.some((s) => s.freie_plaetze > 0);
+          const hatFrei = tagesSlots.some(s => s.freie_plaetze > 0);
           const hatSlots = tagesSlots.length > 0;
-          const istHeute = dateStr === heute.toISOString().split("T")[0];
+          const istHeute = dateStr === heuteStr;
           const istGewählt = gewaehlterTag === dateStr;
           const vergangen = istVergangenheit(tag);
+
+          let bg = "transparent";
+          let color = "#374151";
+          let cursor = "default";
+          let fontWeight = 400;
+
+          if (vergangen) { color = "#d1d5db"; }
+          else if (istGewählt) { bg = "#1a5c4a"; color = "#fff"; fontWeight = 700; cursor = "pointer"; }
+          else if (hatFrei) { bg = "#eaf4ef"; color = "#1a5c4a"; cursor = "pointer"; fontWeight = 600; }
+          else if (hatSlots) { bg = "#fef2f2"; color = "#fca5a5"; cursor = "not-allowed"; }
 
           return (
             <button
               key={dateStr}
-              onClick={() => {
-                if (!vergangen && hatSlots) setGewaehlterTag(istGewählt ? null : dateStr);
-              }}
+              onClick={() => { if (!vergangen && hatSlots) setGewaehlterTag(istGewählt ? null : dateStr); }}
               disabled={vergangen || !hatSlots}
-              className={cn(
-                "relative aspect-square rounded-lg flex flex-col items-center justify-center text-xs font-semibold transition-all",
-                istGewählt ? "bg-[#1a5c4a] text-white"
-                  : hatFrei && !vergangen ? "bg-[#eaf4ef] text-[#1a5c4a] hover:bg-[#d4ebdf] cursor-pointer"
-                  : hatSlots && !vergangen ? "bg-red-50 text-red-400 cursor-not-allowed"
-                  : vergangen ? "text-gray-200"
-                  : "text-gray-300"
-              )}
+              style={{
+                aspectRatio: "1",
+                borderRadius: 8,
+                border: istHeute && !istGewählt ? "1.5px solid #1a5c4a" : "1.5px solid transparent",
+                background: bg,
+                color,
+                fontSize: 13,
+                fontWeight,
+                cursor,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.1s",
+                fontFamily: "inherit",
+                gap: 2,
+              }}
             >
-              {istHeute && !istGewählt && (
-                <span className="absolute top-1 right-1 w-1 h-1 bg-orange-400 rounded-full" />
-              )}
               {tag}
               {hatSlots && !vergangen && (
-                <span className={cn("w-1 h-1 rounded-full mt-0.5",
-                  istGewählt ? "bg-white/60" : hatFrei ? "bg-[#1a5c4a]" : "bg-red-300"
-                )} />
+                <div style={{ width: 4, height: 4, borderRadius: "50%", background: istGewählt ? "rgba(255,255,255,0.6)" : hatFrei ? "#1a5c4a" : "#fca5a5" }} />
               )}
             </button>
           );
@@ -121,60 +121,70 @@ export default function Kalender({ slots, ausgewaehlt, onSlotWaehlen }: Props) {
       </div>
 
       {/* Legende */}
-      <div className="flex items-center gap-4 text-xs text-gray-400">
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-[#eaf4ef] border border-[#1a5c4a]/20" />
+      <div style={{ display: "flex", gap: 16, marginTop: 16, fontSize: 11, color: "#9ca3af" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ width: 10, height: 10, borderRadius: 3, background: "#eaf4ef", border: "1px solid #bbdeca", display: "inline-block" }} />
           Verfügbar
         </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded bg-red-50 border border-red-200" />
+        <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ width: 10, height: 10, borderRadius: 3, background: "#fef2f2", border: "1px solid #fecaca", display: "inline-block" }} />
           Ausgebucht
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ width: 10, height: 10, borderRadius: 3, border: "1.5px solid #1a5c4a", display: "inline-block" }} />
+          Heute
         </span>
       </div>
 
       {/* Zeitslots */}
       {gewaehlterTag && tagSlots.length > 0 && (
-        <div className="border-t border-gray-100 pt-5 space-y-2">
-          <p className="text-xs font-semibold text-gray-500 mb-3">
-            {new Date(gewaehlterTag + "T12:00:00").toLocaleDateString("de-AT", {
-              weekday: "long", day: "numeric", month: "long",
-            })}
+        <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid #f3f4f6" }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: "#9ca3af", marginBottom: 10 }}>
+            {new Date(gewaehlterTag + "T12:00:00").toLocaleDateString("de-AT", { weekday: "long", day: "numeric", month: "long" })}
           </p>
-          {tagSlots.map((slot) => (
-            <button
-              key={slot.id}
-              onClick={() => slot.freie_plaetze > 0 && onSlotWaehlen(slot)}
-              disabled={slot.freie_plaetze === 0}
-              className={cn(
-                "w-full text-left p-4 rounded-xl border-2 transition-all",
-                slot.freie_plaetze === 0
-                  ? "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
-                  : ausgewaehlt === slot.id
-                  ? "border-[#1a5c4a] bg-[#eaf4ef]"
-                  : "border-gray-200 hover:border-[#1a5c4a]/40 hover:bg-gray-50"
-              )}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="font-semibold text-sm text-gray-800">{slot.titel}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">
-                    {slot.uhrzeit_von} – {slot.uhrzeit_bis} Uhr
-                  </p>
-                </div>
-                <span className={cn(
-                  "text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap",
-                  slot.freie_plaetze === 0 ? "bg-red-50 text-red-500"
-                    : slot.freie_plaetze === 1 ? "bg-amber-50 text-amber-600"
-                    : "bg-[#eaf4ef] text-[#1a5c4a]"
-                )}>
-                  {slot.freie_plaetze === 0 ? "Ausgebucht" : `${slot.freie_plaetze} frei`}
-                </span>
-              </div>
-              {ausgewaehlt === slot.id && (
-                <p className="text-[11px] text-[#1a5c4a] font-semibold mt-2">✓ Ausgewählt</p>
-              )}
-            </button>
-          ))}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {tagSlots.map(slot => {
+              const selected = ausgewaehlt === slot.id;
+              const voll = slot.freie_plaetze === 0;
+              return (
+                <button
+                  key={slot.id}
+                  onClick={() => !voll && onSlotWaehlen(slot)}
+                  disabled={voll}
+                  style={{
+                    border: selected ? "2px solid #1a5c4a" : "1.5px solid #e5e7eb",
+                    borderRadius: 10,
+                    padding: "12px 14px",
+                    background: selected ? "#eaf4ef" : voll ? "#fafafa" : "#fff",
+                    cursor: voll ? "not-allowed" : "pointer",
+                    opacity: voll ? 0.55 : 1,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    textAlign: "left",
+                    transition: "all 0.1s",
+                    fontFamily: "inherit",
+                  }}
+                >
+                  <div>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "#111827", margin: 0 }}>{slot.titel}</p>
+                    <p style={{ fontSize: 12, color: "#6b7280", margin: "3px 0 0" }}>{slot.uhrzeit_von} – {slot.uhrzeit_bis} Uhr</p>
+                  </div>
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "4px 10px",
+                    borderRadius: 20,
+                    background: voll ? "#fee2e2" : slot.freie_plaetze === 1 ? "#fef3c7" : "#eaf4ef",
+                    color: voll ? "#dc2626" : slot.freie_plaetze === 1 ? "#d97706" : "#1a5c4a",
+                    whiteSpace: "nowrap",
+                  }}>
+                    {voll ? "Ausgebucht" : `${slot.freie_plaetze} frei`}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
