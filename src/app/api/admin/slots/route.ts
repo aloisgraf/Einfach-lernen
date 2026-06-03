@@ -41,16 +41,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Pflichtfelder fehlen." }, { status: 400 });
   }
 
-  const slot = await createSlot({
-    titel,
-    beschreibung,
-    datum,
-    uhrzeit_von,
-    uhrzeit_bis,
-    max_teilnehmer: Number(max_teilnehmer) || 1,
-    freigegeben: Boolean(freigegeben),
-  });
-  return NextResponse.json(slot, { status: 201 });
+  try {
+    const slot = await createSlot({
+      titel,
+      beschreibung,
+      datum,
+      uhrzeit_von,
+      uhrzeit_bis,
+      max_teilnehmer: Number(max_teilnehmer) || 1,
+      freigegeben: Boolean(freigegeben),
+    });
+    return NextResponse.json(slot, { status: 201 });
+  } catch (e) {
+    console.error("createSlot:", e);
+    return NextResponse.json({ error: "Datenbankfehler. SQL-Tabellen prüfen." }, { status: 500 });
+  }
 }
 
 export async function PATCH(req: NextRequest) {
@@ -61,9 +66,14 @@ export async function PATCH(req: NextRequest) {
   const { id, ...patch } = body;
   if (!id) return NextResponse.json({ error: "ID fehlt." }, { status: 400 });
 
-  const updated = await updateSlot(id, patch);
-  if (!updated) return NextResponse.json({ error: "Slot nicht gefunden." }, { status: 404 });
-  return NextResponse.json(updated);
+  try {
+    const updated = await updateSlot(id, patch);
+    if (!updated) return NextResponse.json({ error: "Slot nicht gefunden." }, { status: 404 });
+    return NextResponse.json(updated);
+  } catch (e) {
+    console.error("updateSlot:", e);
+    return NextResponse.json({ error: "Datenbankfehler. SQL-Tabellen prüfen." }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: NextRequest) {
@@ -73,7 +83,12 @@ export async function DELETE(req: NextRequest) {
   const { id } = await req.json();
   if (!id) return NextResponse.json({ error: "ID fehlt." }, { status: 400 });
 
-  const ok = await deleteSlot(id);
-  if (!ok) return NextResponse.json({ error: "Slot nicht gefunden." }, { status: 404 });
-  return NextResponse.json({ success: true });
+  try {
+    const ok = await deleteSlot(id);
+    if (!ok) return NextResponse.json({ error: "Slot nicht gefunden." }, { status: 404 });
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    console.error("deleteSlot:", e);
+    return NextResponse.json({ error: "Datenbankfehler. SQL-Tabellen prüfen." }, { status: 500 });
+  }
 }

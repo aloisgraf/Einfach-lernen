@@ -96,17 +96,17 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error();
-      router.refresh();
       const saved = await res.json();
+      if (!res.ok) throw new Error(saved.error ?? "Fehler beim Speichern.");
+      router.refresh();
       if (editId) {
         setSlots((prev) => prev.map((s) => s.id === editId ? { ...saved, freie_plaetze: s.freie_plaetze } : s));
       } else {
         setSlots((prev) => [...prev, { ...saved, freie_plaetze: Number(formData.max_teilnehmer) }]);
       }
       setFormOpen(false);
-    } catch {
-      alert("Fehler beim Speichern.");
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Fehler beim Speichern.");
     } finally {
       setLoading(false);
     }
