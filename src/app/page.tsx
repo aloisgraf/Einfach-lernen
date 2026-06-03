@@ -22,56 +22,48 @@ export default async function Home() {
   }));
 
   return (
-    <div className="min-h-screen bg-[#f7faf8]">
+    <div className="min-h-screen bg-[#f5f8f6]">
 
       {/* Header */}
-      <header className="bg-white border-b border-[#e0ede7]">
-        <div className="max-w-5xl mx-auto px-6 py-6 flex items-center justify-between">
+      <header className="bg-white border-b border-gray-200 shadow-sm">
+        <div className="max-w-4xl mx-auto w-full px-6 py-5 flex items-center justify-between">
           <div>
-            <p className="text-[10px] tracking-[0.25em] uppercase text-[#1a5c4a]/50 mb-0.5">
-              Nachhilfe &amp; Lernförderung
-            </p>
-            <h1 className="text-2xl font-bold tracking-[0.12em] uppercase text-[#1a5c4a]">
-              Einfach Lernen
-            </h1>
+            <h1 className="text-xl font-bold text-[#1a5c4a]">Einfach Lernen</h1>
+            <p className="text-xs text-gray-400 mt-0.5">Nachhilfe &amp; Lernförderung · Pongau</p>
           </div>
-          <div className="hidden sm:block text-right">
-            <p className="text-xs text-[#1a5c4a]/50 tracking-wide">Pongau</p>
-          </div>
+          <a
+            href="/admin/login"
+            className="text-xs font-semibold text-[#1a5c4a] border border-[#1a5c4a]/30 px-4 py-2 rounded-lg hover:bg-[#1a5c4a] hover:text-white transition-colors"
+          >
+            Admin-Login
+          </a>
         </div>
-        {/* Logo-style underline */}
-        <div className="h-[2px] bg-gradient-to-r from-transparent via-[#1a5c4a] to-transparent" />
+        <div className="h-0.5 bg-[#1a5c4a]" />
       </header>
 
       {/* Hero */}
-      <section className="bg-white pt-16 pb-14 px-6 text-center border-b border-[#e0ede7]">
-        <p className="text-xs tracking-[0.3em] uppercase text-[#1a5c4a]/60 mb-4">
-          Online-Anmeldung
-        </p>
-        <h2 className="text-4xl sm:text-5xl font-bold tracking-[0.08em] uppercase text-[#1a5c4a] mb-5">
-          Termin buchen
-        </h2>
-        <p className="text-[#1a5c4a]/60 text-sm tracking-wide max-w-md mx-auto leading-relaxed">
-          Wähle einen freien Termin im Kalender und fülle das Formular aus.
-          <br className="hidden sm:block" />
-          Wir melden uns danach persönlich bei dir.
-        </p>
+      <section className="bg-white border-b border-gray-200 py-14 px-6">
+        <div className="max-w-4xl mx-auto w-full text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold text-[#1a5c4a] mb-3">
+            Termin buchen
+          </h2>
+          <p className="text-gray-500 text-sm max-w-sm mx-auto leading-relaxed">
+            Wähle einen freien Termin und fülle das Formular aus.
+            Wir melden uns danach persönlich bei dir.
+          </p>
+        </div>
       </section>
 
       {/* Booking */}
-      <BuchungsSeite slots={slotsWithPlaetze} />
+      <div className="max-w-4xl mx-auto w-full">
+        <BuchungsSeite slots={slotsWithPlaetze} />
+      </div>
 
       {/* Footer */}
-      <footer className="border-t border-[#e0ede7] mt-24 py-8 px-6 text-center">
-        <p className="text-[10px] tracking-[0.25em] uppercase text-[#1a5c4a]/40 mb-3">
+      <footer className="border-t border-gray-200 mt-16 py-6 px-6 text-center">
+        <p className="text-xs text-gray-400">
           © {new Date().getFullYear()} Einfach Lernen Pongau
         </p>
-        <a
-          href="/admin/login"
-          className="text-[10px] tracking-widest uppercase text-[#1a5c4a]/25 hover:text-[#1a5c4a]/50 transition-colors"
-        >
-          Admin
-        </a>
       </footer>
     </div>
   );

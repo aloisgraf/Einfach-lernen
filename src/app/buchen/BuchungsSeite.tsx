@@ -39,38 +39,26 @@ function formatDatum(datum: string) {
   });
 }
 
-const inputClass =
-  "w-full px-4 py-3 rounded-xl border border-[#d0e6dc] bg-white text-sm text-[#1a2e26] " +
-  "placeholder:text-[#1a5c4a]/30 focus:outline-none focus:ring-2 focus:ring-[#1a5c4a]/30 " +
-  "focus:border-[#1a5c4a] transition-colors disabled:bg-[#f7faf8] disabled:cursor-not-allowed";
+const inputCls =
+  "w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm text-gray-800 " +
+  "placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-[#1a5c4a]/25 " +
+  "focus:border-[#1a5c4a] transition-colors disabled:bg-gray-50 disabled:cursor-not-allowed";
 
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
-    <div className="space-y-1.5">
-      <label className="block text-xs font-semibold tracking-widest uppercase text-[#1a5c4a]/60">
-        {label}
-      </label>
+    <div className="space-y-1">
+      <label className="block text-xs font-semibold text-gray-600">{label}</label>
       {children}
       {error && <p className="text-red-500 text-xs">{error}</p>}
     </div>
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function Divider({ label }: { label: string }) {
   return (
-    <div className="flex items-center gap-3 pt-2">
-      <span className="text-[10px] font-bold tracking-[0.25em] uppercase text-[#1a5c4a]/50">
-        {children}
-      </span>
-      <div className="flex-1 h-px bg-[#d0e6dc]" />
+    <div className="flex items-center gap-3 pt-3 pb-1">
+      <span className="text-xs font-semibold text-[#1a5c4a]">{label}</span>
+      <div className="flex-1 h-px bg-gray-100" />
     </div>
   );
 }
@@ -80,12 +68,9 @@ export default function BuchungsSeite({ slots }: Props) {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<FormData>({ resolver: zodResolver(schema) });
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+    resolver: zodResolver(schema),
+  });
 
   async function onSubmit(data: FormData) {
     if (!ausgewaehlterSlot) return;
@@ -115,30 +100,24 @@ export default function BuchungsSeite({ slots }: Props) {
 
   if (status === "success") {
     return (
-      <div className="max-w-lg mx-auto text-center py-24 px-6">
-        <CheckCircle className="w-16 h-16 text-[#1a5c4a] mx-auto mb-6" />
-        <h2 className="text-2xl font-bold tracking-[0.1em] uppercase text-[#1a5c4a] mb-3">
-          Anmeldung erfolgreich
-        </h2>
-        <p className="text-[#1a5c4a]/60 text-sm leading-relaxed mb-8">
-          Deine Anmeldung wurde gespeichert.<br />
-          Wir melden uns in Kürze persönlich bei dir.
+      <div className="text-center py-20 px-6">
+        <CheckCircle className="w-14 h-14 text-[#1a5c4a] mx-auto mb-5" />
+        <h2 className="text-2xl font-bold text-[#1a5c4a] mb-2">Anmeldung erfolgreich!</h2>
+        <p className="text-gray-500 text-sm mb-6 max-w-xs mx-auto">
+          Wir melden uns in Kürze persönlich bei dir zur Bestätigung.
         </p>
         {ausgewaehlterSlot && (
-          <div className="bg-white border border-[#d0e6dc] rounded-2xl p-6 text-sm text-left mb-8">
-            <p className="text-[10px] tracking-[0.25em] uppercase text-[#1a5c4a]/50 mb-3">
-              Gebuchter Termin
-            </p>
+          <div className="inline-block bg-white border border-gray-200 rounded-2xl p-5 text-sm text-left mb-8 min-w-64">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Dein Termin</p>
             <p className="font-bold text-[#1a5c4a]">{ausgewaehlterSlot.titel}</p>
-            <p className="text-[#1a5c4a]/60 mt-1">{formatDatum(ausgewaehlterSlot.datum)}</p>
-            <p className="text-[#1a5c4a]/60">
-              {ausgewaehlterSlot.uhrzeit_von} – {ausgewaehlterSlot.uhrzeit_bis} Uhr
-            </p>
+            <p className="text-gray-500 mt-1">{formatDatum(ausgewaehlterSlot.datum)}</p>
+            <p className="text-gray-500">{ausgewaehlterSlot.uhrzeit_von} – {ausgewaehlterSlot.uhrzeit_bis} Uhr</p>
           </div>
         )}
+        <br />
         <button
           onClick={neueAnmeldung}
-          className="px-8 py-3 bg-[#1a5c4a] text-white text-sm font-semibold tracking-widest uppercase rounded-xl hover:bg-[#154d3e] transition-colors"
+          className="px-7 py-2.5 bg-[#1a5c4a] text-white text-sm font-semibold rounded-xl hover:bg-[#154d3e] transition-colors"
         >
           Weitere Anmeldung
         </button>
@@ -147,17 +126,13 @@ export default function BuchungsSeite({ slots }: Props) {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-16">
-      <div className="grid lg:grid-cols-2 gap-10">
+    <div className="px-6 py-10">
+      <div className="grid lg:grid-cols-2 gap-8">
 
         {/* Kalender */}
-        <div className="bg-white rounded-2xl border border-[#d0e6dc] shadow-sm p-8">
-          <p className="text-[10px] tracking-[0.25em] uppercase text-[#1a5c4a]/50 mb-1">
-            Schritt 1
-          </p>
-          <h3 className="text-lg font-bold tracking-wide text-[#1a5c4a] mb-6">
-            Termin wählen
-          </h3>
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-7">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Schritt 1</p>
+          <h3 className="text-lg font-bold text-[#1a5c4a] mb-6">Termin wählen</h3>
           <Kalender
             slots={slots}
             ausgewaehlt={ausgewaehlterSlot?.id ?? null}
@@ -166,72 +141,60 @@ export default function BuchungsSeite({ slots }: Props) {
         </div>
 
         {/* Formular */}
-        <div
-          className={`bg-white rounded-2xl border shadow-sm transition-all duration-300 ${
-            ausgewaehlterSlot
-              ? "border-[#1a5c4a]/30 opacity-100"
-              : "border-[#d0e6dc] opacity-40 pointer-events-none"
-          }`}
-        >
-          <div className="p-8 border-b border-[#e0ede7]">
-            <p className="text-[10px] tracking-[0.25em] uppercase text-[#1a5c4a]/50 mb-1">
-              Schritt 2
-            </p>
-            <h3 className="text-lg font-bold tracking-wide text-[#1a5c4a] mb-3">
-              Formular ausfüllen
-            </h3>
+        <div className={`bg-white rounded-2xl border shadow-sm transition-all ${
+          ausgewaehlterSlot ? "border-[#1a5c4a]/30" : "border-gray-200 opacity-50 pointer-events-none"
+        }`}>
+          <div className="p-7 border-b border-gray-100">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Schritt 2</p>
+            <h3 className="text-lg font-bold text-[#1a5c4a] mb-3">Formular ausfüllen</h3>
             {ausgewaehlterSlot ? (
               <div className="bg-[#f0f7f3] rounded-xl px-4 py-3 text-sm">
-                <p className="font-bold text-[#1a5c4a]">{ausgewaehlterSlot.titel}</p>
-                <p className="text-[#1a5c4a]/60 text-xs mt-0.5">
-                  {formatDatum(ausgewaehlterSlot.datum)} &middot;{" "}
-                  {ausgewaehlterSlot.uhrzeit_von}–{ausgewaehlterSlot.uhrzeit_bis} Uhr
+                <p className="font-semibold text-[#1a5c4a]">{ausgewaehlterSlot.titel}</p>
+                <p className="text-gray-500 text-xs mt-0.5">
+                  {formatDatum(ausgewaehlterSlot.datum)} · {ausgewaehlterSlot.uhrzeit_von}–{ausgewaehlterSlot.uhrzeit_bis} Uhr
                 </p>
               </div>
             ) : (
-              <p className="text-xs text-[#1a5c4a]/40 tracking-wide">
-                Bitte zuerst einen Termin wählen
-              </p>
+              <p className="text-sm text-gray-400">Bitte zuerst einen Termin wählen</p>
             )}
           </div>
 
-          <div className="p-8 space-y-5">
+          <div className="p-7">
             {status === "error" && (
-              <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-100 text-red-700 rounded-xl text-sm">
+              <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm mb-5">
                 <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 {errorMsg}
               </div>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <Divider label="Ihre Kontaktdaten" />
 
-              <SectionLabel>Ihre Kontaktdaten</SectionLabel>
-
-              <div className="grid grid-cols-2 gap-4">
-                <Field label="Vorname" error={errors.vorname?.message}>
-                  <input {...register("vorname")} className={inputClass} placeholder="Max" />
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Vorname *" error={errors.vorname?.message}>
+                  <input {...register("vorname")} className={inputCls} placeholder="Max" />
                 </Field>
-                <Field label="Nachname" error={errors.nachname?.message}>
-                  <input {...register("nachname")} className={inputClass} placeholder="Mustermann" />
+                <Field label="Nachname *" error={errors.nachname?.message}>
+                  <input {...register("nachname")} className={inputCls} placeholder="Mustermann" />
                 </Field>
               </div>
 
-              <Field label="E-Mail" error={errors.email?.message}>
-                <input {...register("email")} type="email" className={inputClass} placeholder="max@beispiel.at" />
+              <Field label="E-Mail *" error={errors.email?.message}>
+                <input {...register("email")} type="email" className={inputCls} placeholder="max@beispiel.at" />
               </Field>
 
-              <Field label="Telefon" error={errors.telefon?.message}>
-                <input {...register("telefon")} type="tel" className={inputClass} placeholder="+43 660 123 456" />
+              <Field label="Telefon *" error={errors.telefon?.message}>
+                <input {...register("telefon")} type="tel" className={inputCls} placeholder="+43 660 123 456" />
               </Field>
 
-              <SectionLabel>Angaben zum Kind</SectionLabel>
+              <Divider label="Angaben zum Kind" />
 
-              <Field label="Name des Kindes" error={errors.name_kind?.message}>
-                <input {...register("name_kind")} className={inputClass} placeholder="z.B. Anna" />
+              <Field label="Name des Kindes *" error={errors.name_kind?.message}>
+                <input {...register("name_kind")} className={inputCls} placeholder="z.B. Anna" />
               </Field>
 
-              <Field label="Schulstufe" error={errors.schulstufe?.message}>
-                <select {...register("schulstufe")} className={inputClass + " bg-white"}>
+              <Field label="Schulstufe *" error={errors.schulstufe?.message}>
+                <select {...register("schulstufe")} className={inputCls + " bg-white"}>
                   <option value="">Bitte wählen…</option>
                   {schulstufen.map((s) => (
                     <option key={s} value={s}>{s}</option>
@@ -239,52 +202,48 @@ export default function BuchungsSeite({ slots }: Props) {
                 </select>
               </Field>
 
-              <Field label="Was kann mein Kind gut?" error={errors.kind_staerken?.message}>
+              <Field label="Was kann mein Kind gut? *" error={errors.kind_staerken?.message}>
                 <textarea
                   {...register("kind_staerken")}
                   rows={3}
-                  className={inputClass + " resize-none"}
-                  placeholder="z.B. Lesen, kreatives Denken, Englisch…"
+                  className={inputCls + " resize-none"}
+                  placeholder="z.B. Lesen, Englisch, kreatives Denken…"
                 />
               </Field>
 
-              <Field label="Was muss mein Kind noch lernen?" error={errors.kind_lernen?.message}>
+              <Field label="Was muss mein Kind noch lernen? *" error={errors.kind_lernen?.message}>
                 <textarea
                   {...register("kind_lernen")}
                   rows={3}
-                  className={inputClass + " resize-none"}
+                  className={inputCls + " resize-none"}
                   placeholder="z.B. Mathematik, Rechtschreibung…"
                 />
               </Field>
 
-              <div className="pt-2">
-                <label className="flex items-start gap-3 cursor-pointer group">
-                  <input
-                    {...register("datenschutz")}
-                    type="checkbox"
-                    className="mt-0.5 w-4 h-4 accent-[#1a5c4a]"
-                  />
-                  <span className="text-xs text-[#1a5c4a]/50 leading-relaxed group-hover:text-[#1a5c4a]/70 transition-colors">
-                    Ich stimme der Verarbeitung meiner Daten gemäß der Datenschutzerklärung zu.*
-                  </span>
-                </label>
-                {errors.datenschutz && (
-                  <p className="text-red-500 text-xs mt-1 ml-7">{errors.datenschutz.message}</p>
-                )}
-              </div>
+              <label className="flex items-start gap-2.5 cursor-pointer pt-1">
+                <input
+                  {...register("datenschutz")}
+                  type="checkbox"
+                  className="mt-0.5 w-4 h-4 accent-[#1a5c4a]"
+                />
+                <span className="text-xs text-gray-400 leading-relaxed">
+                  Ich stimme der Verarbeitung meiner Daten zu. *
+                </span>
+              </label>
+              {errors.datenschutz && (
+                <p className="text-red-500 text-xs ml-6 -mt-2">{errors.datenschutz.message}</p>
+              )}
 
               <button
                 type="submit"
                 disabled={status === "loading"}
-                className="w-full py-4 bg-[#1a5c4a] text-white text-sm font-bold tracking-[0.15em] uppercase rounded-xl hover:bg-[#154d3e] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
+                className="w-full py-3.5 bg-[#1a5c4a] text-white text-sm font-bold rounded-xl hover:bg-[#154d3e] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 mt-2"
               >
-                {status === "loading" ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Wird gespeichert…</>
-                ) : (
-                  "Jetzt anmelden"
-                )}
+                {status === "loading"
+                  ? <><Loader2 className="w-4 h-4 animate-spin" /> Wird gespeichert…</>
+                  : "Jetzt anmelden"
+                }
               </button>
-
             </form>
           </div>
         </div>
