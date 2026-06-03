@@ -2,12 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Plus, Pencil, Trash2, Eye, EyeOff, X, Check, Loader2,
-  CalendarClock,
-} from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, X, Check, Loader2, CalendarClock } from "lucide-react";
 import { Zeitslot } from "@/types/buchung";
-import { cn } from "@/lib/utils";
 
 interface SlotMitPlaetzen extends Zeitslot {
   freie_plaetze: number;
@@ -25,6 +21,36 @@ const leerFormular = {
   uhrzeit_bis: "",
   max_teilnehmer: "1",
   freigegeben: false,
+};
+
+const card: React.CSSProperties = {
+  background: "#fff",
+  borderRadius: 14,
+  border: "1px solid #e8eceb",
+  boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+};
+
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  padding: "10px 12px",
+  borderRadius: 10,
+  border: "1.5px solid #e5e7eb",
+  fontSize: 13,
+  color: "#111827",
+  background: "#fff",
+  outline: "none",
+  boxSizing: "border-box",
+  fontFamily: "inherit",
+};
+
+const labelStyle: React.CSSProperties = {
+  display: "block",
+  fontSize: 11,
+  fontWeight: 600,
+  color: "#6b7280",
+  marginBottom: 6,
+  textTransform: "uppercase",
+  letterSpacing: "0.05em",
 };
 
 export default function SlotsVerwaltung({ initialSlots }: Props) {
@@ -72,19 +98,11 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
       });
       if (!res.ok) throw new Error();
       router.refresh();
-      // Optimistisches Update
       const saved = await res.json();
       if (editId) {
-        setSlots((prev) =>
-          prev.map((s) =>
-            s.id === editId ? { ...saved, freie_plaetze: s.freie_plaetze } : s
-          )
-        );
+        setSlots((prev) => prev.map((s) => s.id === editId ? { ...saved, freie_plaetze: s.freie_plaetze } : s));
       } else {
-        setSlots((prev) => [
-          ...prev,
-          { ...saved, freie_plaetze: Number(formData.max_teilnehmer) },
-        ]);
+        setSlots((prev) => [...prev, { ...saved, freie_plaetze: Number(formData.max_teilnehmer) }]);
       }
       setFormOpen(false);
     } catch {
@@ -120,11 +138,7 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
         body: JSON.stringify({ id: slot.id, freigegeben: !slot.freigegeben }),
       });
       const updated = await res.json();
-      setSlots((prev) =>
-        prev.map((s) =>
-          s.id === slot.id ? { ...updated, freie_plaetze: s.freie_plaetze } : s
-        )
-      );
+      setSlots((prev) => prev.map((s) => s.id === slot.id ? { ...updated, freie_plaetze: s.freie_plaetze } : s));
     } catch {
       alert("Fehler.");
     } finally {
@@ -134,132 +148,121 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
 
   function formatDatum(datum: string) {
     return new Date(datum + "T12:00:00").toLocaleDateString("de-AT", {
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      year: "numeric",
+      weekday: "short", day: "numeric", month: "short", year: "numeric",
     });
   }
 
+  const canSave = formData.titel && formData.datum && formData.uhrzeit_von && formData.uhrzeit_bis;
+
   return (
-    <div className="p-8">
+    <div style={{ padding: 36 }}>
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 32 }}>
         <div>
-          <h1 className="text-2xl font-extrabold text-[#1a1a2e]">Zeitslots</h1>
-          <p className="text-gray-400 text-sm">{slots.length} Slots gesamt</p>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: "#111827", margin: "0 0 4px" }}>Zeitslots</h1>
+          <p style={{ fontSize: 13, color: "#9ca3af", margin: 0 }}>{slots.length} Slots gesamt</p>
         </div>
         <button
           onClick={openNeu}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#2d6a4f] text-white font-semibold text-sm rounded-xl hover:bg-[#1b4332] transition-colors shadow-sm"
+          style={{
+            display: "flex", alignItems: "center", gap: 8,
+            padding: "10px 18px", background: "#1a5c4a", color: "#fff",
+            border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700,
+            cursor: "pointer", fontFamily: "inherit",
+          }}
         >
-          <Plus className="w-4 h-4" />
+          <Plus style={{ width: 15, height: 15 }} />
           Neuer Slot
         </button>
       </div>
 
-      {/* Tabelle */}
+      {/* Empty state */}
       {slots.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
-          <CalendarClock className="w-12 h-12 text-gray-200 mx-auto mb-4" />
-          <p className="text-gray-400">Noch keine Zeitslots angelegt.</p>
+        <div style={{ ...card, padding: 48, textAlign: "center" }}>
+          <CalendarClock style={{ width: 40, height: 40, color: "#e5e7eb", margin: "0 auto 16px" }} />
+          <p style={{ color: "#9ca3af", fontSize: 14, marginBottom: 16 }}>Noch keine Zeitslots angelegt.</p>
           <button
             onClick={openNeu}
-            className="mt-4 px-5 py-2 bg-[#2d6a4f] text-white text-sm font-semibold rounded-xl hover:bg-[#1b4332] transition-colors"
+            style={{ padding: "10px 20px", background: "#1a5c4a", color: "#fff", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
           >
             Ersten Slot erstellen
           </button>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+        <div style={{ ...card, overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wide">
-                    Titel
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wide">
-                    Datum
-                  </th>
-                  <th className="text-left px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wide">
-                    Zeit
-                  </th>
-                  <th className="text-center px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wide">
-                    Plätze
-                  </th>
-                  <th className="text-center px-4 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wide">
-                    Status
-                  </th>
-                  <th className="text-right px-5 py-3 font-semibold text-gray-500 text-xs uppercase tracking-wide">
-                    Aktionen
-                  </th>
+                <tr style={{ borderBottom: "1px solid #f3f4f6", background: "#fafafa" }}>
+                  {["Titel", "Datum", "Zeit", "Plätze", "Status", ""].map((h) => (
+                    <th key={h} style={{ padding: "12px 16px", textAlign: h === "Plätze" || h === "Status" ? "center" : h === "" ? "right" : "left", fontSize: 11, fontWeight: 700, color: "#9ca3af", whiteSpace: "nowrap" }}>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {slots.map((slot) => (
-                  <tr key={slot.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-3.5">
-                      <p className="font-semibold text-[#1a1a2e]">{slot.titel}</p>
+                  <tr key={slot.id} style={{ borderBottom: "1px solid #f9fafb" }}>
+                    <td style={{ padding: "14px 16px" }}>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#111827", margin: 0 }}>{slot.titel}</p>
                       {slot.beschreibung && (
-                        <p className="text-xs text-gray-400 mt-0.5">{slot.beschreibung}</p>
+                        <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>{slot.beschreibung}</p>
                       )}
                     </td>
-                    <td className="px-4 py-3.5 text-gray-600">{formatDatum(slot.datum)}</td>
-                    <td className="px-4 py-3.5 text-gray-600">
-                      {slot.uhrzeit_von}–{slot.uhrzeit_bis}
-                    </td>
-                    <td className="px-4 py-3.5 text-center">
-                      <span className={cn(
-                        "text-xs font-semibold px-2.5 py-1 rounded-full",
-                        slot.freie_plaetze === 0
-                          ? "bg-red-50 text-red-600"
-                          : "bg-[#d8f3e3] text-[#1b4332]"
-                      )}>
+                    <td style={{ padding: "14px 16px", color: "#6b7280", whiteSpace: "nowrap" }}>{formatDatum(slot.datum)}</td>
+                    <td style={{ padding: "14px 16px", color: "#6b7280", whiteSpace: "nowrap" }}>{slot.uhrzeit_von}–{slot.uhrzeit_bis}</td>
+                    <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
+                        background: slot.freie_plaetze === 0 ? "#fee2e2" : "#eaf4ef",
+                        color: slot.freie_plaetze === 0 ? "#dc2626" : "#1a5c4a",
+                      }}>
                         {slot.freie_plaetze}/{slot.max_teilnehmer}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 text-center">
+                    <td style={{ padding: "14px 16px", textAlign: "center" }}>
                       <button
                         onClick={() => handleToggle(slot)}
                         disabled={togglingId === slot.id}
-                        className={cn(
-                          "inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full transition-all",
-                          slot.freigegeben
-                            ? "bg-[#d8f3e3] text-[#1b4332] hover:bg-red-50 hover:text-red-600"
-                            : "bg-gray-100 text-gray-500 hover:bg-[#d8f3e3] hover:text-[#1b4332]"
-                        )}
+                        style={{
+                          display: "inline-flex", alignItems: "center", gap: 6,
+                          fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 20,
+                          border: "none", cursor: "pointer", fontFamily: "inherit",
+                          background: slot.freigegeben ? "#eaf4ef" : "#f3f4f6",
+                          color: slot.freigegeben ? "#1a5c4a" : "#9ca3af",
+                        }}
                         title={slot.freigegeben ? "Klicken zum Sperren" : "Klicken zum Freigeben"}
                       >
                         {togglingId === slot.id ? (
-                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <Loader2 style={{ width: 12, height: 12 }} />
                         ) : slot.freigegeben ? (
-                          <Eye className="w-3 h-3" />
+                          <Eye style={{ width: 12, height: 12 }} />
                         ) : (
-                          <EyeOff className="w-3 h-3" />
+                          <EyeOff style={{ width: 12, height: 12 }} />
                         )}
                         {slot.freigegeben ? "Freigegeben" : "Gesperrt"}
                       </button>
                     </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center justify-end gap-2">
+                    <td style={{ padding: "14px 16px" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
                         <button
                           onClick={() => openEdit(slot)}
-                          className="p-2 rounded-lg text-gray-400 hover:text-[#2d6a4f] hover:bg-[#f0faf4] transition-colors"
+                          style={{ padding: 8, borderRadius: 8, border: "none", background: "none", cursor: "pointer", color: "#9ca3af" }}
                           title="Bearbeiten"
                         >
-                          <Pencil className="w-4 h-4" />
+                          <Pencil style={{ width: 15, height: 15 }} />
                         </button>
                         <button
                           onClick={() => handleLoeschen(slot.id)}
                           disabled={deletingId === slot.id}
-                          className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          style={{ padding: 8, borderRadius: 8, border: "none", background: "none", cursor: "pointer", color: "#9ca3af" }}
                           title="Löschen"
                         >
                           {deletingId === slot.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <Loader2 style={{ width: 15, height: 15 }} />
                           ) : (
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 style={{ width: 15, height: 15 }} />
                           )}
                         </button>
                       </div>
@@ -272,123 +275,82 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
         </div>
       )}
 
-      {/* Modal: Neu / Bearbeiten */}
+      {/* Modal */}
       {formOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setFormOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h2 className="font-bold text-[#1a1a2e]">
+        <div style={{ position: "fixed", inset: 0, zIndex: 50, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.35)" }} onClick={() => setFormOpen(false)} />
+          <div style={{ position: "relative", background: "#fff", borderRadius: 16, boxShadow: "0 20px 60px rgba(0,0,0,0.15)", width: "100%", maxWidth: 440 }}>
+            {/* Modal header */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", borderBottom: "1px solid #f3f4f6" }}>
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: "#111827", margin: 0 }}>
                 {editId ? "Slot bearbeiten" : "Neuer Zeitslot"}
               </h2>
-              <button onClick={() => setFormOpen(false)} className="p-2 rounded-lg hover:bg-gray-100">
-                <X className="w-5 h-5 text-gray-500" />
+              <button onClick={() => setFormOpen(false)} style={{ padding: 6, borderRadius: 8, border: "none", background: "none", cursor: "pointer", color: "#9ca3af", display: "flex" }}>
+                <X style={{ width: 18, height: 18 }} />
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            {/* Modal body */}
+            <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Titel *</label>
-                <input
-                  type="text"
-                  value={formData.titel}
-                  onChange={(e) => setFormData((d) => ({ ...d, titel: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#52b788]"
-                  placeholder="z.B. Nachhilfe Mathematik"
-                />
+                <label style={labelStyle}>Titel *</label>
+                <input type="text" value={formData.titel} onChange={(e) => setFormData((d) => ({ ...d, titel: e.target.value }))} style={inputStyle} placeholder="z.B. Nachhilfe Mathematik" />
               </div>
-
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Beschreibung (optional)
-                </label>
-                <input
-                  type="text"
-                  value={formData.beschreibung}
-                  onChange={(e) => setFormData((d) => ({ ...d, beschreibung: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#52b788]"
-                  placeholder="Kurze Zusatzinfo"
-                />
+                <label style={labelStyle}>Beschreibung (optional)</label>
+                <input type="text" value={formData.beschreibung} onChange={(e) => setFormData((d) => ({ ...d, beschreibung: e.target.value }))} style={inputStyle} placeholder="Kurze Zusatzinfo" />
               </div>
-
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Datum *</label>
-                <input
-                  type="date"
-                  value={formData.datum}
-                  onChange={(e) => setFormData((d) => ({ ...d, datum: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#52b788]"
-                />
+                <label style={labelStyle}>Datum *</label>
+                <input type="date" value={formData.datum} onChange={(e) => setFormData((d) => ({ ...d, datum: e.target.value }))} style={inputStyle} />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Von *</label>
-                  <input
-                    type="time"
-                    value={formData.uhrzeit_von}
-                    onChange={(e) => setFormData((d) => ({ ...d, uhrzeit_von: e.target.value }))}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#52b788]"
-                  />
+                  <label style={labelStyle}>Von *</label>
+                  <input type="time" value={formData.uhrzeit_von} onChange={(e) => setFormData((d) => ({ ...d, uhrzeit_von: e.target.value }))} style={inputStyle} />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Bis *</label>
-                  <input
-                    type="time"
-                    value={formData.uhrzeit_bis}
-                    onChange={(e) => setFormData((d) => ({ ...d, uhrzeit_bis: e.target.value }))}
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#52b788]"
-                  />
+                  <label style={labelStyle}>Bis *</label>
+                  <input type="time" value={formData.uhrzeit_bis} onChange={(e) => setFormData((d) => ({ ...d, uhrzeit_bis: e.target.value }))} style={inputStyle} />
                 </div>
               </div>
-
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Max. Teilnehmer *
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={30}
-                  value={formData.max_teilnehmer}
-                  onChange={(e) => setFormData((d) => ({ ...d, max_teilnehmer: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#52b788]"
-                />
+                <label style={labelStyle}>Max. Teilnehmer *</label>
+                <input type="number" min={1} max={30} value={formData.max_teilnehmer} onChange={(e) => setFormData((d) => ({ ...d, max_teilnehmer: e.target.value }))} style={inputStyle} />
               </div>
-
-              <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl border border-gray-200 hover:border-[#52b788] hover:bg-[#f9fafb] transition-colors">
+              <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, border: "1.5px solid #e5e7eb", cursor: "pointer" }}>
                 <input
                   type="checkbox"
                   checked={formData.freigegeben}
                   onChange={(e) => setFormData((d) => ({ ...d, freigegeben: e.target.checked }))}
-                  className="w-4 h-4 accent-[#2d6a4f]"
+                  style={{ width: 15, height: 15, accentColor: "#1a5c4a" }}
                 />
                 <div>
-                  <p className="text-sm font-semibold text-gray-700">Sofort freigeben</p>
-                  <p className="text-xs text-gray-400">
-                    Der Slot ist sofort im Kalender buchbar
-                  </p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#374151", margin: 0 }}>Sofort freigeben</p>
+                  <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>Der Slot ist sofort im Kalender buchbar</p>
                 </div>
               </label>
             </div>
 
-            <div className="px-6 pb-6 flex gap-3">
+            {/* Modal footer */}
+            <div style={{ padding: "0 24px 24px", display: "flex", gap: 10 }}>
               <button
                 onClick={() => setFormOpen(false)}
-                className="flex-1 py-2.5 border border-gray-200 text-gray-600 text-sm font-semibold rounded-xl hover:bg-gray-50 transition-colors"
+                style={{ flex: 1, padding: "11px", border: "1.5px solid #e5e7eb", borderRadius: 10, background: "#fff", color: "#6b7280", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
               >
                 Abbrechen
               </button>
               <button
                 onClick={handleSpeichern}
-                disabled={loading || !formData.titel || !formData.datum || !formData.uhrzeit_von || !formData.uhrzeit_bis}
-                className="flex-1 py-2.5 bg-[#2d6a4f] text-white text-sm font-semibold rounded-xl hover:bg-[#1b4332] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                disabled={loading || !canSave}
+                style={{
+                  flex: 1, padding: "11px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700,
+                  cursor: loading || !canSave ? "not-allowed" : "pointer",
+                  background: loading || !canSave ? "#9ca3af" : "#1a5c4a",
+                  color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "inherit",
+                }}
               >
-                {loading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Check className="w-4 h-4" />
-                )}
+                {loading ? <Loader2 style={{ width: 15, height: 15 }} /> : <Check style={{ width: 15, height: 15 }} />}
                 {editId ? "Speichern" : "Erstellen"}
               </button>
             </div>
