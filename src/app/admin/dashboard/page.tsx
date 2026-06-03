@@ -4,19 +4,21 @@ import { CalendarClock, Users, CheckCircle2, Clock } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+const card: React.CSSProperties = {
+  background: "#fff",
+  borderRadius: 14,
+  border: "1px solid #e8eceb",
+  boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+};
+
 export default async function DashboardPage() {
   const [slots, buchungen] = await Promise.all([getAlleSlots(), getAlleBuchungen()]);
 
   const freigegeben = slots.filter((s) => s.freigegeben).length;
-  const gesamt = slots.length;
   const heuteStr = new Date().toISOString().split("T")[0];
   const heuteSlots = slots.filter((s) => s.datum === heuteStr && s.freigegeben).length;
-  const belegtePlaetze = buchungen.length;
 
-  const naechsteSlots = slots
-    .filter((s) => s.freigegeben && s.datum >= heuteStr)
-    .slice(0, 5);
-
+  const naechsteSlots = slots.filter((s) => s.freigegeben && s.datum >= heuteStr).slice(0, 5);
   const freibePlaetzeMap = new Map<string, number>();
   await Promise.all(
     naechsteSlots.map(async (s) => {
@@ -25,59 +27,52 @@ export default async function DashboardPage() {
     })
   );
 
-  const neueBuchungen = buchungen.slice(0, 5);
-
   const stats = [
-    { icon: CalendarClock, label: "Gesamt-Slots", value: gesamt, sub: `${freigegeben} freigegeben`, farbe: "bg-blue-50 text-blue-600" },
-    { icon: CheckCircle2, label: "Freigegeben", value: freigegeben, sub: `${gesamt - freigegeben} gesperrt`, farbe: "bg-[#f0faf4] text-[#2d6a4f]" },
-    { icon: Users, label: "Buchungen", value: belegtePlaetze, sub: "gesamt", farbe: "bg-amber-50 text-amber-600" },
-    { icon: Clock, label: "Heute", value: heuteSlots, sub: "freie Slots", farbe: "bg-purple-50 text-purple-600" },
+    { icon: CalendarClock, label: "Gesamt-Slots", value: slots.length, sub: `${freigegeben} freigegeben`, color: "#3b82f6", bg: "#eff6ff" },
+    { icon: CheckCircle2, label: "Freigegeben", value: freigegeben, sub: `${slots.length - freigegeben} gesperrt`, color: "#1a5c4a", bg: "#eaf4ef" },
+    { icon: Users, label: "Buchungen", value: buchungen.length, sub: "gesamt", color: "#d97706", bg: "#fffbeb" },
+    { icon: Clock, label: "Heute", value: heuteSlots, sub: "freie Slots", color: "#7c3aed", bg: "#f5f3ff" },
   ];
 
   return (
     <AdminLayout>
-      <div className="p-8">
-        <h1 className="text-2xl font-extrabold text-[#1a1a2e] mb-1">Dashboard</h1>
-        <p className="text-gray-400 text-sm mb-8">Willkommen zurück!</p>
+      <div style={{ padding: 36 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 800, color: "#111827", margin: "0 0 4px" }}>Dashboard</h1>
+        <p style={{ fontSize: 13, color: "#9ca3af", margin: "0 0 32px" }}>Willkommen zurück!</p>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          {stats.map(({ icon: Icon, label, value, sub, farbe }) => (
-            <div key={label} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${farbe}`}>
-                <Icon className="w-5 h-5" />
+        {/* Stats */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 32 }}>
+          {stats.map(({ icon: Icon, label, value, sub, color, bg }) => (
+            <div key={label} style={{ ...card, padding: 20 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 10, background: bg, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12 }}>
+                <Icon style={{ width: 18, height: 18, color }} />
               </div>
-              <p className="text-3xl font-extrabold text-[#1a1a2e]">{value}</p>
-              <p className="font-semibold text-sm text-gray-700 mt-0.5">{label}</p>
-              <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
+              <p style={{ fontSize: 28, fontWeight: 800, color: "#111827", margin: 0, lineHeight: 1 }}>{value}</p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#374151", margin: "6px 0 2px" }}>{label}</p>
+              <p style={{ fontSize: 11, color: "#9ca3af", margin: 0 }}>{sub}</p>
             </div>
           ))}
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h2 className="font-bold text-[#1a1a2e] mb-4">Nächste Termine</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+          {/* Nächste Termine */}
+          <div style={{ ...card, padding: 24 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: "#111827", margin: "0 0 20px" }}>Nächste Termine</h2>
             {naechsteSlots.length === 0 ? (
-              <p className="text-gray-400 text-sm">Keine bevorstehenden Termine.</p>
+              <p style={{ color: "#9ca3af", fontSize: 13 }}>Keine bevorstehenden Termine.</p>
             ) : (
-              <div className="space-y-3">
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {naechsteSlots.map((slot) => {
                   const frei = freibePlaetzeMap.get(slot.id) ?? 0;
                   return (
-                    <div key={slot.id} className="flex items-center justify-between gap-3">
+                    <div key={slot.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                       <div>
-                        <p className="font-semibold text-sm text-[#1a1a2e]">{slot.titel}</p>
-                        <p className="text-xs text-gray-400">
-                          {new Date(slot.datum + "T12:00:00").toLocaleDateString("de-AT", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}{" "}
-                          · {slot.uhrzeit_von}–{slot.uhrzeit_bis}
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "#111827", margin: 0 }}>{slot.titel}</p>
+                        <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>
+                          {new Date(slot.datum + "T12:00:00").toLocaleDateString("de-AT", { day: "numeric", month: "short", year: "numeric" })} · {slot.uhrzeit_von}–{slot.uhrzeit_bis}
                         </p>
                       </div>
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                        frei === 0 ? "bg-red-50 text-red-600" : "bg-[#d8f3e3] text-[#1b4332]"
-                      }`}>
+                      <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: frei === 0 ? "#fee2e2" : "#eaf4ef", color: frei === 0 ? "#dc2626" : "#1a5c4a", whiteSpace: "nowrap" }}>
                         {frei === 0 ? "Ausgebucht" : `${frei} frei`}
                       </span>
                     </div>
@@ -87,23 +82,21 @@ export default async function DashboardPage() {
             )}
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h2 className="font-bold text-[#1a1a2e] mb-4">Letzte Buchungen</h2>
-            {neueBuchungen.length === 0 ? (
-              <p className="text-gray-400 text-sm">Noch keine Buchungen vorhanden.</p>
+          {/* Letzte Buchungen */}
+          <div style={{ ...card, padding: 24 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: "#111827", margin: "0 0 20px" }}>Letzte Buchungen</h2>
+            {buchungen.length === 0 ? (
+              <p style={{ color: "#9ca3af", fontSize: 13 }}>Noch keine Buchungen vorhanden.</p>
             ) : (
-              <div className="space-y-3">
-                {neueBuchungen.map((b) => (
-                  <div key={b.id} className="flex items-center justify-between gap-3">
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {buchungen.slice(0, 5).map((b) => (
+                  <div key={b.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
                     <div>
-                      <p className="font-semibold text-sm text-[#1a1a2e]">{b.name_kind}</p>
-                      <p className="text-xs text-gray-400">{b.schulstufe} · {b.email}</p>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#111827", margin: 0 }}>{b.name_kind}</p>
+                      <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>{b.schulstufe}</p>
                     </div>
-                    <span className="text-xs text-gray-400 whitespace-nowrap">
-                      {new Date(b.erstellt_am).toLocaleDateString("de-AT", {
-                        day: "numeric",
-                        month: "short",
-                      })}
+                    <span style={{ fontSize: 11, color: "#9ca3af", whiteSpace: "nowrap" }}>
+                      {new Date(b.erstellt_am).toLocaleDateString("de-AT", { day: "numeric", month: "short" })}
                     </span>
                   </div>
                 ))}

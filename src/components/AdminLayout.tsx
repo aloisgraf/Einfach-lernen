@@ -2,15 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  LayoutDashboard,
-  CalendarClock,
-  Users,
-  LogOut,
-  BookOpen,
-  ExternalLink,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+import { LayoutDashboard, CalendarClock, Users, LogOut, ExternalLink } from "lucide-react";
 
 const navItems = [
   { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -29,63 +21,78 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div style={{ minHeight: "100vh", display: "flex", background: "#f4f6f5", fontFamily: "var(--font-raleway), sans-serif" }}>
+
       {/* Sidebar */}
-      <aside className="w-60 bg-[#1a1a2e] text-white flex flex-col fixed inset-y-0 left-0 z-40">
+      <aside style={{
+        width: 220,
+        background: "#fff",
+        borderRight: "1px solid #e8eceb",
+        display: "flex",
+        flexDirection: "column",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        bottom: 0,
+        zIndex: 40,
+      }}>
         {/* Logo */}
-        <div className="p-5 border-b border-white/10">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[#2d6a4f] rounded-lg flex items-center justify-center">
-              <BookOpen className="w-4 h-4 text-white" />
-            </div>
-            <div>
-              <p className="font-bold text-sm text-white">Einfach Lernen</p>
-              <p className="text-xs text-white/40">Admin-Bereich</p>
-            </div>
-          </div>
+        <div style={{ padding: "24px 20px 20px", borderBottom: "1px solid #e8eceb" }}>
+          <p style={{ fontSize: 16, fontWeight: 800, color: "#1a5c4a", margin: 0 }}>Einfach Lernen</p>
+          <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0", fontWeight: 500 }}>Admin-Bereich</p>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 p-3 space-y-1">
-          {navItems.map(({ href, icon: Icon, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
-                pathname === href
-                  ? "bg-[#2d6a4f] text-white"
-                  : "text-white/60 hover:bg-white/10 hover:text-white"
-              )}
-            >
-              <Icon className="w-4 h-4" />
-              {label}
-            </Link>
-          ))}
+        <nav style={{ flex: 1, padding: "12px 10px", display: "flex", flexDirection: "column", gap: 2 }}>
+          {navItems.map(({ href, icon: Icon, label }) => {
+            const active = pathname === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "10px 12px",
+                  borderRadius: 10,
+                  fontSize: 13,
+                  fontWeight: active ? 700 : 500,
+                  color: active ? "#1a5c4a" : "#6b7280",
+                  background: active ? "#eaf4ef" : "transparent",
+                  textDecoration: "none",
+                  transition: "all 0.1s",
+                }}
+              >
+                <Icon style={{ width: 16, height: 16 }} />
+                {label}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* Footer */}
-        <div className="p-3 border-t border-white/10 space-y-1">
+        <div style={{ padding: "10px 10px 20px", borderTop: "1px solid #e8eceb", display: "flex", flexDirection: "column", gap: 2 }}>
           <Link
-            href="/buchen"
+            href="/"
             target="_blank"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, fontSize: 13, fontWeight: 500, color: "#9ca3af", textDecoration: "none" }}
           >
-            <ExternalLink className="w-4 h-4" />
-            Buchungsseite ansehen
+            <ExternalLink style={{ width: 15, height: 15 }} />
+            Buchungsseite
           </Link>
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-white/50 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, fontSize: 13, fontWeight: 500, color: "#9ca3af", background: "none", border: "none", cursor: "pointer", width: "100%", fontFamily: "inherit" }}
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut style={{ width: 15, height: 15 }} />
             Abmelden
           </button>
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="ml-60 flex-1">{children}</div>
+      {/* Content */}
+      <div style={{ marginLeft: 220, flex: 1, minHeight: "100vh" }}>{children}</div>
     </div>
   );
 }

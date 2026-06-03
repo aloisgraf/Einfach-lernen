@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { BookOpen, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 function LoginForm() {
   const router = useRouter();
@@ -38,60 +38,70 @@ function LoginForm() {
     }
   }
 
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "12px 14px",
+    borderRadius: 10,
+    border: "1.5px solid #e5e7eb",
+    fontSize: 14,
+    color: "#111827",
+    background: "#fff",
+    outline: "none",
+    boxSizing: "border-box",
+    fontFamily: "inherit",
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1b4332] to-[#2d6a4f] flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="inline-flex w-16 h-16 rounded-2xl bg-white/20 items-center justify-center mb-4">
-            <BookOpen className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-extrabold text-white">Admin-Bereich</h1>
-          <p className="text-white/60 text-sm mt-1">Einfach Lernen Pongau</p>
+    <div style={{ minHeight: "100vh", background: "#f4f6f5", display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "var(--font-raleway), sans-serif" }}>
+      <div style={{ width: "100%", maxWidth: 400 }}>
+
+        {/* Logo */}
+        <div style={{ textAlign: "center", marginBottom: 36 }}>
+          <p style={{ fontSize: 22, fontWeight: 800, color: "#1a5c4a", margin: "0 0 4px" }}>Einfach Lernen</p>
+          <p style={{ fontSize: 13, color: "#9ca3af", margin: 0 }}>Admin-Bereich · Pongau</p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
+        {/* Card */}
+        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e8eceb", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", padding: 32 }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", margin: "0 0 24px" }}>Anmelden</h2>
+
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 text-red-700 rounded-xl mb-4 text-sm">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px", color: "#dc2626", fontSize: 13, marginBottom: 20 }}>
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                E-Mail
-              </label>
+              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#6b7280", marginBottom: 6 }}>E-Mail</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoFocus
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#52b788]"
+                style={inputStyle}
                 placeholder="admin@beispiel.at"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Passwort
-              </label>
-              <div className="relative">
+              <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#6b7280", marginBottom: 6 }}>Passwort</label>
+              <div style={{ position: "relative" }}>
                 <input
                   type={showPw ? "text" : "password"}
                   value={pw}
                   onChange={(e) => setPw(e.target.value)}
                   required
-                  className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#52b788]"
+                  style={{ ...inputStyle, paddingRight: 44 }}
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: "#9ca3af", display: "flex", padding: 0 }}
                 >
-                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPw ? <EyeOff style={{ width: 16, height: 16 }} /> : <Eye style={{ width: 16, height: 16 }} />}
                 </button>
               </div>
             </div>
@@ -99,25 +109,34 @@ function LoginForm() {
             <button
               type="submit"
               disabled={loading || !email || !pw}
-              className="w-full py-3 bg-[#2d6a4f] text-white font-bold rounded-xl hover:bg-[#1b4332] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
+              style={{
+                background: loading || !email || !pw ? "#9ca3af" : "#1a5c4a",
+                color: "#fff",
+                border: "none",
+                borderRadius: 10,
+                padding: "13px",
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: loading || !email || !pw ? "not-allowed" : "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                fontFamily: "inherit",
+                marginTop: 4,
+              }}
             >
-              {loading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Wird überprüft…</>
-              ) : (
-                "Einloggen"
-              )}
+              {loading ? <><Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> Wird überprüft…</> : "Einloggen"}
             </button>
           </form>
         </div>
+
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     </div>
   );
 }
 
 export default function AdminLoginPage() {
-  return (
-    <Suspense>
-      <LoginForm />
-    </Suspense>
-  );
+  return <Suspense><LoginForm /></Suspense>;
 }
