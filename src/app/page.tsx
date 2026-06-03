@@ -63,9 +63,15 @@ export default async function Home() {
 
       {/* Footer */}
       <footer className="border-t border-[#e0ede7] mt-24 py-8 px-6 text-center">
-        <p className="text-[10px] tracking-[0.25em] uppercase text-[#1a5c4a]/40">
+        <p className="text-[10px] tracking-[0.25em] uppercase text-[#1a5c4a]/40 mb-3">
           © {new Date().getFullYear()} Einfach Lernen Pongau
         </p>
+        <a
+          href="/admin/login"
+          className="text-[10px] tracking-widest uppercase text-[#1a5c4a]/25 hover:text-[#1a5c4a]/50 transition-colors"
+        >
+          Admin
+        </a>
       </footer>
     </div>
   );
