@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 function LoginForm() {
-  const router = useRouter();
   const params = useSearchParams();
   const from = params.get("from") ?? "/admin/dashboard";
 
@@ -29,8 +28,7 @@ function LoginForm() {
         const data = await res.json();
         throw new Error(data.error ?? "Fehler");
       }
-      router.push(from);
-      router.refresh();
+      window.location.href = from;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Fehler");
     } finally {
