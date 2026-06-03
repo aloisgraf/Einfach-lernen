@@ -34,26 +34,34 @@ export async function supabaseSignIn(
   return { access_token: data.access_token };
 }
 
-// Token gegen Supabase prüfen
+// Token gegen Supabase prüfen — gibt false zurück bei Netzwerkfehler/abgelaufenem Token
 async function verifySupabaseToken(token: string): Promise<boolean> {
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-    headers: {
-      apikey: SUPABASE_ANON_KEY!,
-      Authorization: `Bearer ${token}`,
-    },
-  });
-  return res.ok;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        apikey: SUPABASE_ANON_KEY!,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function isAdminLoggedIn(): Promise<boolean> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(COOKIE_NAME)?.value;
-  if (!token) return false;
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(COOKIE_NAME)?.value;
+    if (!token) return false;
 
-  if (isSupabaseAuthConfigured()) {
-    return verifySupabaseToken(token);
+    if (isSupabaseAuthConfigured()) {
+      return verifySupabaseToken(token);
+    }
+    return false;
+  } catch {
+    return false;
   }
-  return false;
 }
 
 export { COOKIE_NAME };
