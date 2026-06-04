@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createBuchung } from "@/lib/slots-store";
+import { createBuchung, getSlot } from "@/lib/slots-store";
+import { sendBuchungEmail } from "@/lib/email";
 import { z } from "zod";
 
 const schema = z.object({
@@ -23,6 +24,8 @@ export async function POST(req: NextRequest) {
     if ("error" in result) {
       return NextResponse.json({ error: result.error }, { status: 409 });
     }
+    const slot = await getSlot(data.zeitslot_id).catch(() => null);
+    sendBuchungEmail(result, slot);
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
     if (err instanceof z.ZodError) {
