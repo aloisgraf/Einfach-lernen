@@ -81,6 +81,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 }
 
 export default function BuchungsSeite({ slots }: Props) {
+  const [slotsState, setSlotsState] = useState(slots);
   const [ausgewaehlterSlot, setAusgewaehlterSlot] = useState<SlotMitPlaetzen | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -105,6 +106,9 @@ export default function BuchungsSeite({ slots }: Props) {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Fehler");
+      setSlotsState(prev => prev.map(s =>
+        s.id === ausgewaehlterSlot.id ? { ...s, freie_plaetze: s.freie_plaetze - 1 } : s
+      ));
       setStatus("success");
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Unbekannter Fehler");
@@ -167,7 +171,7 @@ export default function BuchungsSeite({ slots }: Props) {
           <h3 style={{ fontSize: 18, fontWeight: 700, color: "#111827", margin: "0 0 24px" }}>Termin wählen</h3>
         </div>
         <div style={{ padding: "0 28px 28px" }}>
-          <Kalender slots={slots} ausgewaehlt={ausgewaehlterSlot?.id ?? null} onSlotWaehlen={setAusgewaehlterSlot} />
+          <Kalender slots={slotsState} ausgewaehlt={ausgewaehlterSlot?.id ?? null} onSlotWaehlen={setAusgewaehlterSlot} />
         </div>
       </div>
 
