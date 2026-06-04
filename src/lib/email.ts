@@ -3,7 +3,7 @@ import { Buchung, Zeitslot } from "@/types/buchung";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? "alois2024@gmx.at";
-const FROM_EMAIL = process.env.FROM_EMAIL ?? "buchung@einfachlernen.at";
+const FROM_EMAIL = process.env.FROM_EMAIL ?? "onboarding@resend.dev";
 
 export async function sendBuchungEmail(buchung: Buchung, slot: Zeitslot | null) {
   if (!resend) return;
@@ -77,12 +77,17 @@ export async function sendBuchungEmail(buchung: Buchung, slot: Zeitslot | null) 
 </html>`;
 
   try {
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: FROM_EMAIL,
       to: ADMIN_EMAIL,
       subject: `Neue Buchung: ${buchung.name_kind} – ${slotTitel}`,
       html,
     });
+    if ("error" in result && result.error) {
+      console.error("Resend Fehler:", result.error);
+    } else {
+      console.log("Email gesendet an", ADMIN_EMAIL);
+    }
   } catch (e) {
     console.error("Email senden fehlgeschlagen:", e);
   }
