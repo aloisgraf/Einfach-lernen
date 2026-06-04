@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, CalendarClock, Users, LogOut, ExternalLink } from "lucide-react";
+import { LayoutDashboard, CalendarClock, Users, LogOut, ExternalLink, Gamepad2 } from "lucide-react";
 
 const navItems = [
   { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/admin/slots", icon: CalendarClock, label: "Zeitslots" },
   { href: "/admin/buchungen", icon: Users, label: "Buchungen" },
+  { href: "/admin/silbenspiel", icon: Gamepad2, label: "Silbenspiel" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
