@@ -1,40 +1,20 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { Suspense, useActionState, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { loginAction } from "./actions";
 
 function LoginForm() {
   const params = useSearchParams();
-  const from = params.get("from") ?? "/admin/dashboard";
+  const rawFrom = params.get("from") ?? "";
+  const from =
+    rawFrom.startsWith("/admin/") && !rawFrom.startsWith("/admin/login")
+      ? rawFrom
+      : "/admin/dashboard";
 
-  const [email, setEmail] = useState("");
-  const [pw, setPw] = useState("");
+  const [state, action, pending] = useActionState(loginAction, null);
   const [showPw, setShowPw] = useState(false);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password: pw }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error ?? "Fehler");
-      }
-      window.location.href = from;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Fehler");
-    } finally {
-      setLoading(false);
-    }
-  }
 
   const inputStyle: React.CSSProperties = {
     width: "100%",
@@ -63,19 +43,20 @@ function LoginForm() {
         <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #e8eceb", boxShadow: "0 2px 12px rgba(0,0,0,0.06)", padding: 32 }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", margin: "0 0 24px" }}>Anmelden</h2>
 
-          {error && (
+          {state?.error && (
             <div style={{ background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px", color: "#dc2626", fontSize: 13, marginBottom: 20 }}>
-              {error}
+              {state.error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <form action={action} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <input type="hidden" name="from" value={from} />
+
             <div>
               <label style={{ display: "block", fontSize: 12, fontWeight: 600, color: "#6b7280", marginBottom: 6 }}>E-Mail</label>
               <input
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                name="email"
                 required
                 autoFocus
                 style={inputStyle}
@@ -88,8 +69,7 @@ function LoginForm() {
               <div style={{ position: "relative" }}>
                 <input
                   type={showPw ? "text" : "password"}
-                  value={pw}
-                  onChange={(e) => setPw(e.target.value)}
+                  name="password"
                   required
                   style={{ ...inputStyle, paddingRight: 44 }}
                   placeholder="••••••••"
@@ -106,16 +86,16 @@ function LoginForm() {
 
             <button
               type="submit"
-              disabled={loading || !email || !pw}
+              disabled={pending}
               style={{
-                background: loading || !email || !pw ? "#9ca3af" : "#1a5c4a",
+                background: pending ? "#9ca3af" : "#1a5c4a",
                 color: "#fff",
                 border: "none",
                 borderRadius: 10,
                 padding: "13px",
                 fontSize: 14,
                 fontWeight: 700,
-                cursor: loading || !email || !pw ? "not-allowed" : "pointer",
+                cursor: pending ? "not-allowed" : "pointer",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -124,7 +104,7 @@ function LoginForm() {
                 marginTop: 4,
               }}
             >
-              {loading ? <><Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> Wird überprüft…</> : "Einloggen"}
+              {pending ? <><Loader2 style={{ width: 16, height: 16, animation: "spin 1s linear infinite" }} /> Wird überprüft…</> : "Einloggen"}
             </button>
           </form>
         </div>
