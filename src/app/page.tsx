@@ -29,13 +29,7 @@ export default async function Home() {
         <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 24px" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              {/* Replace with <img src="/logo.png" alt="Einfach Lernen" style={{ height: 40 }} /> once logo.png is uploaded to /public */}
-              <span style={{ fontSize: 18, fontWeight: 700, color: "#1a5c4a", letterSpacing: 0.3 }}>
-                Einfach Lernen
-              </span>
-              <span style={{ fontSize: 13, color: "#9cac9c", fontWeight: 400 }}>
-                Pongau
-              </span>
+              <img src="/logo.png" alt="Einfach Lernen" style={{ height: 44 }} />
             </div>
             <a href="/admin/login" className="admin-btn">
               Admin
