@@ -16,6 +16,26 @@ export function getDb() {
       idle_timeout: 20,
       connect_timeout: 10,
       prepare: false,
+      types: {
+        date: {
+          from: [1082],
+          to: 1082,
+          parse: (x: string) => x,
+          serialize: (x: string) => x,
+        },
+        timestamptz: {
+          from: [1184],
+          to: 1184,
+          parse: (x: string) => x,
+          serialize: (x: string) => x,
+        },
+        timestamp: {
+          from: [1114],
+          to: 1114,
+          parse: (x: string) => x,
+          serialize: (x: string) => x,
+        },
+      },
     });
   }
   return global.__db;
