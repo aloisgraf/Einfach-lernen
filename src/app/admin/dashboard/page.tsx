@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { isAdminLoggedIn } from "@/lib/auth";
 import AdminLayout from "@/components/AdminLayout";
 import { getAlleSlots, getAlleBuchungen, countBuchungenFuerSlot } from "@/lib/slots-store";
 import { CalendarClock, Users, CheckCircle2, Clock } from "lucide-react";
@@ -12,6 +14,7 @@ const card: React.CSSProperties = {
 };
 
 export default async function DashboardPage() {
+  if (!(await isAdminLoggedIn())) redirect("/admin/login");
   const [slots, buchungen] = await Promise.all([getAlleSlots(), getAlleBuchungen()]);
 
   const freigegeben = slots.filter((s) => s.freigegeben).length;

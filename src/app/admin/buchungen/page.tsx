@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+import { isAdminLoggedIn } from "@/lib/auth";
 import AdminLayout from "@/components/AdminLayout";
 import { getAlleBuchungen, getAlleSlots } from "@/lib/slots-store";
 import { Users } from "lucide-react";
@@ -12,6 +14,7 @@ const card: React.CSSProperties = {
 };
 
 export default async function BuchungenPage() {
+  if (!(await isAdminLoggedIn())) redirect("/admin/login");
   const [buchungen, slots] = await Promise.all([getAlleBuchungen(), getAlleSlots()]);
   const slotsById = new Map(slots.map((s) => [s.id, s]));
 
