@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Kalender from "@/components/Kalender";
-import { Zeitslot, schulstufen } from "@/types/buchung";
+import { Zeitslot, schwerpunkte } from "@/types/buchung";
 import { CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 
 interface SlotMitPlaetzen extends Zeitslot { freie_plaetze: number; }
@@ -15,11 +15,13 @@ const schema = z.object({
   vorname: z.string().min(2, "Pflichtfeld"),
   nachname: z.string().min(2, "Pflichtfeld"),
   email: z.string().email("Ungültige E-Mail"),
-  telefon: z.string().min(7, "Pflichtfeld"),
   name_kind: z.string().min(2, "Pflichtfeld"),
   schulstufe: z.string().min(1, "Bitte wählen"),
-  kind_staerken: z.string().min(3, "Pflichtfeld"),
   kind_lernen: z.string().min(3, "Pflichtfeld"),
+  telefon: z.string().min(7, "Pflichtfeld"),
+  kind_beschreibung: z.string().optional(),
+  kind_diagnosen: z.string().optional(),
+  nachricht: z.string().optional(),
   datenschutz: z.boolean().refine((v) => v, { message: "Bitte bestätigen" }),
 });
 type FormData = z.infer<typeof schema>;
@@ -53,26 +55,44 @@ const inputStyle: React.CSSProperties = {
 
 const labelStyle: React.CSSProperties = {
   display: "block",
-  fontSize: 12,
+  fontSize: 13,
   fontWeight: 600,
-  color: "#6b7280",
-  marginBottom: 6,
+  color: "#374151",
+  marginBottom: 4,
+  lineHeight: 1.4,
 };
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+const hintStyle: React.CSSProperties = {
+  display: "block",
+  fontSize: 11,
+  color: "#9ca3af",
+  marginBottom: 8,
+  lineHeight: 1.5,
+  fontStyle: "italic",
+};
+
+function Field({
+  label, hint, error, children,
+}: {
+  label: string;
+  hint?: string;
+  error?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div style={{ marginBottom: 16 }}>
+    <div style={{ marginBottom: 20 }}>
       <label style={labelStyle}>{label}</label>
+      {hint && <span style={hintStyle}>{hint}</span>}
       {children}
       {error && <p style={{ color: "#ef4444", fontSize: 11, marginTop: 4 }}>{error}</p>}
     </div>
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({ children, color = "#1a5c4a" }: { children: React.ReactNode; color?: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "20px 0 16px" }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: "#1a5c4a", letterSpacing: 0.8, textTransform: "uppercase", whiteSpace: "nowrap" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "24px 0 18px" }}>
+      <span style={{ fontSize: 11, fontWeight: 700, color, letterSpacing: 0.8, textTransform: "uppercase", whiteSpace: "nowrap" }}>
         {children}
       </span>
       <div style={{ flex: 1, height: 1, background: "#e8eceb" }} />
@@ -95,14 +115,37 @@ export default function BuchungsSeite({ slots }: Props) {
     return { ...inputStyle, borderColor: focusedInput === name ? "#1a5c4a" : "#e5e7eb" };
   }
 
+  const fInputProps = (name: string) => ({
+    onFocus: () => setFocusedInput(name),
+    onBlur: () => setFocusedInput(null),
+    style: getInputStyle(name),
+  });
+
   async function onSubmit(data: FormData) {
     if (!ausgewaehlterSlot) return;
     setStatus("loading");
+
+    const optionalParts = [
+      data.kind_beschreibung?.trim() && `Beschreibung des Kindes:\n${data.kind_beschreibung.trim()}`,
+      data.kind_diagnosen?.trim() && `Diagnosen / frühere Förderung:\n${data.kind_diagnosen.trim()}`,
+      data.nachricht?.trim() && `Nachricht:\n${data.nachricht.trim()}`,
+    ].filter(Boolean);
+
     try {
       const res = await fetch("/api/buchung", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ zeitslot_id: ausgewaehlterSlot.id, ...data }),
+        body: JSON.stringify({
+          zeitslot_id: ausgewaehlterSlot.id,
+          vorname: data.vorname,
+          nachname: data.nachname,
+          email: data.email,
+          telefon: data.telefon,
+          name_kind: data.name_kind,
+          schulstufe: data.schulstufe,
+          kind_lernen: data.kind_lernen,
+          kind_staerken: optionalParts.join("\n\n"),
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Fehler");
@@ -153,16 +196,10 @@ export default function BuchungsSeite({ slots }: Props) {
     );
   }
 
-  const fInputProps = (name: string) => ({
-    onFocus: () => setFocusedInput(name),
-    onBlur: () => setFocusedInput(null),
-    style: getInputStyle(name),
-  });
-
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, padding: "32px 0 60px" }} className="booking-grid">
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, padding: "32px 0 60px", alignItems: "start" }} className="booking-grid">
       {/* Kalender */}
-      <div style={card}>
+      <div style={{ ...card, position: "sticky", top: 24 }}>
         <div style={{ padding: "28px 28px 0" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
             <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#1a5c4a" }} />
@@ -195,7 +232,7 @@ export default function BuchungsSeite({ slots }: Props) {
           )}
         </div>
 
-        <div style={{ padding: "4px 28px 28px", overflowY: "auto", maxHeight: 620 }}>
+        <div style={{ padding: "4px 28px 28px" }}>
           {status === "error" && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 10, padding: "10px 14px", margin: "16px 0", color: "#dc2626", fontSize: 13 }}>
               <AlertCircle style={{ width: 16, height: 16, flexShrink: 0 }} />
@@ -204,65 +241,128 @@ export default function BuchungsSeite({ slots }: Props) {
           )}
 
           <form onSubmit={handleSubmit(onSubmit)}>
+
+            {/* ── Kontaktdaten ── */}
             <SectionLabel>Ihre Kontaktdaten</SectionLabel>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <Field label="Vorname *" error={errors.vorname?.message}>
-                <input {...register("vorname")} {...fInputProps("vorname")} placeholder="Max" />
+                <input {...register("vorname")} {...fInputProps("vorname")} placeholder="Anna" />
               </Field>
               <Field label="Nachname *" error={errors.nachname?.message}>
-                <input {...register("nachname")} {...fInputProps("nachname")} placeholder="Mustermann" />
+                <input {...register("nachname")} {...fInputProps("nachname")} placeholder="Muster" />
               </Field>
             </div>
 
             <Field label="E-Mail *" error={errors.email?.message}>
-              <input {...register("email")} type="email" {...fInputProps("email")} placeholder="max@beispiel.at" />
+              <input {...register("email")} type="email" {...fInputProps("email")} placeholder="anna@beispiel.at" />
             </Field>
 
-            <Field label="Telefon *" error={errors.telefon?.message}>
-              <input {...register("telefon")} type="tel" {...fInputProps("telefon")} placeholder="+43 660 123 456" />
-            </Field>
+            {/* ── Pflichtfelder ── */}
+            <SectionLabel>Das Wichtigste für mich (Pflichtfelder)</SectionLabel>
 
-            <SectionLabel>Angaben zum Kind</SectionLabel>
-
-            <Field label="Name des Kindes *" error={errors.name_kind?.message}>
-              <input {...register("name_kind")} {...fInputProps("name_kind")} placeholder="z.B. Anna" />
-            </Field>
-
-            <Field label="Schulstufe *" error={errors.schulstufe?.message}>
-              <select {...register("schulstufe")} {...fInputProps("schulstufe")} style={{ ...getInputStyle("schulstufe"), appearance: "auto" }}>
-                <option value="">Bitte wählen…</option>
-                {schulstufen.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </Field>
-
-            <Field label="Was kann mein Kind gut? *" error={errors.kind_staerken?.message}>
+            <Field
+              label="Wie heißt dein Kind und in welche Klasse/Schulstufe kommt es ab September? *"
+              hint="Bitte beide Namen und Schulstufen angeben, falls du die Stunde für zwei Kinder gemeinsam buchen möchtest."
+              error={errors.name_kind?.message}
+            >
               <textarea
-                {...register("kind_staerken")}
-                {...fInputProps("kind_staerken")}
-                rows={3}
-                placeholder="z.B. Lesen, Englisch, kreatives Denken…"
-                style={{ ...getInputStyle("kind_staerken"), resize: "none" }}
+                {...register("name_kind")}
+                {...fInputProps("name_kind")}
+                rows={2}
+                placeholder="z.B. Emma, 3. Klasse VS / Luca, 5. Klasse NMS"
+                style={{ ...getInputStyle("name_kind"), resize: "none" }}
               />
             </Field>
 
-            <Field label="Was muss mein Kind noch lernen? *" error={errors.kind_lernen?.message}>
+            <Field
+              label="Welcher Schwerpunkt soll bei unserer gemeinsamen Zeit im Fokus stehen? *"
+              hint="Bitte auswählen: Deutsch / Mathematik / Legasthenietraining / Dyskalkulietraining / Konzentrationstraining"
+              error={errors.schulstufe?.message}
+            >
+              <select
+                {...register("schulstufe")}
+                {...fInputProps("schulstufe")}
+                style={{ ...getInputStyle("schulstufe"), appearance: "auto" }}
+              >
+                <option value="">Bitte wählen…</option>
+                {schwerpunkte.map((s) => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </Field>
+
+            <Field
+              label="Was soll durch die Förderung erreicht werden? *"
+              hint="Geht es dir vor allem um das Wiederholen von Stoff, Festigen, Lücken schließen oder darum, dass dein Kind wieder mehr Leichtigkeit und Motivation findet?"
+              error={errors.kind_lernen?.message}
+            >
               <textarea
                 {...register("kind_lernen")}
                 {...fInputProps("kind_lernen")}
                 rows={3}
-                placeholder="z.B. Mathematik, Rechtschreibung…"
+                placeholder="z.B. Lücken in der Rechtschreibung schließen und wieder mehr Freude am Lesen finden."
                 style={{ ...getInputStyle("kind_lernen"), resize: "none" }}
               />
             </Field>
 
-            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", marginBottom: 20 }}>
-              <input {...register("datenschutz")} type="checkbox" style={{ marginTop: 2, accentColor: "#1a5c4a", width: 15, height: 15 }} />
+            <Field
+              label="Unter welcher Telefonnummer kann ich dich bei Fragen oder im Notfall am besten erreichen? *"
+              error={errors.telefon?.message}
+            >
+              <input {...register("telefon")} type="tel" {...fInputProps("telefon")} placeholder="+43 660 123 456" />
+            </Field>
+
+            {/* ── Optionale Angaben ── */}
+            <SectionLabel color="#d97706">🟡 Raum für Details (Optionale Angaben)</SectionLabel>
+
+            <Field
+              label="Wie würdest du dein Kind beschreiben?"
+              hint="Was macht ihm besonders viel Spaß, was zeichnet es aus und worüber lacht es gerne? Das hilft mir, mich ganz individuell auf dein Kind einzustellen."
+            >
+              <textarea
+                {...register("kind_beschreibung")}
+                {...fInputProps("kind_beschreibung")}
+                rows={3}
+                placeholder="z.B. Emma liebt Pferde, lacht viel und ist sehr kreativ. In der Schule ist sie eher ruhig, aber zu Hause richtig lebendig."
+                style={{ ...getInputStyle("kind_beschreibung"), resize: "none" }}
+              />
+            </Field>
+
+            <Field
+              label="Gab es bereits außerschulische Förderung oder Diagnosen?"
+              hint="Liegen bereits Befunde oder Vermutungen vor, wie z. B. eine Legasthenie, Dyskalkulie oder Konzentrationsschwierigkeiten?"
+            >
+              <textarea
+                {...register("kind_diagnosen")}
+                {...fInputProps("kind_diagnosen")}
+                rows={2}
+                placeholder="z.B. Legasthenie-Diagnose vom Schulpsychologischen Dienst, 2023."
+                style={{ ...getInputStyle("kind_diagnosen"), resize: "none" }}
+              />
+            </Field>
+
+            <Field
+              label="Hast du noch eine Frage oder eine Nachricht an mich?"
+              hint="Hier ist Platz für alles, was dir sonst noch auf dem Herzen liegt."
+            >
+              <textarea
+                {...register("nachricht")}
+                {...fInputProps("nachricht")}
+                rows={2}
+                placeholder="z.B. Können wir den ersten Termin auch online abhalten?"
+                style={{ ...getInputStyle("nachricht"), resize: "none" }}
+              />
+            </Field>
+
+            {/* ── Datenschutz ── */}
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, cursor: "pointer", marginBottom: 8 }}>
+              <input {...register("datenschutz")} type="checkbox" style={{ marginTop: 3, accentColor: "#1a5c4a", width: 15, height: 15, flexShrink: 0 }} />
               <span style={{ fontSize: 12, color: "#9ca3af", lineHeight: 1.6 }}>
-                Ich stimme der Verarbeitung meiner Daten zu. *
+                Ich stimme der Verarbeitung meiner Daten gemäß der{" "}
+                <a href="/datenschutz" target="_blank" style={{ color: "#1a5c4a", textDecoration: "underline" }}>Datenschutzerklärung</a>{" "}
+                zu. *
               </span>
             </label>
-            {errors.datenschutz && <p style={{ color: "#ef4444", fontSize: 11, marginTop: -14, marginBottom: 16 }}>{errors.datenschutz.message}</p>}
+            {errors.datenschutz && <p style={{ color: "#ef4444", fontSize: 11, marginBottom: 16 }}>{errors.datenschutz.message}</p>}
 
             <button
               type="submit"
@@ -284,6 +384,7 @@ export default function BuchungsSeite({ slots }: Props) {
                 gap: 8,
                 fontFamily: "inherit",
                 transition: "background 0.15s",
+                marginTop: 16,
               }}
             >
               {status === "loading"

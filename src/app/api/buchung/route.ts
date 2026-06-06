@@ -11,8 +11,8 @@ const schema = z.object({
   telefon: z.string().min(7),
   name_kind: z.string().min(2),
   schulstufe: z.string().min(1),
-  kind_staerken: z.string().min(5),
-  kind_lernen: z.string().min(5),
+  kind_lernen: z.string().min(3),
+  kind_staerken: z.string().optional().default(""),
 });
 
 export async function POST(req: NextRequest) {

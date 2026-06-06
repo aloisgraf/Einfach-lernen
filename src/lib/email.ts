@@ -52,23 +52,23 @@ export async function sendBuchungEmail(buchung: Buchung, slot: Zeitslot | null) 
           <td style="padding: 4px 0; color: #111827;">${esc(buchung.telefon)}</td>
         </tr>
 
-        <tr><td colspan="2" style="padding: 16px 0 6px; font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em;">Kind</td></tr>
+        <tr><td colspan="2" style="padding: 16px 0 6px; font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em;">Kind & Förderung</td></tr>
         <tr>
-          <td style="padding: 4px 0; color: #6b7280;">Name</td>
-          <td style="padding: 4px 0; color: #111827; font-weight: 600;">${esc(buchung.name_kind)}</td>
+          <td style="padding: 4px 0; color: #6b7280; vertical-align: top; width: 140px;">Kind / Klasse</td>
+          <td style="padding: 4px 0; color: #111827; font-weight: 600; white-space: pre-line;">${esc(buchung.name_kind)}</td>
         </tr>
         <tr>
-          <td style="padding: 4px 0; color: #6b7280;">Schulstufe</td>
+          <td style="padding: 4px 0; color: #6b7280;">Schwerpunkt</td>
           <td style="padding: 4px 0; color: #111827;">${esc(buchung.schulstufe)}</td>
         </tr>
         <tr>
-          <td style="padding: 4px 0; color: #6b7280; vertical-align: top;">Stärken</td>
-          <td style="padding: 4px 0; color: #111827;">${esc(buchung.kind_staerken)}</td>
+          <td style="padding: 4px 0; color: #6b7280; vertical-align: top;">Förderziel</td>
+          <td style="padding: 4px 0; color: #111827; white-space: pre-line;">${esc(buchung.kind_lernen)}</td>
         </tr>
-        <tr>
-          <td style="padding: 4px 0; color: #6b7280; vertical-align: top;">Noch lernen</td>
-          <td style="padding: 4px 0; color: #111827;">${esc(buchung.kind_lernen)}</td>
-        </tr>
+        ${buchung.kind_staerken ? `<tr>
+          <td style="padding: 4px 0; color: #6b7280; vertical-align: top;">Details</td>
+          <td style="padding: 4px 0; color: #111827; white-space: pre-line;">${esc(buchung.kind_staerken)}</td>
+        </tr>` : ""}
       </table>
 
     </div>

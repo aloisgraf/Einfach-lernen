@@ -77,17 +77,21 @@ export default async function BuchungenPage() {
                   </div>
 
                   <div style={{ background: "#f9fafb", borderRadius: 10, padding: 16 }}>
-                    <p style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", margin: "0 0 10px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Kind</p>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: "#111827", margin: 0 }}>{b.name_kind}</p>
-                    <p style={{ fontSize: 12, color: "#6b7280", margin: "4px 0 0" }}>{b.schulstufe}</p>
+                    <p style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", margin: "0 0 10px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Kind & Schwerpunkt</p>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "#111827", margin: 0, whiteSpace: "pre-line" }}>{b.name_kind}</p>
+                    <span style={{ display: "inline-block", marginTop: 8, padding: "2px 10px", borderRadius: 20, background: "#eaf4ef", color: "#1a5c4a", fontSize: 11, fontWeight: 700 }}>{b.schulstufe}</span>
                   </div>
 
                   <div style={{ background: "#eaf4ef", borderRadius: 10, padding: 16 }}>
-                    <p style={{ fontSize: 10, fontWeight: 700, color: "#1a5c4a", margin: "0 0 10px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Stärken & Lernbedarf</p>
-                    <p style={{ fontSize: 10, color: "#6b7280", margin: "0 0 2px" }}>Kann gut:</p>
-                    <p style={{ fontSize: 12, color: "#374151", margin: "0 0 8px" }}>{b.kind_staerken}</p>
-                    <p style={{ fontSize: 10, color: "#6b7280", margin: "0 0 2px" }}>Noch lernen:</p>
-                    <p style={{ fontSize: 12, color: "#374151", margin: 0 }}>{b.kind_lernen}</p>
+                    <p style={{ fontSize: 10, fontWeight: 700, color: "#1a5c4a", margin: "0 0 8px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Förderziel & Details</p>
+                    <p style={{ fontSize: 10, color: "#6b7280", margin: "0 0 3px", fontWeight: 600 }}>Förderziel:</p>
+                    <p style={{ fontSize: 12, color: "#374151", margin: "0 0 10px", whiteSpace: "pre-line" }}>{b.kind_lernen}</p>
+                    {b.kind_staerken && (
+                      <>
+                        <p style={{ fontSize: 10, color: "#6b7280", margin: "0 0 3px", fontWeight: 600 }}>Weitere Details:</p>
+                        <p style={{ fontSize: 12, color: "#374151", margin: 0, whiteSpace: "pre-line" }}>{b.kind_staerken}</p>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
