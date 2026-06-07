@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { getFreigegebeneSlots, getAlleBuchungen } from "@/lib/slots-store";
 import { getBuchungsformularTexte, getKurskategorien } from "@/lib/einstellungen-store";
 import SommerBuchung from "./SommerBuchung";
@@ -29,7 +28,7 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-async function SommerkursBuchungBox() {
+export default async function Home() {
   const [slots, buchungen, formularTexte, kategorien] = await Promise.all([
     getFreigegebeneSlots(),
     getAlleBuchungen(),
@@ -54,18 +53,7 @@ async function SommerkursBuchungBox() {
     (s) => s.freie_plaetze > 0 && !(s.gruppe_id && ausgebuchteGruppen.has(s.gruppe_id))
   );
 
-  return <SommerBuchung slots={buchbareSlots} texte={formularTexte} kategorien={kategorien} />;
-}
-
-function BuchungLadeAnzeige() {
-  return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 240, color: "var(--soft)", fontSize: "0.95rem" }}>
-      Verfügbare Termine werden geladen…
-    </div>
-  );
-}
-
-export default function Home() {
+  const buchungComponent = <SommerBuchung slots={buchbareSlots} texte={formularTexte} kategorien={kategorien} />;
   return (
     <div className={`lv-page ${raleway.variable} ${nunito.variable}`}>
 
@@ -211,9 +199,7 @@ export default function Home() {
               <div className="bk-badge">☀️ Sommer 2026</div>
               <span className="bk-title">Kursplatz buchen</span>
             </div>
-            <Suspense fallback={<BuchungLadeAnzeige />}>
-              <SommerkursBuchungBox />
-            </Suspense>
+            {buchungComponent}
           </div>
         </div>
       </section>
