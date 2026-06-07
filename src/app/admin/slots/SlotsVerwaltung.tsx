@@ -146,7 +146,7 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
       if (editId) {
         const body = {
           id: editId,
-          titel: formData.titel,
+          titel: formData.kurs,
           kurs: formData.kurs,
           notizen: formData.notizen,
           datum: formData.datum,
@@ -173,7 +173,7 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
         setSlots((prev) => prev.map((s) => (s.id === editId ? { ...saved, freie_plaetze: s.freie_plaetze } : s)));
       } else {
         const body = {
-          titel: formData.titel.trim() || "Lerntermin",
+          titel: formData.kurs.trim() || "Lerntermin",
           kurs: formData.kurs.trim() || "Einzelstunde",
           notizen: formData.notizen,
           max_teilnehmer: Number(formData.max_teilnehmer),
@@ -436,15 +436,9 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
 
             {/* Modal body */}
             <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={labelStyle}>Kurs *</label>
-                  <input type="text" value={formData.kurs} onChange={(e) => setFormData((d) => ({ ...d, kurs: e.target.value }))} style={inputStyle} placeholder="z.B. Einzelstunde, Legasthenie, Dyskalkulie" />
-                </div>
-                <div>
-                  <label style={labelStyle}>Titel *</label>
-                  <input type="text" value={formData.titel} onChange={(e) => setFormData((d) => ({ ...d, titel: e.target.value }))} style={inputStyle} placeholder="z.B. Nachhilfe Mathe" />
-                </div>
+              <div>
+                <label style={labelStyle}>Kurs *</label>
+                <input type="text" value={formData.kurs} onChange={(e) => setFormData((d) => ({ ...d, kurs: e.target.value }))} style={inputStyle} placeholder="z.B. Einzelstunde, Legasthenie, Dyskalkulie" />
               </div>
               <div>
                 <label style={labelStyle}>Notizen (optional)</label>

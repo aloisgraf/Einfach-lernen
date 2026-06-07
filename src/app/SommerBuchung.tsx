@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -86,6 +86,13 @@ interface KursFamilie {
   istGruppenKurs: boolean;
   varianten: KursVariante[];   // bei mehrtägigen Kursen: jede Variante = ein Satz zusammengehöriger Termine
   einzelSlots: SlotMitPlaetzen[]; // bei Einzelblöcken: alle buchbaren Einzeltermine
+  /**
+   * Gesetzt bei "virtuellen" Familien, die denselben Pool an Einzelstunden-Slots
+   * unter anderem Namen anbieten (Legasthenie-/Dyskalkulietraining). Bucht jemand
+   * einen dieser Termine, sinkt die Verfügbarkeit für alle drei Varianten gleichermaßen,
+   * da sie auf denselben Zeitslot zeigen. Es sind dabei nur einzelne Termine für 1 Kind buchbar.
+   */
+  erzwingeSchwerpunkt?: string;
 }
 
 const PAKETE = [
@@ -106,12 +113,13 @@ export default function SommerBuchung({ slots, texte }: Props) {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
-  // ── Kurse zu Familien gruppieren ────────────────────────────────────────────
+  // ── Kurse zu Familien gruppieren (Kurs ist die Hauptüberschrift) ────────────
   const familien: KursFamilie[] = [];
   for (const slot of slotsState) {
-    let familie = familien.find((f) => f.titel === slot.titel);
+    const name = slot.kurs || slot.titel;
+    let familie = familien.find((f) => f.titel === name);
     if (!familie) {
-      familie = { titel: slot.titel, emoji: STANDARD_EMOJI, istGruppenKurs: false, varianten: [], einzelSlots: [] };
+      familie = { titel: name, emoji: STANDARD_EMOJI, istGruppenKurs: false, varianten: [], einzelSlots: [] };
       familien.push(familie);
     }
     if (slot.gruppe_id) {
@@ -131,6 +139,27 @@ export default function SommerBuchung({ slots, texte }: Props) {
     familie.varianten.sort((a, b) => (a.slots[0]?.datum ?? "").localeCompare(b.slots[0]?.datum ?? ""));
   }
 
+  // ── Einzelstunden zusätzlich als Legasthenie-/Dyskalkulietraining anbieten ──
+  // Jeder normale Einzelstunden-Termin teilt sich den Platz mit diesen beiden
+  // "virtuellen" Buchungsvarianten – wird einer davon gebucht, sinkt die freie
+  // Kapazität für alle drei gleichermaßen (gleicher Zeitslot, gleiche freie_plaetze).
+  const einzelstundenFamilie = familien.find((f) => f.titel === "Einzelstunde" && !f.istGruppenKurs && f.einzelSlots.length > 0);
+  if (einzelstundenFamilie) {
+    for (const [titel, schwerpunkt] of [
+      ["Legasthenietraining", "Legasthenietraining"],
+      ["Dyskalkulietraining", "Dyskalkulietraining"],
+    ] as const) {
+      familien.push({
+        titel,
+        emoji: STANDARD_EMOJI,
+        istGruppenKurs: false,
+        varianten: [],
+        einzelSlots: einzelstundenFamilie.einzelSlots,
+        erzwingeSchwerpunkt: schwerpunkt,
+      });
+    }
+  }
+
   const aktuelleFamilie = familien.find((f) => f.titel === gewaehlteFamilie) ?? null;
 
   // ── Mehrtägiger Kurs: Tag-1-Daten & Varianten je Tag-1-Datum ────────────────
@@ -144,7 +173,8 @@ export default function SommerBuchung({ slots, texte }: Props) {
   function familieWaehlen(familie: KursFamilie) {
     setGewaehlteFamilie(familie.titel);
     setGewaehltesTag1Datum(null);
-    setGewaehltesPaket(null);
+    // Legasthenie-/Dyskalkulietraining: nur einzelne Termine für 1 Kind, keine Pakete – Paketwahl überspringen
+    setGewaehltesPaket(familie.erzwingeSchwerpunkt ? 1 : null);
     setAusgewaehlteSlots([]);
     // Bei nur einer Tag-1-Option direkt vorauswählen
     if (familie.istGruppenKurs) {
@@ -167,6 +197,16 @@ export default function SommerBuchung({ slots, texte }: Props) {
     });
   }
 
+  /** Setzt die aktuelle Auswahl zurück, damit Datum/Uhrzeit neu gewählt werden können. */
+  function datumAendern() {
+    setAusgewaehlteSlots([]);
+  }
+
+  /** Erlaubt einen weiteren Termin – bei 5 bzw. 10 Terminen wird automatisch auf das passende Paket umgeschaltet. */
+  function weiterenTerminHinzufuegen() {
+    setGewaehltesPaket((prev) => (prev ?? 1) + 1);
+  }
+
   function buchungZuruecksetzen() {
     setGewaehlteFamilie(null);
     setGewaehltesTag1Datum(null);
@@ -187,9 +227,24 @@ export default function SommerBuchung({ slots, texte }: Props) {
       : gewaehltesPaket != null && ausgewaehlteSlots.length === gewaehltesPaket
     : false;
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
+
+  // Bei Legasthenie-/Dyskalkulietraining den Schwerpunkt im Formular vorschlagen
+  useEffect(() => {
+    if (aktuelleFamilie?.erzwingeSchwerpunkt) {
+      setValue("schulstufe", aktuelleFamilie.erzwingeSchwerpunkt);
+    }
+  }, [aktuelleFamilie?.erzwingeSchwerpunkt, setValue]);
+
+  // Auto-switch zu 5er/10er Paket, wenn Kunde genau diese Anzahl Termine auswählt
+  useEffect(() => {
+    if (gewaehltesPaket !== 1 || ausgewaehlteSlots.length === 0) return;
+    if (ausgewaehlteSlots.length === 5 || ausgewaehlteSlots.length === 10) {
+      setGewaehltesPaket(ausgewaehlteSlots.length);
+    }
+  }, [ausgewaehlteSlots.length, gewaehltesPaket]);
 
   async function onSubmit(data: FormData) {
     if (!auswahlAbgeschlossen || ausgewaehlteSlots.length === 0) return;
@@ -253,7 +308,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
         <p>Ich melde mich innerhalb von 24 Stunden bei euch.</p>
         {ausgewaehlteSlots.length > 0 && (
           <p style={{ marginTop: 8, fontWeight: 700 }}>
-            {ausgewaehlteSlots[0].titel} ·{" "}
+            {aktuelleFamilie?.titel ?? ausgewaehlteSlots[0].kurs ?? ausgewaehlteSlots[0].titel} ·{" "}
             {formatDatumsListe(ausgewaehlteSlots.map((s) => s.datum))}
             {ausgewaehlteSlots.length === 1 && ` · ${ausgewaehlteSlots[0].uhrzeit_von}–${ausgewaehlteSlots[0].uhrzeit_bis} Uhr`}
           </p>
@@ -477,10 +532,32 @@ export default function SommerBuchung({ slots, texte }: Props) {
         </>
       )}
 
+      {/* Nach Auswahl einer Einzelstunde: "Datum ändern" und "weiteren Termin" Buttons */}
+      {auswahlAbgeschlossen && gewaehltesPaket === 1 && ausgewaehlteSlots.length === 1 && !aktuelleFamilie?.istGruppenKurs && !aktuelleFamilie?.erzwingeSchwerpunkt && (
+        <div style={{ display: "flex", gap: 12, marginBottom: "1rem", flexWrap: "wrap" }}>
+          <button
+            type="button"
+            onClick={datumAendern}
+            className="kurs-back"
+            style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 150 }}
+          >
+            📅 Datum ändern
+          </button>
+          <button
+            type="button"
+            onClick={weiterenTerminHinzufuegen}
+            className="kurs-back"
+            style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 150, background: "#1a5c4a", color: "#fff", border: "none" }}
+          >
+            ➕ Weiteren Termin auswählen
+          </button>
+        </div>
+      )}
+
       {auswahlAbgeschlossen && ausgewaehlteSlots.length > 0 && (
         <div style={{ background: "var(--pine-pale)", borderRadius: 11, padding: ".7rem 1rem", marginBottom: "1rem", fontSize: ".85rem", color: "var(--pine-dark)" }}>
           <div style={{ fontWeight: 700 }}>
-            Ausgewählt: {ausgewaehlteSlots[0].titel} ·{" "}
+            Ausgewählt: {ausgewaehlteSlots[0].kurs || ausgewaehlteSlots[0].titel} ·{" "}
             {formatDatumsListe(ausgewaehlteSlots.map((s) => s.datum))}
             {ausgewaehlteSlots.length === 1 && ` · ${ausgewaehlteSlots[0].uhrzeit_von}–${ausgewaehlteSlots[0].uhrzeit_bis} Uhr`}
             {ausgewaehlteSlots.length === 1 && ausgewaehlteSlots[0].preis != null && ` · € ${ausgewaehlteSlots[0].preis}`}
