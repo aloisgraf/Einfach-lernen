@@ -212,6 +212,12 @@ async function dbCreateBuchung(data: Omit<Buchung, "id" | "erstellt_am">): Promi
   return rows[0];
 }
 
+async function dbDeleteBuchung(id: string): Promise<boolean> {
+  const sql = getDb()!;
+  const result = await sql`DELETE FROM buchungen WHERE id = ${id}`;
+  return result.count > 0;
+}
+
 // ── In-Memory Demo-Store (wenn keine DATABASE_URL gesetzt) ────────────────────
 
 function demoSlots(): Zeitslot[] {
@@ -418,6 +424,13 @@ export async function createBuchung(
   if (fehler) return { error: fehler };
 
   return einzelneBuchungAnlegen(data);
+}
+
+export async function deleteBuchung(id: string): Promise<boolean> {
+  if (isDbConfigured()) {
+    try { return await dbDeleteBuchung(id); } catch { /* fall through */ }
+  }
+  return getBuchungenMap().delete(id);
 }
 
 export async function getFreiePlaetze(slotId: string): Promise<number> {

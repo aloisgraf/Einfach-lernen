@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { isAdminLoggedIn } from "@/lib/auth";
 import AdminLayout from "@/components/AdminLayout";
 import { getAlleBuchungen, getAlleSlots } from "@/lib/slots-store";
+import BuchungenList from "./BuchungenList";
 import { Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -43,60 +44,7 @@ export default async function BuchungenPage() {
             <p style={{ color: "#9ca3af", fontSize: 14 }}>Noch keine Buchungen vorhanden.</p>
           </div>
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {buchungenMitSlot.map((b) => (
-              <div key={b.id} style={{ ...card, padding: 24 }}>
-                {/* Slot-Badge + Datum */}
-                <div style={{ marginBottom: 20 }}>
-                  {b.slot ? (
-                    <span style={{
-                      display: "inline-flex", alignItems: "center",
-                      padding: "4px 12px", borderRadius: 20,
-                      background: "#eaf4ef", color: "#1a5c4a",
-                      fontSize: 12, fontWeight: 700,
-                    }}>
-                      {b.slot.titel} · {formatDatum(b.slot.datum)} · {b.slot.uhrzeit_von}–{b.slot.uhrzeit_bis} Uhr
-                    </span>
-                  ) : (
-                    <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: 20, background: "#f3f4f6", color: "#9ca3af", fontSize: 12 }}>
-                      Slot gelöscht
-                    </span>
-                  )}
-                  <p style={{ fontSize: 11, color: "#9ca3af", margin: "8px 0 0" }}>
-                    Angemeldet am {new Date(b.erstellt_am).toLocaleDateString("de-AT", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                  </p>
-                </div>
-
-                {/* Info-Grid */}
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-                  <div style={{ background: "#f9fafb", borderRadius: 10, padding: 16 }}>
-                    <p style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", margin: "0 0 10px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Elternteil</p>
-                    <p style={{ fontSize: 14, fontWeight: 700, color: "#111827", margin: 0 }}>{b.vorname} {b.nachname}</p>
-                    <p style={{ fontSize: 12, color: "#6b7280", margin: "4px 0 0" }}>{b.email}</p>
-                    <p style={{ fontSize: 12, color: "#6b7280", margin: "2px 0 0" }}>{b.telefon}</p>
-                  </div>
-
-                  <div style={{ background: "#f9fafb", borderRadius: 10, padding: 16 }}>
-                    <p style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", margin: "0 0 10px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Kind & Schwerpunkt</p>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: "#111827", margin: 0, whiteSpace: "pre-line" }}>{b.name_kind}</p>
-                    <span style={{ display: "inline-block", marginTop: 8, padding: "2px 10px", borderRadius: 20, background: "#eaf4ef", color: "#1a5c4a", fontSize: 11, fontWeight: 700 }}>{b.schulstufe}</span>
-                  </div>
-
-                  <div style={{ background: "#eaf4ef", borderRadius: 10, padding: 16 }}>
-                    <p style={{ fontSize: 10, fontWeight: 700, color: "#1a5c4a", margin: "0 0 8px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Förderziel & Details</p>
-                    <p style={{ fontSize: 10, color: "#6b7280", margin: "0 0 3px", fontWeight: 600 }}>Förderziel:</p>
-                    <p style={{ fontSize: 12, color: "#374151", margin: "0 0 10px", whiteSpace: "pre-line" }}>{b.kind_lernen}</p>
-                    {b.kind_staerken && (
-                      <>
-                        <p style={{ fontSize: 10, color: "#6b7280", margin: "0 0 3px", fontWeight: 600 }}>Weitere Details:</p>
-                        <p style={{ fontSize: 12, color: "#374151", margin: 0, whiteSpace: "pre-line" }}>{b.kind_staerken}</p>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          <BuchungenList initialBuchungen={buchungenMitSlot.map((b) => ({ buchung: b, slot: b.slot }))} />
         )}
       </div>
     </AdminLayout>
