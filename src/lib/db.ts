@@ -19,6 +19,11 @@ export function getDb() {
       // in-memory fallback in den *-store Modulen sofort greift, statt die
       // Seite minutenlang hängen zu lassen.
       connection: { statement_timeout: 8000 },
+      // Verhindert die interne "fetch array types"-Abfrage von postgres.js beim
+      // Verbindungsaufbau – deren Promise wird von der Bibliothek nicht
+      // abgefangen, wodurch ein Statement-Timeout als unhandledRejection
+      // durchschlägt. Wir definieren Typ-Parser ohnehin selbst (siehe unten).
+      fetch_types: false,
       prepare: false,
       types: {
         date: {
