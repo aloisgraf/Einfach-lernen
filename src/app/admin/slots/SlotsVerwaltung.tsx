@@ -146,7 +146,10 @@ export default function SlotsVerwaltung({ initialSlots, kategorien }: Props) {
           body: JSON.stringify(body),
         });
         const saved = await res.json();
-        if (!res.ok) throw new Error(saved.error ?? "Fehler beim Speichern.");
+        if (!res.ok) {
+          const msg = saved.details ? `${saved.error} (${saved.details})` : saved.error ?? "Fehler beim Speichern.";
+          throw new Error(msg);
+        }
         router.refresh();
         setSlots((prev) => prev.map((s) => (s.id === editId ? { ...saved, freie_plaetze: s.freie_plaetze } : s)));
       } else {
@@ -170,7 +173,10 @@ export default function SlotsVerwaltung({ initialSlots, kategorien }: Props) {
           body: JSON.stringify(body),
         });
         const saved = await res.json();
-        if (!res.ok) throw new Error(saved.error ?? "Fehler beim Speichern.");
+        if (!res.ok) {
+          const msg = saved.details ? `${saved.error} (${saved.details})` : saved.error ?? "Fehler beim Speichern.";
+          throw new Error(msg);
+        }
         router.refresh();
         const neue: SlotMitPlaetzen[] = (saved as Zeitslot[]).map((s) => ({ ...s, freie_plaetze: Number(formData.max_teilnehmer) }));
         setSlots((prev) => [...prev, ...neue]);

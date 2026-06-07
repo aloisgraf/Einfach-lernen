@@ -86,8 +86,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(erstellt, { status: 201 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    console.error("createSlot error:", msg);
-    return NextResponse.json({ error: "Datenbankfehler beim Speichern." }, { status: 500 });
+    const stack = e instanceof Error ? e.stack : "";
+    console.error("createSlot error:", msg, stack);
+    return NextResponse.json({
+      error: "Datenbankfehler beim Speichern.",
+      details: msg
+    }, { status: 500 });
   }
 }
 
