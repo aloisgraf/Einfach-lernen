@@ -1,0 +1,230 @@
+"use client";
+
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import Kalender from "@/components/Kalender";
+import { Zeitslot, schwerpunkte } from "@/types/buchung";
+import { Loader2 } from "lucide-react";
+
+interface SlotMitPlaetzen extends Zeitslot { freie_plaetze: number; }
+interface Props { slots: SlotMitPlaetzen[]; }
+
+const schema = z.object({
+  vorname: z.string().min(2, "Pflichtfeld"),
+  nachname: z.string().min(2, "Pflichtfeld"),
+  email: z.string().email("Ungültige E-Mail"),
+  name_kind: z.string().min(2, "Pflichtfeld"),
+  schulstufe: z.string().min(1, "Bitte wählen"),
+  kind_lernen: z.string().min(3, "Pflichtfeld"),
+  telefon: z.string().min(7, "Pflichtfeld"),
+  kind_beschreibung: z.string().optional(),
+  kind_diagnosen: z.string().optional(),
+  nachricht: z.string().optional(),
+  datenschutz: z.boolean().refine((v) => v, { message: "Bitte bestätigen" }),
+});
+type FormData = z.infer<typeof schema>;
+
+function formatDatum(datum: string) {
+  return new Date(datum + "T12:00:00").toLocaleDateString("de-AT", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
+}
+
+function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: React.ReactNode }) {
+  return (
+    <div className="fg full">
+      <label>{label}</label>
+      {hint && <span className="hint">{hint}</span>}
+      {children}
+      {error && <span className="err">{error}</span>}
+    </div>
+  );
+}
+
+export default function SommerBuchung({ slots }: Props) {
+  const [slotsState, setSlotsState] = useState(slots);
+  const [ausgewaehlterSlot, setAusgewaehlterSlot] = useState<SlotMitPlaetzen | null>(null);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
+    resolver: zodResolver(schema),
+  });
+
+  async function onSubmit(data: FormData) {
+    if (!ausgewaehlterSlot) return;
+    setStatus("loading");
+
+    const optionalParts = [
+      data.kind_beschreibung?.trim() && `Beschreibung des Kindes:\n${data.kind_beschreibung.trim()}`,
+      data.kind_diagnosen?.trim() && `Diagnosen / frühere Förderung:\n${data.kind_diagnosen.trim()}`,
+      data.nachricht?.trim() && `Nachricht:\n${data.nachricht.trim()}`,
+    ].filter(Boolean);
+
+    try {
+      const res = await fetch("/api/buchung", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          zeitslot_id: ausgewaehlterSlot.id,
+          vorname: data.vorname,
+          nachname: data.nachname,
+          email: data.email,
+          telefon: data.telefon,
+          name_kind: data.name_kind,
+          schulstufe: data.schulstufe,
+          kind_lernen: data.kind_lernen,
+          kind_staerken: optionalParts.join("\n\n"),
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Fehler");
+      setSlotsState((prev) => prev.map((s) =>
+        s.id === ausgewaehlterSlot.id ? { ...s, freie_plaetze: s.freie_plaetze - 1 } : s
+      ));
+      setStatus("success");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Unbekannter Fehler");
+      setStatus("error");
+    }
+  }
+
+  function neueAnfrage() {
+    reset();
+    setAusgewaehlterSlot(null);
+    setStatus("idle");
+    setErrorMsg("");
+  }
+
+  if (status === "success") {
+    return (
+      <div className="book-ok" style={{ display: "block" }}>
+        <strong>🎉 Anfrage gesendet!</strong>
+        <p>Ich melde mich innerhalb von 24 Stunden bei euch.</p>
+        {ausgewaehlterSlot && (
+          <p style={{ marginTop: 8, fontWeight: 700 }}>
+            {ausgewaehlterSlot.titel} · {formatDatum(ausgewaehlterSlot.datum)} · {ausgewaehlterSlot.uhrzeit_von}–{ausgewaehlterSlot.uhrzeit_bis} Uhr
+          </p>
+        )}
+        <button type="button" onClick={neueAnfrage} className="btn btn-pine" style={{ marginTop: 14 }}>
+          Weitere Anfrage stellen
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="bk-step">
+        <span className="bk-step-dot" />
+        Schritt 1 · Termin wählen
+      </div>
+      <div style={{ background: "var(--sand)", border: "1.5px solid var(--sand-dark)", borderRadius: 12, padding: "1rem" }}>
+        <Kalender slots={slotsState} ausgewaehlt={ausgewaehlterSlot?.id ?? null} onSlotWaehlen={setAusgewaehlterSlot} />
+      </div>
+
+      <div className="bk-step">
+        <span className={`bk-step-dot${ausgewaehlterSlot ? "" : " off"}`} />
+        Schritt 2 · Anmeldung
+      </div>
+
+      {ausgewaehlterSlot ? (
+        <div style={{ background: "var(--pine-pale)", borderRadius: 11, padding: ".7rem 1rem", marginBottom: "1rem", fontSize: ".85rem", color: "var(--pine-dark)", fontWeight: 700 }}>
+          {ausgewaehlterSlot.titel} · {formatDatum(ausgewaehlterSlot.datum)} · {ausgewaehlterSlot.uhrzeit_von}–{ausgewaehlterSlot.uhrzeit_bis} Uhr
+        </div>
+      ) : (
+        <p style={{ fontSize: ".85rem", color: "var(--soft)", marginBottom: "1rem" }}>Bitte zuerst oben einen freien Termin auswählen.</p>
+      )}
+
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        style={{ opacity: ausgewaehlterSlot ? 1 : 0.45, pointerEvents: ausgewaehlterSlot ? "auto" : "none", transition: "opacity .2s" }}
+      >
+        <div className="form-grid">
+          <div className="fg">
+            <label>Vorname *</label>
+            <input {...register("vorname")} placeholder="Anna" />
+            {errors.vorname && <span className="err">{errors.vorname.message}</span>}
+          </div>
+          <div className="fg">
+            <label>Nachname *</label>
+            <input {...register("nachname")} placeholder="Muster" />
+            {errors.nachname && <span className="err">{errors.nachname.message}</span>}
+          </div>
+          <div className="fg">
+            <label>E-Mail *</label>
+            <input {...register("email")} type="email" placeholder="anna@beispiel.at" />
+            {errors.email && <span className="err">{errors.email.message}</span>}
+          </div>
+          <div className="fg">
+            <label>Telefon *</label>
+            <input {...register("telefon")} type="tel" placeholder="+43 660 123 456" />
+            {errors.telefon && <span className="err">{errors.telefon.message}</span>}
+          </div>
+        </div>
+
+        <Field
+          label="Name &amp; Schulstufe des Kindes *"
+          hint="Bitte Name und Klasse/Schulstufe ab September angeben."
+          error={errors.name_kind?.message}
+        >
+          <textarea {...register("name_kind")} rows={2} placeholder="z.B. Emma, 3. Klasse VS" />
+        </Field>
+
+        <Field
+          label="Schwerpunkt *"
+          hint="Worauf soll der Fokus liegen?"
+          error={errors.schulstufe?.message}
+        >
+          <select {...register("schulstufe")} defaultValue="">
+            <option value="">Bitte wählen…</option>
+            {schwerpunkte.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </Field>
+
+        <Field
+          label="Was soll durch die Förderung erreicht werden? *"
+          hint="z.B. Lücken schließen, Stoff festigen oder wieder mehr Freude am Lernen finden."
+          error={errors.kind_lernen?.message}
+        >
+          <textarea {...register("kind_lernen")} rows={3} placeholder="z.B. Lücken in der Rechtschreibung schließen und wieder mehr Freude am Lesen finden." />
+        </Field>
+
+        <Field label="Wie würdest du dein Kind beschreiben? (optional)">
+          <textarea {...register("kind_beschreibung")} rows={2} placeholder="Was zeichnet dein Kind aus, was macht ihm Freude?" />
+        </Field>
+
+        <Field label="Diagnosen oder frühere Förderung? (optional)">
+          <textarea {...register("kind_diagnosen")} rows={2} placeholder="z.B. Legasthenie-Diagnose vom Schulpsychologischen Dienst, 2023." />
+        </Field>
+
+        <Field label="Anmerkung (optional)">
+          <textarea {...register("nachricht")} rows={2} placeholder="Fragen, Besonderheiten…" />
+        </Field>
+
+        <label className="consent">
+          <input {...register("datenschutz")} type="checkbox" />
+          <span>
+            Ich stimme der Verarbeitung meiner Daten gemäß der{" "}
+            <a href="/datenschutz" target="_blank">Datenschutzerklärung</a> zu. *
+          </span>
+        </label>
+        {errors.datenschutz && <span className="err">{errors.datenschutz.message}</span>}
+
+        {status === "error" && (
+          <div className="book-error">{errorMsg}</div>
+        )}
+
+        <button type="submit" className="book-btn" disabled={status === "loading" || !ausgewaehlterSlot}>
+          {status === "loading"
+            ? <><Loader2 style={{ width: 16, height: 16, animation: "lvSpin 1s linear infinite" }} /> Wird gesendet…</>
+            : <>☀️ Kursplatz verbindlich anfragen</>
+          }
+        </button>
+        <p className="book-note">Keine Vorauszahlung · Rückmeldung innerhalb von 24h · Unverbindlich</p>
+      </form>
+    </div>
+  );
+}

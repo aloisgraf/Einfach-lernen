@@ -1,13 +1,40 @@
 import { getFreigegebeneSlots, getAlleBuchungen } from "@/lib/slots-store";
-import BuchungsSeite from "./buchen/BuchungsSeite";
+import SommerBuchung from "./SommerBuchung";
 import { Metadata } from "next";
+import { Raleway, Nunito } from "next/font/google";
+import "./lernversum.css";
+
+const raleway = Raleway({
+  variable: "--font-raleway",
+  subsets: ["latin"],
+  weight: ["200", "300", "400", "500", "600"],
+  display: "swap",
+});
+
+const nunito = Nunito({
+  variable: "--font-nunito",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "Termin buchen | Einfach Lernen Pongau",
-  description: "Jetzt online einen Termin für Nachhilfe im Pongau buchen.",
+  title: "Lernversum – Wo Lernen einfach wird",
+  description: "Förderung in Deutsch, Mathe und bei Lese-Rechtschreibschwäche – für Kinder in der Volksschule und Mittelschule. Individuell, einfühlsam und mit klarem Plan.",
 };
 
 export const dynamic = "force-dynamic";
+
+const TreeLogo = ({ size = 36 }: { size?: number }) => (
+  <svg className="logo-tree" width={size} height={size * (42 / 36)} viewBox="0 0 36 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect x="14.5" y="30" width="7" height="11" rx="3" fill="#7C5230" />
+    <ellipse cx="18" cy="18" rx="11" ry="13" fill="#2D6A4F" />
+    <ellipse cx="10" cy="22" rx="7.5" ry="9" fill="#52B788" />
+    <ellipse cx="26" cy="22" rx="7.5" ry="9" fill="#52B788" />
+    <ellipse cx="18" cy="27" rx="9" ry="7" fill="#2D6A4F" />
+    <ellipse cx="18" cy="10" rx="6" ry="7.5" fill="#3d8a62" />
+  </svg>
+);
 
 export default async function Home() {
   const [slots, buchungen] = await Promise.all([
@@ -17,77 +44,250 @@ export default async function Home() {
 
   const slotsWithPlaetze = slots.map((s) => ({
     ...s,
-    freie_plaetze:
-      s.max_teilnehmer - buchungen.filter((b) => b.zeitslot_id === s.id).length,
+    freie_plaetze: s.max_teilnehmer - buchungen.filter((b) => b.zeitslot_id === s.id).length,
   }));
 
   return (
-    <div className="min-h-screen" style={{ background: "#f4f6f5" }}>
+    <div className={`lv-page ${raleway.variable} ${nunito.variable}`}>
 
-      {/* Header */}
-      <header style={{ background: "#fff", borderBottom: "1px solid #e8eceb" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 24px" }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <img src="/logo.png" alt="Einfach Lernen" style={{ height: 44 }} />
-            </div>
-            <a href="/admin/login" className="admin-btn">
-              Admin
-            </a>
-            <style>{`
-              .admin-btn {
-                font-size: 13px;
-                font-weight: 600;
-                color: #1a5c4a;
-                border: 1.5px solid #1a5c4a;
-                border-radius: 8px;
-                padding: 7px 16px;
-                text-decoration: none;
-                transition: all 0.15s;
-              }
-              .admin-btn:hover {
-                background: #1a5c4a;
-                color: #fff;
-              }
-            `}</style>
+      {/* HEADER */}
+      <header>
+        <a href="#" className="logo-wrap">
+          <TreeLogo />
+          <div className="logo-text">
+            <span className="logo-brand">Lernversum</span>
+            <span className="logo-slogan">Wo Lernen einfach wird.</span>
           </div>
-        </div>
+        </a>
+        <nav>
+          <a href="#beratung">Beratung</a>
+          <a href="#lernanalyse">Lernstandsanalyse</a>
+          <a href="#legasthenie">Legasthenie &amp; Dyskalkulie</a>
+          <a href="#ueber-mich">Über mich</a>
+          <a href="#sommerkurse" className="nav-cta">☀️ Sommerkurse</a>
+        </nav>
       </header>
 
-      {/* Hero */}
-      <div style={{ background: "#fff", borderBottom: "1px solid #e8eceb", padding: "52px 24px 48px" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto", textAlign: "center" }}>
-          <div style={{
-            display: "inline-block",
-            background: "#eaf4ef",
-            color: "#1a5c4a",
-            fontSize: 12,
-            fontWeight: 600,
-            borderRadius: 20,
-            padding: "5px 14px",
-            marginBottom: 20,
-            letterSpacing: 0.5,
-          }}>
-            Online-Anmeldung
-          </div>
-          <h1 style={{ fontSize: 40, fontWeight: 800, color: "#111827", margin: 0, lineHeight: 1.15 }}>
-            Termin buchen
-          </h1>
-          <p style={{ fontSize: 15, color: "#6b7280", marginTop: 14, lineHeight: 1.7, maxWidth: 420, marginLeft: "auto", marginRight: "auto" }}>
-            Wähle einen freien Termin im Kalender, fülle das Formular aus – und wir melden uns persönlich bei dir.
-          </p>
+      {/* BANNER */}
+      <div className="summer-banner">
+        <div className="banner-text">
+          <strong>☀️ Sommerkurse 2026 – Jetzt buchbar!</strong>
+          <span>Kleine Gruppen · Juli &amp; August · Eben im Pongau · Wenige Plätze frei!</span>
+        </div>
+        <div className="banner-cta">
+          <a href="#sommerkurse">Platz sichern →</a>
         </div>
       </div>
 
-      {/* Content */}
-      <div style={{ maxWidth: 900, margin: "0 auto", padding: "0 24px" }}>
-        <BuchungsSeite slots={slotsWithPlaetze} />
-      </div>
+      {/* HERO */}
+      <section className="hero">
+        <div className="hero-text">
+          <div className="hero-location">🌿 Eben im Pongau · Salzburg</div>
+          <h1>Weniger Stress.<br /><strong>Mehr Erfolg.</strong></h1>
+          <div className="hero-slogan">Wo Lernen einfach wird.</div>
+          <p className="hero-lead">
+            Förderung in Deutsch, Mathe und bei Lese-Rechtschreibschwäche –
+            für Kinder in der Volksschule und Mittelschule.{" "}
+            <strong>Individuell, einfühlsam und mit einem klaren Plan.</strong>
+          </p>
+          <div className="hero-ctas">
+            <a href="#kontakt" className="btn btn-pine">🗓 Erstgespräch anfragen</a>
+            <a href="#angebot" className="btn btn-outline">Angebot ansehen</a>
+          </div>
+          <div className="hero-pills">
+            <div className="hero-pill"><div className="hero-pill-dot" style={{ background: "var(--pine)" }} />Volksschule &amp; Mittelschule</div>
+            <div className="hero-pill"><div className="hero-pill-dot" style={{ background: "var(--pine-light)" }} />Legasthenie &amp; Dyskalkulie</div>
+            <div className="hero-pill"><div className="hero-pill-dot" style={{ background: "var(--gold-dark)" }} />Sommerkurse</div>
+          </div>
+        </div>
 
-      {/* Footer */}
-      <div style={{ textAlign: "center", padding: "48px 24px 32px", color: "#9ca3af", fontSize: 12 }}>
-        © {new Date().getFullYear()} Einfach Lernen Pongau
-      </div>
+        <div className="hero-visual">
+          <div className="hero-card-wrap">
+            <div className="main-card">
+              <div className="card-top">
+                <div className="card-chip cc-pale">📖</div>
+                <div className="card-chip cc-gold">✏️</div>
+                <div className="card-chip cc-sand">🧮</div>
+              </div>
+              <h3>Fortschritte dieser Woche</h3>
+              <p>Schritt für Schritt zu mehr Sicherheit und Freude am Lernen.</p>
+              <div className="prog-stack">
+                <div className="prog-row">
+                  <span className="prog-lbl">Lesekompetenz</span>
+                  <div className="prog-track"><div className="prog-bar pb-1" /></div>
+                  <span className="prog-val pv-1">+84%</span>
+                </div>
+                <div className="prog-row">
+                  <span className="prog-lbl">Rechtschreiben</span>
+                  <div className="prog-track"><div className="prog-bar pb-2" /></div>
+                  <span className="prog-val pv-2">+70%</span>
+                </div>
+                <div className="prog-row">
+                  <span className="prog-lbl">Rechnen</span>
+                  <div className="prog-track"><div className="prog-bar pb-3" /></div>
+                  <span className="prog-val pv-3">+76%</span>
+                </div>
+              </div>
+            </div>
+            <div className="float-tag ft-1">🌟 Individuell gefördert</div>
+            <div className="float-tag ft-2">👨‍👩‍👧 Eltern einbezogen</div>
+          </div>
+        </div>
+      </section>
+
+      <hr className="divider" />
+
+      {/* SERVICES */}
+      <section className="sec services" id="angebot">
+        <div className="services-intro">
+          <span className="sec-kicker kk-earth">Mein Angebot</span>
+          <h2 className="sec-title">Was ich für <strong>euer Kind</strong> tue</h2>
+          <p className="sec-sub">Von der ersten Beratung bis zum gezielten Training – mit klaren Schritten, offener Kommunikation und echtem Interesse am Kind.</p>
+        </div>
+        <div className="svc-grid">
+          <div className="svc-card sc-a" id="beratung">
+            <div className="svc-icon si-a">🧑‍👧</div>
+            <h3>Elternberatung</h3>
+            <p>Wenn Lernen zuhause zur Belastung wird. Ich gebe Eltern Klarheit und Strategien – verständlich, ohne Fachchinesisch, mit Blick aufs große Ganze.</p>
+            <a href="#kontakt" className="svc-btn sb-a">Mehr erfahren →</a>
+          </div>
+          <div className="svc-card sc-b" id="lernanalyse">
+            <div className="svc-icon si-b">🔍</div>
+            <h3>Lernstandsanalyse</h3>
+            <p>Bevor wir fördern, schauen wir genau hin. Eine fundierte Analyse zeigt, wo das Kind wirklich steht – und wo wir konkret ansetzen.</p>
+            <a href="#kontakt" className="svc-btn sb-b">Zur Analyse →</a>
+          </div>
+          <div className="svc-card sc-c" id="legasthenie">
+            <div className="svc-icon si-c">📚</div>
+            <h3>Legasthenie &amp; Dyskalkulie</h3>
+            <p>Gezielte Hilfe bei Lese-Rechtschreib- und Rechenschwäche – einfühlsam, strukturiert und auf jedes Kind individuell abgestimmt.</p>
+            <a href="#kontakt" className="svc-btn sb-c">Mehr zum Training →</a>
+          </div>
+        </div>
+      </section>
+
+      <hr className="divider" />
+
+      {/* SOMMERKURSE */}
+      <section className="sec summer" id="sommerkurse">
+        <div className="summer-layout">
+          <div>
+            <span className="sec-kicker kk-gold">Sommerkurse 2026</span>
+            <h2 className="sec-title">Die Ferien <strong>sinnvoll nutzen</strong> ☀️</h2>
+            <p className="sec-sub">Kein Druck, keine Noten – dafür echte Fortschritte. Kleine Gruppen, spielerisches Lernen, gezielte Förderung.</p>
+            <div className="why-list">
+              <div className="why-item"><div className="why-icon wi-gold">☀️</div>Entspannte Atmosphäre – Kinder lernen ohne Schulstress leichter</div>
+              <div className="why-item"><div className="why-icon wi-pine">👥</div>Kleine Gruppen – intensive, persönliche Begleitung</div>
+              <div className="why-item"><div className="why-icon wi-earth">🎯</div>Gezielt dort fördern, wo wirklich Lücken bestehen</div>
+              <div className="why-item"><div className="why-icon wi-light">✅</div>Entspannt ins neue Schuljahr starten</div>
+            </div>
+          </div>
+
+          <div className="booking-box" id="booking">
+            <div className="bk-head">
+              <div className="bk-badge">☀️ Sommer 2026</div>
+              <span className="bk-title">Kursplatz buchen</span>
+            </div>
+            <SommerBuchung slots={slotsWithPlaetze} />
+          </div>
+        </div>
+      </section>
+
+      <hr className="divider" />
+
+      {/* WHEN */}
+      <section className="sec when">
+        <div className="when-wrap">
+          <div>
+            <span className="sec-kicker kk-soft">Für wen?</span>
+            <h2 className="sec-title">Wann das <strong>Lernversum</strong> hilft</h2>
+            <p className="sec-sub">Egal ob Deutsch, Mathe oder Lernen allgemein – ich finde heraus, wo dein Kind steht und was es wirklich braucht.</p>
+            <div className="when-chips">
+              <div className="chip"><div className="chip-ico">📝</div><p>Lesen &amp; Rechtschreiben fällt schwer</p></div>
+              <div className="chip"><div className="chip-ico">🔢</div><p>Unsicherheit beim Rechnen</p></div>
+              <div className="chip"><div className="chip-ico">😓</div><p>Hausaufgaben werden zum Streit</p></div>
+              <div className="chip"><div className="chip-ico">🎯</div><p>Konzentrationsschwierigkeiten</p></div>
+              <div className="chip"><div className="chip-ico">🏠</div><p>Überforderung im Familienalltag</p></div>
+              <div className="chip"><div className="chip-ico">🗺️</div><p>Wunsch nach klarem Förderweg</p></div>
+            </div>
+          </div>
+          <div className="when-vis">
+            <div className="wv">
+              <svg className="wv-tree" width="100" height="116" viewBox="0 0 100 116" fill="none">
+                <rect x="41" y="82" width="18" height="28" rx="7" fill="#7C5230" />
+                <ellipse cx="50" cy="48" rx="28" ry="34" fill="#2D6A4F" />
+                <ellipse cx="28" cy="62" rx="20" ry="25" fill="#52B788" />
+                <ellipse cx="72" cy="62" rx="20" ry="25" fill="#52B788" />
+                <ellipse cx="50" cy="74" rx="24" ry="18" fill="#2D6A4F" />
+                <ellipse cx="50" cy="26" rx="16" ry="20" fill="#3d8a62" />
+                <circle cx="76" cy="36" r="6" fill="#F4C842" opacity=".8" />
+                <circle cx="24" cy="50" r="5" fill="#F4C842" opacity=".7" />
+              </svg>
+              <h4>Jedes Kind kann lernen.</h4>
+              <p>Manchmal braucht es nur<br />den richtigen Weg dorthin.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <hr className="divider" />
+
+      {/* PROCESS */}
+      <section className="sec process">
+        <div className="process-center">
+          <span className="sec-kicker kk-pine">So geht&apos;s los</span>
+          <h2 className="sec-title">In <strong>vier Schritten</strong> zum Erfolg</h2>
+        </div>
+        <div className="steps">
+          <div className="step">
+            <div className="step-n sn1">1</div>
+            <div className="step-ico">📞</div>
+            <h4>Elternberatung</h4>
+            <p>Erstes Gespräch – offen, kostenlos, ohne Druck.</p>
+          </div>
+          <div className="step">
+            <div className="step-n sn2">2</div>
+            <div className="step-ico">🔍</div>
+            <h4>Lernstandsanalyse</h4>
+            <p>Wo steht dein Kind wirklich? Wir schauen genau hin.</p>
+          </div>
+          <div className="step">
+            <div className="step-n sn3">3</div>
+            <div className="step-ico">✏️</div>
+            <h4>Individuelle Förderung</h4>
+            <p>Maßgeschneidertes Training – spielerisch und effektiv.</p>
+          </div>
+          <div className="step">
+            <div className="step-n sn4">4</div>
+            <div className="step-ico">📊</div>
+            <h4>Regelmäßige Rückmeldung</h4>
+            <p>Eltern bleiben immer informiert – ehrlich und klar.</p>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="cta-sec" id="kontakt">
+        <h2>Bereit für den ersten Schritt? <strong>Melden Sie sich!</strong></h2>
+        <div className="tagline">Wo Lernen einfach wird.</div>
+        <p>Starte mit einer unverbindlichen <strong>Elternberatung</strong> –<br />egal ob Deutsch, Mathe oder Lernen allgemein.</p>
+        <div className="cta-btns">
+          <a href="mailto:info@lernversum.at" className="btn btn-gold">✉️ Erstgespräch anfragen</a>
+          <a href="#sommerkurse" className="btn btn-white">☀️ Sommerkurs buchen</a>
+        </div>
+      </section>
+
+      {/* FOOTER */}
+      <footer>
+        <span>© {new Date().getFullYear()} Lernversum · Eben im Pongau · Salzburg</span>
+        <div className="footer-links">
+          <a href="#ueber-mich">Über mich</a>
+          <a href="/datenschutz">Datenschutz</a>
+          <a href="/impressum">Impressum</a>
+          <a href="mailto:info@lernversum.at">info@lernversum.at</a>
+          <a href="/admin/login">Admin</a>
+        </div>
+      </footer>
     </div>
   );
 }
