@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, CalendarClock, Users, LogOut, ExternalLink, Gamepad2, FileText } from "lucide-react";
+import { LayoutDashboard, CalendarClock, Users, LogOut, ExternalLink, Gamepad2, FileText, Type } from "lucide-react";
 
 const navItems = [
   { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/admin/slots", icon: CalendarClock, label: "Zeitslots" },
   { href: "/admin/buchungen", icon: Users, label: "Buchungen" },
   { href: "/admin/formular", icon: FileText, label: "Buchungsformular" },
+  { href: "/admin/website-texte", icon: Type, label: "Website-Texte" },
   { href: "/admin/silbenspiel", icon: Gamepad2, label: "Silbenspiel" },
 ];
 

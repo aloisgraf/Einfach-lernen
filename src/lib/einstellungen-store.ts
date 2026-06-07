@@ -13,9 +13,11 @@
 import { getDb, isDbConfigured, mitTimeout } from "./db";
 import { BuchungsformularTexte, STANDARD_FORMULAR_TEXTE } from "@/types/formular";
 import { Kurskategorie, STANDARD_KURSKATEGORIEN } from "@/types/kategorie";
+import { WebsiteTexte, STANDARD_WEBSITE_TEXTE } from "@/types/website-texte";
 
 const FORMULAR_KEY = "buchungsformular_texte";
 const KATEGORIEN_KEY = "kurskategorien";
+const WEBSITE_TEXTE_KEY = "website_texte";
 
 declare global {
   var __einstellungenStore: Map<string, string> | undefined;
@@ -79,4 +81,23 @@ export async function getKurskategorien(): Promise<Kurskategorie[]> {
 
 export async function setKurskategorien(kategorien: Kurskategorie[]): Promise<void> {
   await setEinstellung(KATEGORIEN_KEY, JSON.stringify(kategorien));
+}
+
+export async function getWebsiteTexte(): Promise<WebsiteTexte> {
+  const raw = await getEinstellung(WEBSITE_TEXTE_KEY);
+  if (!raw) return STANDARD_WEBSITE_TEXTE;
+  try {
+    const parsed = JSON.parse(raw);
+    const ergebnis = { ...STANDARD_WEBSITE_TEXTE } as WebsiteTexte;
+    for (const modul of Object.keys(STANDARD_WEBSITE_TEXTE) as (keyof WebsiteTexte)[]) {
+      ergebnis[modul] = { ...STANDARD_WEBSITE_TEXTE[modul], ...(parsed?.[modul] ?? {}) } as never;
+    }
+    return ergebnis;
+  } catch {
+    return STANDARD_WEBSITE_TEXTE;
+  }
+}
+
+export async function setWebsiteTexte(texte: WebsiteTexte): Promise<void> {
+  await setEinstellung(WEBSITE_TEXTE_KEY, JSON.stringify(texte));
 }

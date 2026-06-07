@@ -1,45 +1,83 @@
 import { Metadata } from "next";
+import { Raleway, Nunito } from "next/font/google";
 import { getFreigegebeneSlots, getAlleBuchungen } from "@/lib/slots-store";
-import BuchungsSeite from "./BuchungsSeite";
+import { getBuchungsformularTexte } from "@/lib/einstellungen-store";
+import SommerBuchung from "../SommerBuchung";
+import LvHeader from "@/components/LvHeader";
+import LvFooter from "@/components/LvFooter";
+import "../lernversum.css";
+
+const raleway = Raleway({
+  variable: "--font-raleway",
+  subsets: ["latin"],
+  weight: ["200", "300", "400", "500", "600"],
+  display: "swap",
+});
+
+const nunito = Nunito({
+  variable: "--font-nunito",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "Termin buchen | Einfach Lernen Pongau",
-  description:
-    "Freien Termin im Kalender wählen und direkt online anmelden – schnell und unkompliziert.",
+  title: "Kursplatz buchen | Einfach Lernen Pongau",
+  description: "Freien Termin auswählen und direkt online anmelden – schnell und unkompliziert.",
 };
 
 export const dynamic = "force-dynamic";
 
 export default async function BuchenPage() {
-  const [slots, buchungen] = await Promise.all([
+  const [slots, buchungen, formularTexte] = await Promise.all([
     getFreigegebeneSlots(),
     getAlleBuchungen(),
+    getBuchungsformularTexte(),
   ]);
 
   const slotsWithPlaetze = slots.map((s) => ({
     ...s,
-    freie_plaetze:
-      s.max_teilnehmer - buchungen.filter((b) => b.zeitslot_id === s.id).length,
+    freie_plaetze: s.max_teilnehmer - buchungen.filter((b) => b.zeitslot_id === s.id).length,
   }));
 
+  const ausgebuchteGruppen = new Set(
+    Array.from(new Set(slotsWithPlaetze.filter((s) => s.gruppe_id).map((s) => s.gruppe_id!)))
+      .filter((gruppeId) => slotsWithPlaetze.some((s) => s.gruppe_id === gruppeId && s.freie_plaetze <= 0))
+  );
+
+  const buchbareSlots = slotsWithPlaetze.filter(
+    (s) => s.freie_plaetze > 0 && !(s.gruppe_id && ausgebuchteGruppen.has(s.gruppe_id))
+  );
+
   return (
-    <div className="min-h-screen pt-16 bg-gray-50">
-      <div className="bg-gradient-to-br from-[#f0faf4] to-white border-b border-gray-100 py-10 px-4">
-        <div className="max-w-6xl mx-auto">
-          <span className="inline-block px-3 py-1.5 bg-[#d8f3e3] text-[#1b4332] text-xs font-semibold rounded-full mb-3">
-            Online-Anmeldung
-          </span>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-[#1a1a2e] mb-2">
-            Termin buchen
-          </h1>
-          <p className="text-gray-500 max-w-lg">
-            Wähle im Kalender einen freien Termin aus, trage deine Daten ein
-            und klicke auf <strong>„Jetzt anmelden"</strong>.
+    <div className={`lv-page ${raleway.variable} ${nunito.variable}`}>
+      <LvHeader />
+
+      <section className="sec" style={{ background: "linear-gradient(150deg, var(--sand) 0%, #fdf6e8 55%, var(--pine-pale) 100%)", paddingBottom: "2.5rem" }}>
+        <div style={{ maxWidth: 760, margin: "0 auto", textAlign: "center" }}>
+          <span className="sec-kicker kk-pine">Online-Anmeldung</span>
+          <h1 className="sec-title">Kursplatz buchen</h1>
+          <p className="sec-sub" style={{ margin: "0 auto" }}>
+            Wähle einen freien Termin aus, trage deine Daten ein und sichere dir deinen Platz – ganz unkompliziert online.
           </p>
         </div>
-      </div>
+      </section>
 
-      <BuchungsSeite slots={slotsWithPlaetze} />
+      <hr className="divider" />
+
+      <section className="sec" style={{ background: "var(--white)" }}>
+        <div className="content-wrap" style={{ maxWidth: 640 }}>
+          <div className="booking-box" id="booking">
+            <div className="bk-head">
+              <div className="bk-badge">☀️ Sommer 2026</div>
+              <span className="bk-title">Kursplatz buchen</span>
+            </div>
+            <SommerBuchung slots={buchbareSlots} texte={formularTexte} />
+          </div>
+        </div>
+      </section>
+
+      <LvFooter />
     </div>
   );
 }

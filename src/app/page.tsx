@@ -1,8 +1,9 @@
 import { getFreigegebeneSlots, getAlleBuchungen } from "@/lib/slots-store";
-import { getBuchungsformularTexte } from "@/lib/einstellungen-store";
+import { getBuchungsformularTexte, getWebsiteTexte } from "@/lib/einstellungen-store";
 import SommerBuchung from "./SommerBuchung";
 import LvHeader from "@/components/LvHeader";
 import LvFooter from "@/components/LvFooter";
+import { RichText, RichParagraphs } from "@/components/RichText";
 import { Metadata } from "next";
 import { Raleway, Nunito } from "next/font/google";
 import "./lernversum.css";
@@ -29,10 +30,11 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [slots, buchungen, formularTexte] = await Promise.all([
+  const [slots, buchungen, formularTexte, texte] = await Promise.all([
     getFreigegebeneSlots(),
     getAlleBuchungen(),
     getBuchungsformularTexte(),
+    getWebsiteTexte(),
   ]);
 
   const slotsWithPlaetze = slots.map((s) => ({
@@ -61,33 +63,31 @@ export default async function Home() {
       {/* BANNER */}
       <div className="summer-banner">
         <div className="banner-text">
-          <strong>☀️ Sommerkurse 2026 – Jetzt buchbar!</strong>
-          <span>Kleine Gruppen · Juli &amp; August · Eben im Pongau · Wenige Plätze frei!</span>
+          <strong><RichText text={texte.banner.text} /></strong>
+          <span>{texte.banner.subtext}</span>
         </div>
         <div className="banner-cta">
-          <a href="#sommerkurse">Platz sichern →</a>
+          <a href="#sommerkurse">{texte.banner.cta_label}</a>
         </div>
       </div>
 
       {/* HERO */}
       <section className="hero">
         <div className="hero-text">
-          <div className="hero-location">🌿 Eben im Pongau · Salzburg</div>
-          <h1>Weniger Stress.<br /><strong>Mehr Erfolg.</strong></h1>
-          <div className="hero-slogan">Wo Lernen einfach wird.</div>
+          <div className="hero-location">{texte.hero.location}</div>
+          <h1><RichText text={texte.hero.titel_zeile1} /><br /><RichText text={texte.hero.titel_zeile2} /></h1>
+          <div className="hero-slogan">{texte.hero.slogan}</div>
           <p className="hero-lead">
-            Förderung in Deutsch, Mathe und bei Lese-Rechtschreibschwäche –
-            für Kinder in der Volksschule und Mittelschule.{" "}
-            <strong>Individuell, einfühlsam und mit einem klaren Plan.</strong>
+            <RichText text={texte.hero.lead} />
           </p>
           <div className="hero-ctas">
-            <a href="#kontakt" className="btn btn-pine">🗓 Erstgespräch anfragen</a>
-            <a href="#angebot" className="btn btn-outline">Angebot ansehen</a>
+            <a href="#kontakt" className="btn btn-pine">{texte.hero.cta1_label}</a>
+            <a href="#angebot" className="btn btn-outline">{texte.hero.cta2_label}</a>
           </div>
           <div className="hero-pills">
-            <div className="hero-pill"><div className="hero-pill-dot" style={{ background: "var(--pine)" }} />Volksschule &amp; Mittelschule</div>
-            <div className="hero-pill"><div className="hero-pill-dot" style={{ background: "var(--pine-light)" }} />Legasthenie &amp; Dyskalkulie</div>
-            <div className="hero-pill"><div className="hero-pill-dot" style={{ background: "var(--gold-dark)" }} />Sommerkurse</div>
+            <div className="hero-pill"><div className="hero-pill-dot" style={{ background: "var(--pine)" }} />{texte.hero.pill1}</div>
+            <div className="hero-pill"><div className="hero-pill-dot" style={{ background: "var(--pine-light)" }} />{texte.hero.pill2}</div>
+            <div className="hero-pill"><div className="hero-pill-dot" style={{ background: "var(--gold-dark)" }} />{texte.hero.pill3}</div>
           </div>
         </div>
 
@@ -99,8 +99,8 @@ export default async function Home() {
                 <div className="card-chip cc-gold">✏️</div>
                 <div className="card-chip cc-sand">🧮</div>
               </div>
-              <h3>Fortschritte dieser Woche</h3>
-              <p>Schritt für Schritt zu mehr Sicherheit und Freude am Lernen.</p>
+              <h3>{texte.hero.karte_titel}</h3>
+              <p>{texte.hero.karte_text}</p>
               <div className="prog-stack">
                 <div className="prog-row">
                   <span className="prog-lbl">Lesekompetenz</span>
@@ -119,8 +119,8 @@ export default async function Home() {
                 </div>
               </div>
             </div>
-            <div className="float-tag ft-1">🌟 Individuell gefördert</div>
-            <div className="float-tag ft-2">👨‍👩‍👧 Eltern einbezogen</div>
+            <div className="float-tag ft-1">{texte.hero.tag1}</div>
+            <div className="float-tag ft-2">{texte.hero.tag2}</div>
           </div>
         </div>
       </section>
@@ -130,18 +130,9 @@ export default async function Home() {
       {/* WILLKOMMEN */}
       <section className="sec" style={{ background: "var(--white)" }} id="willkommen">
         <div className="content-wrap" style={{ maxWidth: 680 }}>
-          <span className="sec-kicker kk-pine">Herzlich willkommen</span>
-          <p>Hausübungen sind für dein Kind schwierig, die Hausübungssituation ist immer angespannt?</p>
-          <p>Du weißt nicht, wie du deinem Kind am besten helfen kannst?</p>
-          <p>Lesen, Schreiben oder Rechnen ist für dein Kind anstrengend und mühsam?</p>
-          <p>Egal wie oft Lernwörter geübt werden, dein Kind kann sie sich nicht merken oder einfache Rechnungen werden immer wieder falsch gerechnet?</p>
-          <p>Dein Kind hört sich sehr gern Geschichten an, selber lesen mag es aber nicht?</p>
-          <p>Dann bist du bei mir genau richtig. Mit meiner Förderung und Elternberatung legen wir gemeinsam eine solide Basis für eine entspannte und erfolgreiche Schulzeit.</p>
-          <p>Lasst uns gemeinsam &quot;Einfach Lernen&quot;.</p>
-          <p>Als Primarstufenpädagogin, Betreuerin für Lese-Rechtschreib-Schwäche und diplomierte Legasthenie- und Dyskalkulietrainerin biete ich ab sofort Unterstützung.</p>
-          <p>Ich begleite dich und dein Kind individuell und transparent auf dem Weg durch den Zahlen- und Buchstabendschungel um euren Weg durch die Schulzeit zu erleichtern.</p>
-          <p>Ich freue mich darauf, Dich kennenzulernen.</p>
-          <p style={{ fontFamily: "var(--font-raleway), sans-serif", fontWeight: 600, color: "var(--pine)", fontSize: "1.05rem" }}>Anna Reichsöllner</p>
+          <span className="sec-kicker kk-pine">{texte.willkommen.kicker}</span>
+          <RichParagraphs text={texte.willkommen.text} />
+          <p style={{ fontFamily: "var(--font-raleway), sans-serif", fontWeight: 600, color: "var(--pine)", fontSize: "1.05rem" }}>{texte.willkommen.signatur}</p>
         </div>
       </section>
 
@@ -150,28 +141,28 @@ export default async function Home() {
       {/* SERVICES */}
       <section className="sec services" id="angebot">
         <div className="services-intro">
-          <span className="sec-kicker kk-earth">Mein Angebot</span>
-          <h2 className="sec-title">Was ich für <strong>euer Kind</strong> tue</h2>
-          <p className="sec-sub">Von der ersten Beratung bis zum gezielten Training – mit klaren Schritten, offener Kommunikation und echtem Interesse am Kind.</p>
+          <span className="sec-kicker kk-earth">{texte.angebot.kicker}</span>
+          <h2 className="sec-title"><RichText text={texte.angebot.titel} /></h2>
+          <p className="sec-sub">{texte.angebot.subtitel}</p>
         </div>
         <div className="svc-grid">
           <div className="svc-card sc-a" id="beratung">
             <div className="svc-icon si-a">🧑‍👧</div>
-            <h3>Elternberatung</h3>
-            <p>Wenn Lernen zuhause zur Belastung wird. Ich gebe Eltern Klarheit und Strategien – verständlich, ohne Fachchinesisch, mit Blick aufs große Ganze.</p>
-            <a href="#kontakt" className="svc-btn sb-a">Mehr erfahren →</a>
+            <h3>{texte.angebot.karte1_titel}</h3>
+            <p>{texte.angebot.karte1_text}</p>
+            <a href="#kontakt" className="svc-btn sb-a">{texte.angebot.karte1_button}</a>
           </div>
           <div className="svc-card sc-b" id="lernanalyse">
             <div className="svc-icon si-b">🔍</div>
-            <h3>Lernstandsanalyse</h3>
-            <p>Bevor wir fördern, schauen wir genau hin. Eine fundierte Analyse zeigt, wo das Kind wirklich steht – und wo wir konkret ansetzen.</p>
-            <a href="#kontakt" className="svc-btn sb-b">Zur Analyse →</a>
+            <h3>{texte.angebot.karte2_titel}</h3>
+            <p>{texte.angebot.karte2_text}</p>
+            <a href="#kontakt" className="svc-btn sb-b">{texte.angebot.karte2_button}</a>
           </div>
           <div className="svc-card sc-c" id="legasthenie">
             <div className="svc-icon si-c">📚</div>
-            <h3>Legasthenie &amp; Dyskalkulie</h3>
-            <p>Gezielte Hilfe bei Lese-Rechtschreib- und Rechenschwäche – einfühlsam, strukturiert und auf jedes Kind individuell abgestimmt.</p>
-            <a href="#kontakt" className="svc-btn sb-c">Mehr zum Training →</a>
+            <h3>{texte.angebot.karte3_titel}</h3>
+            <p>{texte.angebot.karte3_text}</p>
+            <a href="#kontakt" className="svc-btn sb-c">{texte.angebot.karte3_button}</a>
           </div>
         </div>
       </section>
@@ -182,21 +173,21 @@ export default async function Home() {
       <section className="sec summer" id="sommerkurse">
         <div className="summer-layout">
           <div>
-            <span className="sec-kicker kk-gold">Sommerkurse 2026</span>
-            <h2 className="sec-title">Die Ferien <strong>sinnvoll nutzen</strong> ☀️</h2>
-            <p className="sec-sub">Kein Druck, keine Noten – dafür echte Fortschritte. Kleine Gruppen, spielerisches Lernen, gezielte Förderung.</p>
+            <span className="sec-kicker kk-gold">{texte.sommerkurse.kicker}</span>
+            <h2 className="sec-title"><RichText text={texte.sommerkurse.titel} /></h2>
+            <p className="sec-sub">{texte.sommerkurse.subtitel}</p>
             <div className="why-list">
-              <div className="why-item"><div className="why-icon wi-gold">☀️</div>Entspannte Atmosphäre – Kinder lernen ohne Schulstress leichter</div>
-              <div className="why-item"><div className="why-icon wi-pine">👥</div>Kleine Gruppen – intensive, persönliche Begleitung</div>
-              <div className="why-item"><div className="why-icon wi-earth">🎯</div>Gezielt dort fördern, wo wirklich Lücken bestehen</div>
-              <div className="why-item"><div className="why-icon wi-light">✅</div>Entspannt ins neue Schuljahr starten</div>
+              <div className="why-item"><div className="why-icon wi-gold">☀️</div>{texte.sommerkurse.punkt1}</div>
+              <div className="why-item"><div className="why-icon wi-pine">👥</div>{texte.sommerkurse.punkt2}</div>
+              <div className="why-item"><div className="why-icon wi-earth">🎯</div>{texte.sommerkurse.punkt3}</div>
+              <div className="why-item"><div className="why-icon wi-light">✅</div>{texte.sommerkurse.punkt4}</div>
             </div>
           </div>
 
           <div className="booking-box" id="booking">
             <div className="bk-head">
-              <div className="bk-badge">☀️ Sommer 2026</div>
-              <span className="bk-title">Kursplatz buchen</span>
+              <div className="bk-badge">{texte.sommerkurse.box_badge}</div>
+              <span className="bk-title">{texte.sommerkurse.box_titel}</span>
             </div>
             {buchungComponent}
           </div>
@@ -209,16 +200,16 @@ export default async function Home() {
       <section className="sec when">
         <div className="when-wrap">
           <div>
-            <span className="sec-kicker kk-soft">Für wen?</span>
-            <h2 className="sec-title">Wann <strong>Einfach Lernen</strong> hilft</h2>
-            <p className="sec-sub">Egal ob Deutsch, Mathe oder Lernen allgemein – ich finde heraus, wo dein Kind steht und was es wirklich braucht.</p>
+            <span className="sec-kicker kk-soft">{texte.wann_hilft.kicker}</span>
+            <h2 className="sec-title"><RichText text={texte.wann_hilft.titel} /></h2>
+            <p className="sec-sub">{texte.wann_hilft.subtitel}</p>
             <div className="when-chips">
-              <div className="chip"><div className="chip-ico">📝</div><p>Lesen &amp; Rechtschreiben fällt schwer</p></div>
-              <div className="chip"><div className="chip-ico">🔢</div><p>Unsicherheit beim Rechnen</p></div>
-              <div className="chip"><div className="chip-ico">😓</div><p>Hausaufgaben werden zum Streit</p></div>
-              <div className="chip"><div className="chip-ico">🎯</div><p>Konzentrationsschwierigkeiten</p></div>
-              <div className="chip"><div className="chip-ico">🏠</div><p>Überforderung im Familienalltag</p></div>
-              <div className="chip"><div className="chip-ico">🗺️</div><p>Wunsch nach klarem Förderweg</p></div>
+              <div className="chip"><div className="chip-ico">📝</div><p>{texte.wann_hilft.chip1}</p></div>
+              <div className="chip"><div className="chip-ico">🔢</div><p>{texte.wann_hilft.chip2}</p></div>
+              <div className="chip"><div className="chip-ico">😓</div><p>{texte.wann_hilft.chip3}</p></div>
+              <div className="chip"><div className="chip-ico">🎯</div><p>{texte.wann_hilft.chip4}</p></div>
+              <div className="chip"><div className="chip-ico">🏠</div><p>{texte.wann_hilft.chip5}</p></div>
+              <div className="chip"><div className="chip-ico">🗺️</div><p>{texte.wann_hilft.chip6}</p></div>
             </div>
           </div>
           <div className="when-vis">
@@ -233,8 +224,8 @@ export default async function Home() {
                 <circle cx="76" cy="36" r="6" fill="#F4C842" opacity=".8" />
                 <circle cx="24" cy="50" r="5" fill="#F4C842" opacity=".7" />
               </svg>
-              <h4>Jedes Kind kann lernen.</h4>
-              <p>Manchmal braucht es nur<br />den richtigen Weg dorthin.</p>
+              <h4>{texte.wann_hilft.vision_titel}</h4>
+              <p><RichText text={texte.wann_hilft.vision_text} /></p>
             </div>
           </div>
         </div>
@@ -245,45 +236,45 @@ export default async function Home() {
       {/* PROCESS */}
       <section className="sec process">
         <div className="process-center">
-          <span className="sec-kicker kk-pine">So geht&apos;s los</span>
-          <h2 className="sec-title">In <strong>vier Schritten</strong> zum Erfolg</h2>
+          <span className="sec-kicker kk-pine">{texte.prozess.kicker}</span>
+          <h2 className="sec-title"><RichText text={texte.prozess.titel} /></h2>
         </div>
         <div className="steps">
           <div className="step">
             <div className="step-n sn1">1</div>
             <div className="step-ico">📞</div>
-            <h4>Elternberatung</h4>
-            <p>Erstes Gespräch – offen, kostenlos, ohne Druck.</p>
+            <h4>{texte.prozess.schritt1_titel}</h4>
+            <p>{texte.prozess.schritt1_text}</p>
           </div>
           <div className="step">
             <div className="step-n sn2">2</div>
             <div className="step-ico">🔍</div>
-            <h4>Lernstandsanalyse</h4>
-            <p>Wo steht dein Kind wirklich? Wir schauen genau hin.</p>
+            <h4>{texte.prozess.schritt2_titel}</h4>
+            <p>{texte.prozess.schritt2_text}</p>
           </div>
           <div className="step">
             <div className="step-n sn3">3</div>
             <div className="step-ico">✏️</div>
-            <h4>Individuelle Förderung</h4>
-            <p>Maßgeschneidertes Training – spielerisch und effektiv.</p>
+            <h4>{texte.prozess.schritt3_titel}</h4>
+            <p>{texte.prozess.schritt3_text}</p>
           </div>
           <div className="step">
             <div className="step-n sn4">4</div>
             <div className="step-ico">📊</div>
-            <h4>Regelmäßige Rückmeldung</h4>
-            <p>Eltern bleiben immer informiert – ehrlich und klar.</p>
+            <h4>{texte.prozess.schritt4_titel}</h4>
+            <p>{texte.prozess.schritt4_text}</p>
           </div>
         </div>
       </section>
 
       {/* CTA */}
       <section className="cta-sec" id="kontakt">
-        <h2>Bereit für den ersten Schritt? <strong>Melden Sie sich!</strong></h2>
-        <div className="tagline">Wo Lernen einfach wird.</div>
-        <p>Starte mit einer unverbindlichen <strong>Elternberatung</strong> –<br />egal ob Deutsch, Mathe oder Lernen allgemein.</p>
+        <h2><RichText text={texte.cta.titel} /></h2>
+        <div className="tagline">{texte.cta.tagline}</div>
+        <p><RichText text={texte.cta.text} /></p>
         <div className="cta-btns">
-          <a href="mailto:info@einfachlernen-pongau.at" className="btn btn-gold">✉️ Erstgespräch anfragen</a>
-          <a href="#sommerkurse" className="btn btn-white">☀️ Sommerkurs buchen</a>
+          <a href="mailto:info@einfachlernen-pongau.at" className="btn btn-gold">{texte.cta.button1_label}</a>
+          <a href="#sommerkurse" className="btn btn-white">{texte.cta.button2_label}</a>
         </div>
       </section>
 
