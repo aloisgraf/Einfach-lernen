@@ -71,10 +71,13 @@ function slotsSchemaSicherstellen(): Promise<void> {
     global.__slotsSchemaMigriert = (async () => {
       const migrationen = [
         sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS preis NUMERIC`,
+        sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS preis_2er NUMERIC`,
         sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS preis_5er NUMERIC`,
         sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS preis_10er NUMERIC`,
         sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS kategorien TEXT[] NOT NULL DEFAULT '{}'`,
         sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS gruppe_id UUID`,
+        sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS kurs TEXT`,
+        sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS notizen TEXT`,
       ];
       for (const migration of migrationen) {
         try { await mitTimeout(migration, 8000); } catch (e) { console.error("Schema-Migration fehlgeschlagen:", e); }
@@ -117,12 +120,15 @@ async function dbCreateSlot(data: Omit<Zeitslot, "id" | "erstellt_am">): Promise
   const felder: Record<string, unknown> = {
     titel: data.titel,
     beschreibung: data.beschreibung ?? null,
+    kurs: (data as any).kurs ?? null,
+    notizen: (data as any).notizen ?? null,
     datum: data.datum,
     uhrzeit_von: data.uhrzeit_von,
     uhrzeit_bis: data.uhrzeit_bis,
     max_teilnehmer: data.max_teilnehmer,
     freigegeben: data.freigegeben,
     preis: data.preis ?? null,
+    preis_2er: (data as any).preis_2er ?? null,
     preis_5er: data.preis_5er ?? null,
     preis_10er: data.preis_10er ?? null,
     gruppe_id: data.gruppe_id ?? null,
@@ -219,7 +225,8 @@ function demoSlots(): Zeitslot[] {
     {
       id: "s1",
       titel: "Nachhilfe Mathematik",
-      beschreibung: "Kleingruppenunterricht, max. 3 Schüler",
+      kurs: "Einzelstunde",
+      notizen: "Kleingruppenunterricht, max. 3 Schüler",
       datum: mkDatum(2),
       uhrzeit_von: "15:00",
       uhrzeit_bis: "16:30",
@@ -232,6 +239,7 @@ function demoSlots(): Zeitslot[] {
     {
       id: "s2",
       titel: "Nachhilfe Deutsch",
+      kurs: "Einzelstunde",
       datum: mkDatum(3),
       uhrzeit_von: "14:00",
       uhrzeit_bis: "15:30",
@@ -244,6 +252,7 @@ function demoSlots(): Zeitslot[] {
     {
       id: "s3",
       titel: "Englisch Konversation",
+      kurs: "Einzelstunde",
       datum: mkDatum(5),
       uhrzeit_von: "16:00",
       uhrzeit_bis: "17:00",

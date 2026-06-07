@@ -21,7 +21,8 @@ interface TerminEntry {
 
 const leerFormular = {
   titel: "",
-  beschreibung: "",
+  kurs: "",
+  notizen: "",
   // Bearbeiten eines bestehenden Slots (ein Termin):
   datum: "",
   uhrzeit_von: "",
@@ -32,6 +33,7 @@ const leerFormular = {
   max_teilnehmer: "1",
   freigegeben: false,
   preis: "",
+  preis_2er: "",
   preis_5er: "",
   preis_10er: "",
 };
@@ -83,20 +85,43 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
   }
 
   function openEdit(slot: SlotMitPlaetzen) {
-    setEditId(slot.id);
-    setFormData({
-      ...leerFormular,
-      titel: slot.titel,
-      beschreibung: slot.beschreibung ?? "",
-      datum: slot.datum,
-      uhrzeit_von: slot.uhrzeit_von,
-      uhrzeit_bis: slot.uhrzeit_bis,
-      max_teilnehmer: String(slot.max_teilnehmer),
-      freigegeben: slot.freigegeben,
-      preis: slot.preis != null ? String(slot.preis) : "",
-      preis_5er: slot.preis_5er != null ? String(slot.preis_5er) : "",
-      preis_10er: slot.preis_10er != null ? String(slot.preis_10er) : "",
-    });
+    // Wenn dieser Slot Teil einer Gruppe ist, bearbeite die ganze Gruppe
+    if (slot.gruppe_id) {
+      const gruppenSlots = slots.filter((s) => s.gruppe_id === slot.gruppe_id).sort((a, b) => a.datum.localeCompare(b.datum));
+      setEditId(gruppenSlots[0]?.id ?? null);
+      setFormData({
+        ...leerFormular,
+        titel: slot.titel,
+        kurs: (slot as any).kurs ?? "",
+        notizen: (slot as any).notizen ?? "",
+        max_teilnehmer: String(slot.max_teilnehmer),
+        freigegeben: slot.freigegeben,
+        preis: slot.preis != null ? String(slot.preis) : "",
+        preis_2er: (slot as any).preis_2er != null ? String((slot as any).preis_2er) : "",
+        preis_5er: slot.preis_5er != null ? String(slot.preis_5er) : "",
+        preis_10er: slot.preis_10er != null ? String(slot.preis_10er) : "",
+        termine: gruppenSlots.map((s) => ({ datum: s.datum, uhrzeit_von: s.uhrzeit_von, uhrzeit_bis: s.uhrzeit_bis })),
+        alsGruppe: true,
+      });
+    } else {
+      // Einzelner Slot - bearbeite nur diesen
+      setEditId(slot.id);
+      setFormData({
+        ...leerFormular,
+        titel: slot.titel,
+        kurs: (slot as any).kurs ?? "",
+        notizen: (slot as any).notizen ?? "",
+        datum: slot.datum,
+        uhrzeit_von: slot.uhrzeit_von,
+        uhrzeit_bis: slot.uhrzeit_bis,
+        max_teilnehmer: String(slot.max_teilnehmer),
+        freigegeben: slot.freigegeben,
+        preis: slot.preis != null ? String(slot.preis) : "",
+        preis_2er: (slot as any).preis_2er != null ? String((slot as any).preis_2er) : "",
+        preis_5er: slot.preis_5er != null ? String(slot.preis_5er) : "",
+        preis_10er: slot.preis_10er != null ? String(slot.preis_10er) : "",
+      });
+    }
     setFormOpen(true);
   }
 
@@ -122,13 +147,15 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
         const body = {
           id: editId,
           titel: formData.titel,
-          beschreibung: formData.beschreibung,
+          kurs: formData.kurs,
+          notizen: formData.notizen,
           datum: formData.datum,
           uhrzeit_von: formData.uhrzeit_von,
           uhrzeit_bis: formData.uhrzeit_bis,
           max_teilnehmer: Number(formData.max_teilnehmer),
           freigegeben: formData.freigegeben,
           preis: formData.preis,
+          preis_2er: formData.preis_2er,
           preis_5er: formData.preis_5er,
           preis_10er: formData.preis_10er,
         };
@@ -146,11 +173,13 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
         setSlots((prev) => prev.map((s) => (s.id === editId ? { ...saved, freie_plaetze: s.freie_plaetze } : s)));
       } else {
         const body = {
-          titel: formData.beschreibung.trim() || "Lerntermin",
-          beschreibung: formData.beschreibung,
+          titel: formData.titel.trim() || "Lerntermin",
+          kurs: formData.kurs.trim() || "Einzelstunde",
+          notizen: formData.notizen,
           max_teilnehmer: Number(formData.max_teilnehmer),
           freigegeben: formData.freigegeben,
           preis: formData.preis,
+          preis_2er: formData.preis_2er,
           preis_5er: formData.preis_5er,
           preis_10er: formData.preis_10er,
           termine: formData.termine,
@@ -299,8 +328,8 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
                               </span>
                             )}
                           </p>
-                          {firstSlot.beschreibung && (
-                            <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>{firstSlot.beschreibung}</p>
+                          {((firstSlot as any).notizen || firstSlot.beschreibung) && (
+                            <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>{(firstSlot as any).notizen || firstSlot.beschreibung}</p>
                           )}
                         </td>
                         <td style={{ padding: "14px 16px", color: "#6b7280" }}>
@@ -407,9 +436,19 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
 
             {/* Modal body */}
             <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Kurs *</label>
+                  <input type="text" value={formData.kurs} onChange={(e) => setFormData((d) => ({ ...d, kurs: e.target.value }))} style={inputStyle} placeholder="z.B. Einzelstunde, Legasthenie, Dyskalkulie" />
+                </div>
+                <div>
+                  <label style={labelStyle}>Titel *</label>
+                  <input type="text" value={formData.titel} onChange={(e) => setFormData((d) => ({ ...d, titel: e.target.value }))} style={inputStyle} placeholder="z.B. Nachhilfe Mathe" />
+                </div>
+              </div>
               <div>
-                <label style={labelStyle}>Beschreibung (optional)</label>
-                <input type="text" value={formData.beschreibung} onChange={(e) => setFormData((d) => ({ ...d, beschreibung: e.target.value }))} style={inputStyle} placeholder="Kurze Zusatzinfo" />
+                <label style={labelStyle}>Notizen (optional)</label>
+                <input type="text" value={formData.notizen} onChange={(e) => setFormData((d) => ({ ...d, notizen: e.target.value }))} style={inputStyle} placeholder="Interne Notizen" />
               </div>
               {editId ? (
                 <>
@@ -510,13 +549,20 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
+                  <label style={labelStyle}>Preis für 2 Kinder in € (optional)</label>
+                  <input type="number" min={0} step="1" value={formData.preis_2er} onChange={(e) => setFormData((d) => ({ ...d, preis_2er: e.target.value }))} style={inputStyle} placeholder="z.B. 160" />
+                </div>
+                <div>
                   <label style={labelStyle}>Preis ab 5 Terminen in € (optional)</label>
                   <input type="number" min={0} step="1" value={formData.preis_5er} onChange={(e) => setFormData((d) => ({ ...d, preis_5er: e.target.value }))} style={inputStyle} placeholder="z.B. 160" />
                 </div>
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   <label style={labelStyle}>Preis ab 10 Terminen in € (optional)</label>
                   <input type="number" min={0} step="1" value={formData.preis_10er} onChange={(e) => setFormData((d) => ({ ...d, preis_10er: e.target.value }))} style={inputStyle} placeholder="z.B. 140" />
                 </div>
+                <div></div>
               </div>
               <p style={{ fontSize: 11, color: "#9ca3af", margin: "-6px 0 0" }}>
                 Diese Preise werden dem Kunden als Mengenrabatt-Hinweis angezeigt (z.B. „ab 5 Terminen nur € 160″).

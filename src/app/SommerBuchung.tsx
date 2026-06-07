@@ -294,7 +294,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
                   {familie.istGruppenKurs
                     ? `${terminAnzahl} zusammengehörige Termine`
                     : terminAnzahl === 1 ? "1 Termin verfügbar" : `${terminAnzahl} Termine verfügbar`}
-                  {alleSlots[0]?.beschreibung ? ` · ${alleSlots[0].beschreibung}` : ""}
+                  {alleSlots[0]?.notizen ? ` · ${alleSlots[0].notizen}` : alleSlots[0]?.beschreibung ? ` · ${alleSlots[0].beschreibung}` : ""}
                 </p>
                 <div className="cc-footer">
                   <span className={`cc-spots${gesamtPlaetze <= 0 ? " full" : ""}`}>

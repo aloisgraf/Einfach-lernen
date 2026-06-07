@@ -1,13 +1,17 @@
 export interface Zeitslot {
   id: string;
   titel: string;
-  beschreibung?: string;
+  beschreibung?: string; // Veraltet, für Backwards Compat - nutze stattdessen kurs und notizen
+  kurs?: string; // z.B. "Einzelstunde", "Legasthenie", "Dyskalkulie"
+  notizen?: string; // Optional, interne Notizen
   datum: string;
   uhrzeit_von: string;
   uhrzeit_bis: string;
   max_teilnehmer: number;
   freigegeben: boolean;
   preis?: number | null;
+  /** Preis für 2 Kinder pro Stunde */
+  preis_2er?: number | null;
   /** Vergünstigter Gesamtpreis ab 5 gebuchten Terminen – wird dem Kunden als Hinweis angezeigt. */
   preis_5er?: number | null;
   /** Vergünstigter Gesamtpreis ab 10 gebuchten Terminen – wird dem Kunden als Hinweis angezeigt. */
