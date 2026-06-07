@@ -40,7 +40,10 @@ export async function POST(req: NextRequest) {
   if (err) return err;
 
   const body = await req.json();
-  const { titel, beschreibung, max_teilnehmer, freigegeben, preis, kategorien, termine, alsGruppe } = body;
+  const { titel, beschreibung, max_teilnehmer, freigegeben, preis, preis_5er, preis_10er, termine, alsGruppe } = body;
+
+  const zuZahl = (v: unknown): number | null =>
+    v === "" || v === null || v === undefined ? null : Number(v);
 
   if (!titel) {
     return NextResponse.json({ error: "Pflichtfelder fehlen." }, { status: 400 });
@@ -66,8 +69,9 @@ export async function POST(req: NextRequest) {
     beschreibung,
     max_teilnehmer: Number(max_teilnehmer) || 1,
     freigegeben: Boolean(freigegeben),
-    preis: preis === "" || preis === null || preis === undefined ? null : Number(preis),
-    kategorien: Array.isArray(kategorien) ? kategorien.filter((k) => typeof k === "string") : [],
+    preis: zuZahl(preis),
+    preis_5er: zuZahl(preis_5er),
+    preis_10er: zuZahl(preis_10er),
   };
 
   try {
@@ -103,12 +107,11 @@ export async function PATCH(req: NextRequest) {
   const { id, ...patch } = body;
   if (!id) return NextResponse.json({ error: "ID fehlt." }, { status: 400 });
 
-  if ("preis" in patch) {
-    patch.preis = patch.preis === "" || patch.preis === null || patch.preis === undefined ? null : Number(patch.preis);
-  }
-  if ("kategorien" in patch) {
-    patch.kategorien = Array.isArray(patch.kategorien) ? patch.kategorien.filter((k: unknown) => typeof k === "string") : [];
-  }
+  const zuZahl = (v: unknown): number | null =>
+    v === "" || v === null || v === undefined ? null : Number(v);
+  if ("preis" in patch) patch.preis = zuZahl(patch.preis);
+  if ("preis_5er" in patch) patch.preis_5er = zuZahl(patch.preis_5er);
+  if ("preis_10er" in patch) patch.preis_10er = zuZahl(patch.preis_10er);
 
   try {
     const updated = await updateSlot(id, patch);

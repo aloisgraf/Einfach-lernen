@@ -6,21 +6,29 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Zeitslot, schwerpunkte } from "@/types/buchung";
 import { BuchungsformularTexte } from "@/types/formular";
-import { Kurskategorie } from "@/types/kategorie";
 import { Loader2 } from "lucide-react";
 
 interface SlotMitPlaetzen extends Zeitslot { freie_plaetze: number; }
 interface Props {
   slots: SlotMitPlaetzen[];
   texte: BuchungsformularTexte;
-  kategorien: Kurskategorie[];
 }
 
 const STANDARD_EMOJI = "⭐";
 
-function kursEmoji(slot: SlotMitPlaetzen, kategorien: Kurskategorie[]) {
-  const erste = slot.kategorien?.[0];
-  return kategorien.find((k) => k.id === erste)?.emoji ?? STANDARD_EMOJI;
+/** Zeigt einen Hinweis auf Mengenrabatt, falls für den Kurs Paketpreise hinterlegt sind. */
+function RabattHinweis({ slots }: { slots: SlotMitPlaetzen[] }) {
+  const preis5er = slots.map((s) => s.preis_5er).find((p): p is number => p != null);
+  const preis10er = slots.map((s) => s.preis_10er).find((p): p is number => p != null);
+  if (preis5er == null && preis10er == null) return null;
+  return (
+    <p className="rabatt-hinweis">
+      💡 Mengenrabatt:{" "}
+      {preis5er != null && <>ab 5 Terminen <strong>€ {preis5er}</strong></>}
+      {preis5er != null && preis10er != null && " · "}
+      {preis10er != null && <>ab 10 Terminen <strong>€ {preis10er}</strong></>}
+    </p>
+  );
 }
 
 const schema = z.object({
@@ -61,24 +69,19 @@ function Field({ label, hint, error, children }: { label: string; hint?: string;
   );
 }
 
-export default function SommerBuchung({ slots, texte, kategorien }: Props) {
+export default function SommerBuchung({ slots, texte }: Props) {
   const [slotsState, setSlotsState] = useState(slots);
-  const [aktiveKategorie, setAktiveKategorie] = useState<string | null>(null);
   const [gewaehlterKurs, setGewaehlterKurs] = useState<string | null>(null);
   const [gewaehltesDatum, setGewaehltesDatum] = useState<string | null>(null);
   const [ausgewaehlterSlot, setAusgewaehlterSlot] = useState<SlotMitPlaetzen | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
-  const sichtbareSlots = aktiveKategorie
-    ? slotsState.filter((s) => s.kategorien?.includes(aktiveKategorie))
-    : slotsState;
-
   const kurse: { titel: string; emoji: string; slots: SlotMitPlaetzen[] }[] = [];
-  for (const slot of sichtbareSlots) {
+  for (const slot of slotsState) {
     let gruppe = kurse.find((k) => k.titel === slot.titel);
     if (!gruppe) {
-      gruppe = { titel: slot.titel, emoji: kursEmoji(slot, kategorien), slots: [] };
+      gruppe = { titel: slot.titel, emoji: STANDARD_EMOJI, slots: [] };
       kurse.push(gruppe);
     }
     gruppe.slots.push(slot);
@@ -209,35 +212,10 @@ export default function SommerBuchung({ slots, texte, kategorien }: Props) {
 
   return (
     <div>
-      {/* Kategorie-Filter */}
-      {kategorien.length > 0 && (
-        <div className="kurs-filter">
-          <button
-            type="button"
-            className={`kurs-filter-btn${aktiveKategorie === null ? " on" : ""}`}
-            onClick={() => { setAktiveKategorie(null); buchungZuruecksetzen(); }}
-          >
-            Alle
-          </button>
-          {kategorien.map((kat) => (
-            <button
-              key={kat.id}
-              type="button"
-              className={`kurs-filter-btn${aktiveKategorie === kat.id ? " on" : ""}`}
-              onClick={() => { setAktiveKategorie(kat.id); buchungZuruecksetzen(); }}
-            >
-              <span>{kat.emoji}</span> {kat.label}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* Schritt 1: Kurs wählen */}
       {kurse.length === 0 ? (
         <p style={{ fontSize: ".88rem", color: "var(--soft)", marginBottom: "1.2rem" }}>
-          {slotsState.length === 0
-            ? "Aktuell sind keine Termine zur Buchung freigegeben – schau bald wieder vorbei!"
-            : "Für diese Kategorie sind aktuell keine Termine freigegeben."}
+          Aktuell sind keine Termine zur Buchung freigegeben – schau bald wieder vorbei!
         </p>
       ) : !aktuellerKurs ? (
         <div className="course-grid">
@@ -267,6 +245,7 @@ export default function SommerBuchung({ slots, texte, kategorien }: Props) {
                     </span>
                   )}
                 </div>
+                <RabattHinweis slots={kurs.slots} />
               </button>
             );
           })}
@@ -365,13 +344,16 @@ export default function SommerBuchung({ slots, texte, kategorien }: Props) {
       )}
 
       {ausgewaehlterSlot ? (
-        <div style={{ background: "var(--pine-pale)", borderRadius: 11, padding: ".7rem 1rem", marginBottom: "1rem", fontSize: ".85rem", color: "var(--pine-dark)", fontWeight: 700 }}>
-          Ausgewählt: {ausgewaehlterSlot.titel} ·{" "}
-          {ausgewaehlterSlot.gruppe_id
-            ? formatDatumsListe(gruppenSlotsVon(ausgewaehlterSlot).map((s) => s.datum))
-            : formatDatum(ausgewaehlterSlot.datum)}{" "}
-          · {ausgewaehlterSlot.uhrzeit_von}–{ausgewaehlterSlot.uhrzeit_bis} Uhr
-          {ausgewaehlterSlot.preis != null && ` · € ${ausgewaehlterSlot.preis}`}
+        <div style={{ background: "var(--pine-pale)", borderRadius: 11, padding: ".7rem 1rem", marginBottom: "1rem", fontSize: ".85rem", color: "var(--pine-dark)" }}>
+          <div style={{ fontWeight: 700 }}>
+            Ausgewählt: {ausgewaehlterSlot.titel} ·{" "}
+            {ausgewaehlterSlot.gruppe_id
+              ? formatDatumsListe(gruppenSlotsVon(ausgewaehlterSlot).map((s) => s.datum))
+              : formatDatum(ausgewaehlterSlot.datum)}{" "}
+            · {ausgewaehlterSlot.uhrzeit_von}–{ausgewaehlterSlot.uhrzeit_bis} Uhr
+            {ausgewaehlterSlot.preis != null && ` · € ${ausgewaehlterSlot.preis}`}
+          </div>
+          <RabattHinweis slots={[ausgewaehlterSlot]} />
         </div>
       ) : (
         <p style={{ fontSize: ".82rem", color: "var(--soft)", marginBottom: "1rem" }}>

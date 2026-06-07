@@ -16,6 +16,8 @@
  *     max_teilnehmer INTEGER NOT NULL DEFAULT 1,
  *     freigegeben BOOLEAN NOT NULL DEFAULT false,
  *     preis NUMERIC,
+ *     preis_5er NUMERIC,
+ *     preis_10er NUMERIC,
  *     kategorien TEXT[] NOT NULL DEFAULT '{}',
  *     gruppe_id UUID,
  *     erstellt_am TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -23,6 +25,8 @@
  *
  *   -- Falls die Tabelle bereits existiert, zusätzlich ausführen:
  *   -- ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS preis NUMERIC;
+ *   -- ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS preis_5er NUMERIC;
+ *   -- ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS preis_10er NUMERIC;
  *   -- ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS kategorien TEXT[] NOT NULL DEFAULT '{}';
  *   -- ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS gruppe_id UUID;
  *
@@ -66,56 +70,71 @@ async function dbGetSlotsByGruppe(gruppeId: string): Promise<Zeitslot[]> {
   return sql<Zeitslot[]>`SELECT * FROM zeitslots WHERE gruppe_id = ${gruppeId} ORDER BY datum ASC`;
 }
 
+/** Liest aus einer Postgres-"column does not exist"-Fehlermeldung den Spaltennamen heraus. */
+function fehlendeSpalte(e: unknown): string | null {
+  const code = (e as { code?: string })?.code;
+  const msg = String(e);
+  if (code !== "42703" && !msg.includes("does not exist")) return null;
+  const match = msg.match(/column "?(\w+)"? (?:of relation "?\w+"? )?does not exist/);
+  return match?.[1] ?? null;
+}
+
 async function dbCreateSlot(data: Omit<Zeitslot, "id" | "erstellt_am">): Promise<Zeitslot> {
   const sql = getDb()!;
-  try {
-    const rows = await sql<Zeitslot[]>`
-      INSERT INTO zeitslots (titel, beschreibung, datum, uhrzeit_von, uhrzeit_bis, max_teilnehmer, freigegeben, preis, gruppe_id)
-      VALUES (${data.titel}, ${data.beschreibung ?? null}, ${data.datum}, ${data.uhrzeit_von},
-              ${data.uhrzeit_bis}, ${data.max_teilnehmer}, ${data.freigegeben},
-              ${data.preis ?? null}, ${data.gruppe_id ?? null})
-      RETURNING *
-    `;
-    if (!rows || !rows[0]) throw new Error("INSERT returned no rows");
-    return rows[0];
-  } catch (e) {
-    const errMsg = String(e);
-    if ((e as { code?: string })?.code === "42703" || errMsg.includes('column "gruppe_id" does not exist')) {
-      const rows = await sql<Zeitslot[]>`
-        INSERT INTO zeitslots (titel, beschreibung, datum, uhrzeit_von, uhrzeit_bis, max_teilnehmer, freigegeben, preis)
-        VALUES (${data.titel}, ${data.beschreibung ?? null}, ${data.datum}, ${data.uhrzeit_von},
-                ${data.uhrzeit_bis}, ${data.max_teilnehmer}, ${data.freigegeben},
-                ${data.preis ?? null})
-        RETURNING *
-      `;
+  const felder: Record<string, unknown> = {
+    titel: data.titel,
+    beschreibung: data.beschreibung ?? null,
+    datum: data.datum,
+    uhrzeit_von: data.uhrzeit_von,
+    uhrzeit_bis: data.uhrzeit_bis,
+    max_teilnehmer: data.max_teilnehmer,
+    freigegeben: data.freigegeben,
+    preis: data.preis ?? null,
+    preis_5er: data.preis_5er ?? null,
+    preis_10er: data.preis_10er ?? null,
+    gruppe_id: data.gruppe_id ?? null,
+  };
+  for (let versuch = 0; versuch < Object.keys(felder).length; versuch++) {
+    try {
+      const rows = await sql<Zeitslot[]>`INSERT INTO zeitslots ${sql(felder)} RETURNING *`;
       if (!rows || !rows[0]) throw new Error("INSERT returned no rows");
       return rows[0];
+    } catch (e) {
+      const spalte = fehlendeSpalte(e);
+      if (spalte && spalte in felder) {
+        delete felder[spalte];
+        continue;
+      }
+      throw e;
     }
-    throw e;
   }
+  throw new Error("INSERT fehlgeschlagen.");
 }
 
 async function dbUpdateSlot(id: string, patch: Partial<Omit<Zeitslot, "id" | "erstellt_am">>): Promise<Zeitslot | null> {
   const sql = getDb()!;
-  if (Object.keys(patch).length === 0) return dbGetSlot(id);
-  try {
-    const rows = await sql<Zeitslot[]>`
-      UPDATE zeitslots SET ${sql(patch)} WHERE id = ${id} RETURNING *
-    `;
-    return rows[0] ?? null;
-  } catch (e) {
-    const errMsg = String(e);
-    if (((e as { code?: string })?.code === "42703" || errMsg.includes('column "gruppe_id" does not exist')) && "gruppe_id" in patch) {
-      const ohneGruppe = { ...patch };
-      delete ohneGruppe.gruppe_id;
-      if (Object.keys(ohneGruppe).length === 0) return dbGetSlot(id);
-      const rows = await sql<Zeitslot[]>`
-        UPDATE zeitslots SET ${sql(ohneGruppe)} WHERE id = ${id} RETURNING *
-      `;
-      return rows[0] ?? null;
-    }
-    throw e;
+  const felder: Record<string, unknown> = { ...patch };
+  // Arrays müssen explizit als Postgres-Array übergeben werden, sonst
+  // serialisiert postgres.js sie als kommagetrennten String ("malformed array literal").
+  if (Array.isArray(felder.kategorien)) {
+    felder.kategorien = sql.array(felder.kategorien as string[]);
   }
+  if (Object.keys(felder).length === 0) return dbGetSlot(id);
+  for (let versuch = 0; versuch < Object.keys(felder).length; versuch++) {
+    if (Object.keys(felder).length === 0) return dbGetSlot(id);
+    try {
+      const rows = await sql<Zeitslot[]>`UPDATE zeitslots SET ${sql(felder)} WHERE id = ${id} RETURNING *`;
+      return rows[0] ?? null;
+    } catch (e) {
+      const spalte = fehlendeSpalte(e);
+      if (spalte && spalte in felder) {
+        delete felder[spalte];
+        continue;
+      }
+      throw e;
+    }
+  }
+  return dbGetSlot(id);
 }
 
 async function dbDeleteSlot(id: string): Promise<boolean> {

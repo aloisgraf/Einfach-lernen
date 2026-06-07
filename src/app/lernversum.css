@@ -367,6 +367,11 @@
 .lv-page .course-card .cc-spots.full{color:var(--soft);font-weight:700;}
 .lv-page .course-card .cc-price{color:var(--earth);}
 
+.lv-page .rabatt-hinweis{
+  font-size:.74rem;font-weight:600;color:var(--gold-dark);
+  margin:.4rem 0 0;line-height:1.4;
+}
+
 /* TERMIN-AUSWAHL (Schritt 2 & 3) */
 .lv-page .kurs-back{
   display:inline-flex;align-items:center;gap:.4rem;

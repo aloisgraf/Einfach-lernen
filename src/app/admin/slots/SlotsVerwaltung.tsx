@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, Eye, EyeOff, X, Check, Loader2, CalendarClock } from "lucide-react";
 import { Zeitslot } from "@/types/buchung";
-import { Kurskategorie } from "@/types/kategorie";
 
 interface SlotMitPlaetzen extends Zeitslot {
   freie_plaetze: number;
@@ -12,7 +11,6 @@ interface SlotMitPlaetzen extends Zeitslot {
 
 interface Props {
   initialSlots: SlotMitPlaetzen[];
-  kategorien: Kurskategorie[];
 }
 
 interface TerminEntry {
@@ -34,7 +32,8 @@ const leerFormular = {
   max_teilnehmer: "1",
   freigegeben: false,
   preis: "",
-  kategorien: [] as string[],
+  preis_5er: "",
+  preis_10er: "",
 };
 
 const card: React.CSSProperties = {
@@ -67,7 +66,7 @@ const labelStyle: React.CSSProperties = {
   letterSpacing: "0.05em",
 };
 
-export default function SlotsVerwaltung({ initialSlots, kategorien }: Props) {
+export default function SlotsVerwaltung({ initialSlots }: Props) {
   const router = useRouter();
   const [slots, setSlots] = useState(initialSlots);
   const [formOpen, setFormOpen] = useState(false);
@@ -95,18 +94,10 @@ export default function SlotsVerwaltung({ initialSlots, kategorien }: Props) {
       max_teilnehmer: String(slot.max_teilnehmer),
       freigegeben: slot.freigegeben,
       preis: slot.preis != null ? String(slot.preis) : "",
-      kategorien: slot.kategorien ?? [],
+      preis_5er: slot.preis_5er != null ? String(slot.preis_5er) : "",
+      preis_10er: slot.preis_10er != null ? String(slot.preis_10er) : "",
     });
     setFormOpen(true);
-  }
-
-  function toggleKategorie(id: string) {
-    setFormData((d) => ({
-      ...d,
-      kategorien: d.kategorien.includes(id)
-        ? d.kategorien.filter((k) => k !== id)
-        : [...d.kategorien, id],
-    }));
   }
 
   function terminHinzufuegen() {
@@ -138,7 +129,8 @@ export default function SlotsVerwaltung({ initialSlots, kategorien }: Props) {
           max_teilnehmer: Number(formData.max_teilnehmer),
           freigegeben: formData.freigegeben,
           preis: formData.preis,
-          kategorien: formData.kategorien,
+          preis_5er: formData.preis_5er,
+          preis_10er: formData.preis_10er,
         };
         const res = await fetch("/api/admin/slots", {
           method: "PATCH",
@@ -153,17 +145,14 @@ export default function SlotsVerwaltung({ initialSlots, kategorien }: Props) {
         router.refresh();
         setSlots((prev) => prev.map((s) => (s.id === editId ? { ...saved, freie_plaetze: s.freie_plaetze } : s)));
       } else {
-        const ausgewaehlteKategorien = kategorien.filter((k) => formData.kategorien.includes(k.id));
-        const autoTitel = ausgewaehlteKategorien.length > 0
-          ? ausgewaehlteKategorien.map((k) => k.label).join(" & ")
-          : "Lerntermin";
         const body = {
-          titel: autoTitel,
+          titel: formData.beschreibung.trim() || "Lerntermin",
           beschreibung: formData.beschreibung,
           max_teilnehmer: Number(formData.max_teilnehmer),
           freigegeben: formData.freigegeben,
           preis: formData.preis,
-          kategorien: formData.kategorien,
+          preis_5er: formData.preis_5er,
+          preis_10er: formData.preis_10er,
           termine: formData.termine,
           alsGruppe: formData.alsGruppe,
         };
@@ -478,38 +467,23 @@ export default function SlotsVerwaltung({ initialSlots, kategorien }: Props) {
                   <input type="number" min={1} max={30} value={formData.max_teilnehmer} onChange={(e) => setFormData((d) => ({ ...d, max_teilnehmer: e.target.value }))} style={inputStyle} />
                 </div>
                 <div>
-                  <label style={labelStyle}>Preis in € (optional)</label>
+                  <label style={labelStyle}>Preis Einzelstunde in € (optional)</label>
                   <input type="number" min={0} step="1" value={formData.preis} onChange={(e) => setFormData((d) => ({ ...d, preis: e.target.value }))} style={inputStyle} placeholder="z.B. 180" />
                 </div>
               </div>
-              {kategorien.length > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
-                  <label style={labelStyle}>Kategorien (für Filter-Buttons)</label>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                    {kategorien.map((kat) => {
-                      const aktiv = formData.kategorien.includes(kat.id);
-                      return (
-                        <button
-                          key={kat.id}
-                          type="button"
-                          onClick={() => toggleKategorie(kat.id)}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 6,
-                            padding: "7px 14px", borderRadius: 50,
-                            border: aktiv ? "1.5px solid #1a5c4a" : "1.5px solid #e5e7eb",
-                            background: aktiv ? "#eaf4ef" : "#fff",
-                            color: aktiv ? "#1a5c4a" : "#6b7280",
-                            fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
-                          }}
-                        >
-                          <span>{kat.emoji}</span>
-                          {kat.label}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <label style={labelStyle}>Preis ab 5 Terminen in € (optional)</label>
+                  <input type="number" min={0} step="1" value={formData.preis_5er} onChange={(e) => setFormData((d) => ({ ...d, preis_5er: e.target.value }))} style={inputStyle} placeholder="z.B. 160" />
                 </div>
-              )}
+                <div>
+                  <label style={labelStyle}>Preis ab 10 Terminen in € (optional)</label>
+                  <input type="number" min={0} step="1" value={formData.preis_10er} onChange={(e) => setFormData((d) => ({ ...d, preis_10er: e.target.value }))} style={inputStyle} placeholder="z.B. 140" />
+                </div>
+              </div>
+              <p style={{ fontSize: 11, color: "#9ca3af", margin: "-6px 0 0" }}>
+                Diese Preise werden dem Kunden als Mengenrabatt-Hinweis angezeigt (z.B. „ab 5 Terminen nur € 160″).
+              </p>
               <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, border: "1.5px solid #e5e7eb", cursor: "pointer" }}>
                 <input
                   type="checkbox"
