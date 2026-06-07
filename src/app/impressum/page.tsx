@@ -24,43 +24,38 @@ export default function Impressum() {
           <div className="prose prose-sm max-w-none text-gray-600 space-y-6">
             <section>
               <h2 className="text-lg font-bold text-[#1a1a2e] mb-2">
-                Angaben gemäß § 5 ECG
+                Informationspflicht laut §5 E-Commerce Gesetz, §14 Unternehmensgesetzbuch, §63 Gewerbeordnung und Offenlegungspflicht laut §25 Mediengesetz
               </h2>
               <p>
-                <strong>Einfach Lernen Pongau</strong><br />
-                Musterstraße 1<br />
-                5600 St. Johann im Pongau<br />
-                Österreich
+                <strong>Einfach Lernen</strong><br />
+                Anna Reichsöllner<br />
+                Bauernschmiedgasse 380<br />
+                5531 Eben im Pongau
               </p>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-bold text-[#1a1a2e] mb-2">Kontakt</h2>
               <p>
-                Telefon: +43 123 456 789<br />
-                E-Mail: office@einfachlernen-pongau.at
-              </p>
-            </section>
-
-            <section>
-              <h2 className="text-lg font-bold text-[#1a1a2e] mb-2">
-                Unternehmensgegenstand
-              </h2>
-              <p>
-                Nachhilfe, Lernbegleitung und Bildungsdienstleistungen für
-                Kinder, Jugendliche und Erwachsene.
+                Tel.: 0670 1902604<br />
+                E-Mail: info@einfachlernen-pongau.at
               </p>
             </section>
 
             <section>
               <h2 className="text-lg font-bold text-[#1a1a2e] mb-2">
-                Haftungsausschluss
+                Streitbeilegung
               </h2>
               <p>
-                Trotz sorgfältiger inhaltlicher Kontrolle übernehmen wir keine
-                Haftung für die Inhalte externer Links. Für den Inhalt der
-                verlinkten Seiten sind ausschließlich deren Betreiber
-                verantwortlich.
+                Nach geltendem Recht sind wir verpflichtet auf die Existenz der europäischen Online-Streitbeilegungs-
+                Plattform hinzuweisen. Darüber hinaus weisen wir darauf hin, dass wir an einem freiwilligen
+                Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle nicht teilnehmen.
+              </p>
+            </section>
+
+            <section>
+              <h2 className="text-lg font-bold text-[#1a1a2e] mb-2">
+                Bildquellen
+              </h2>
+              <p>
+                Anna Reichsöllner<br />
+                Canva
               </p>
             </section>
           </div>

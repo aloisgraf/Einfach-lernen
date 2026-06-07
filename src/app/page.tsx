@@ -22,7 +22,7 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Lernversum – Wo Lernen einfach wird",
+  title: "Einfach Lernen – Wo Lernen einfach wird",
   description: "Förderung in Deutsch, Mathe und bei Lese-Rechtschreibschwäche – für Kinder in der Volksschule und Mittelschule. Individuell, einfühlsam und mit klarem Plan.",
 };
 
@@ -115,6 +115,26 @@ export default async function Home() {
 
       <hr className="divider" />
 
+      {/* WILLKOMMEN */}
+      <section className="sec" style={{ background: "var(--white)" }} id="willkommen">
+        <div className="content-wrap" style={{ maxWidth: 680 }}>
+          <span className="sec-kicker kk-pine">Herzlich willkommen</span>
+          <p>Hausübungen sind für dein Kind schwierig, die Hausübungssituation ist immer angespannt?</p>
+          <p>Du weißt nicht, wie du deinem Kind am besten helfen kannst?</p>
+          <p>Lesen, Schreiben oder Rechnen ist für dein Kind anstrengend und mühsam?</p>
+          <p>Egal wie oft Lernwörter geübt werden, dein Kind kann sie sich nicht merken oder einfache Rechnungen werden immer wieder falsch gerechnet?</p>
+          <p>Dein Kind hört sich sehr gern Geschichten an, selber lesen mag es aber nicht?</p>
+          <p>Dann bist du bei mir genau richtig. Mit meiner Förderung und Elternberatung legen wir gemeinsam eine solide Basis für eine entspannte und erfolgreiche Schulzeit.</p>
+          <p>Lasst uns gemeinsam &quot;Einfach Lernen&quot;.</p>
+          <p>Als Primarstufenpädagogin, Betreuerin für Lese-Rechtschreib-Schwäche und diplomierte Legasthenie- und Dyskalkulietrainerin biete ich ab sofort Unterstützung.</p>
+          <p>Ich begleite dich und dein Kind individuell und transparent auf dem Weg durch den Zahlen- und Buchstabendschungel um euren Weg durch die Schulzeit zu erleichtern.</p>
+          <p>Ich freue mich darauf, Dich kennenzulernen.</p>
+          <p style={{ fontFamily: "var(--font-raleway), sans-serif", fontWeight: 600, color: "var(--pine)", fontSize: "1.05rem" }}>Anna Reichsöllner</p>
+        </div>
+      </section>
+
+      <hr className="divider" />
+
       {/* SERVICES */}
       <section className="sec services" id="angebot">
         <div className="services-intro">
@@ -178,7 +198,7 @@ export default async function Home() {
         <div className="when-wrap">
           <div>
             <span className="sec-kicker kk-soft">Für wen?</span>
-            <h2 className="sec-title">Wann das <strong>Lernversum</strong> hilft</h2>
+            <h2 className="sec-title">Wann <strong>Einfach Lernen</strong> hilft</h2>
             <p className="sec-sub">Egal ob Deutsch, Mathe oder Lernen allgemein – ich finde heraus, wo dein Kind steht und was es wirklich braucht.</p>
             <div className="when-chips">
               <div className="chip"><div className="chip-ico">📝</div><p>Lesen &amp; Rechtschreiben fällt schwer</p></div>
@@ -250,7 +270,7 @@ export default async function Home() {
         <div className="tagline">Wo Lernen einfach wird.</div>
         <p>Starte mit einer unverbindlichen <strong>Elternberatung</strong> –<br />egal ob Deutsch, Mathe oder Lernen allgemein.</p>
         <div className="cta-btns">
-          <a href="mailto:info@lernversum.at" className="btn btn-gold">✉️ Erstgespräch anfragen</a>
+          <a href="mailto:info@einfachlernen-pongau.at" className="btn btn-gold">✉️ Erstgespräch anfragen</a>
           <a href="#sommerkurse" className="btn btn-white">☀️ Sommerkurs buchen</a>
         </div>
       </section>

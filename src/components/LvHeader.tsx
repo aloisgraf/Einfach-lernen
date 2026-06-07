@@ -17,15 +17,16 @@ export default function LvHeader() {
       <Link href="/" className="logo-wrap">
         <TreeLogo />
         <div className="logo-text">
-          <span className="logo-brand">Lernversum</span>
+          <span className="logo-brand">Einfach Lernen</span>
           <span className="logo-slogan">Wo Lernen einfach wird.</span>
         </div>
       </Link>
       <nav>
-        <Link href="/#beratung">Beratung</Link>
-        <Link href="/#lernanalyse">Lernstandsanalyse</Link>
-        <Link href="/#legasthenie">Legasthenie &amp; Dyskalkulie</Link>
+        <Link href="/beratung">Beratung</Link>
+        <Link href="/legasthenie-dyskalkulie">Legasthenie &amp; Dyskalkulie</Link>
+        <Link href="/faq">FAQ</Link>
         <Link href="/ueber-mich">Über mich</Link>
+        <Link href="/kontakt">Kontakt</Link>
         <Link href="/#sommerkurse" className="nav-cta">☀️ Sommerkurse</Link>
       </nav>
     </header>

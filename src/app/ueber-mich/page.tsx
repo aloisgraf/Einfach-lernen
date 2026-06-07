@@ -21,8 +21,8 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Über mich | Lernversum",
-  description: "Lerne Anna Reichsöllner kennen – Gründerin von Einfach Lernen / Lernversum im Pongau.",
+  title: "Über mich | Einfach Lernen",
+  description: "Lerne Anna Reichsöllner kennen – Gründerin von Einfach Lernen im Pongau.",
 };
 
 const absaetze = [
@@ -58,7 +58,7 @@ export default function UeberMichPage() {
           <div>
             <span className="sec-kicker kk-pine">Über mich</span>
             <h1 className="sec-title" style={{ marginBottom: ".5rem" }}>Hallo, ich bin <strong>Anna Reichsöllner</strong></h1>
-            <p className="sec-sub">Gründerin von Einfach Lernen / Lernversum – Volksschullehrerin, Lernbegleiterin und Mama aus Eben im Pongau.</p>
+            <p className="sec-sub">Gründerin von Einfach Lernen – Volksschullehrerin, Lernbegleiterin und Mama aus Eben im Pongau.</p>
           </div>
         </div>
       </section>
@@ -85,7 +85,7 @@ export default function UeberMichPage() {
         <div className="tagline">Wo Lernen einfach wird.</div>
         <p>Melde dich jederzeit unverbindlich – ich freue mich, von dir und deinem Kind zu hören.</p>
         <div className="cta-btns">
-          <a href="mailto:info@lernversum.at" className="btn btn-gold">✉️ Nachricht schreiben</a>
+          <a href="mailto:info@einfachlernen-pongau.at" className="btn btn-gold">✉️ Nachricht schreiben</a>
           <Link href="/#sommerkurse" className="btn btn-white">☀️ Sommerkurs buchen</Link>
         </div>
       </section>

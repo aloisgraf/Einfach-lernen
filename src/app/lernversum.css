@@ -346,6 +346,7 @@
   background:var(--white);border:1.5px solid var(--pine-pale);
   border-radius:16px;padding:1.15rem 1.05rem;
   cursor:pointer;transition:all .2s;
+  text-align:left;font-family:inherit;width:100%;
 }
 .lv-page .course-card:hover{transform:translateY(-3px);box-shadow:var(--sh-sm);border-color:var(--pine-light);}
 .lv-page .course-card.on{border-color:var(--pine);background:var(--pine-pale);box-shadow:var(--sh-md);}
@@ -365,6 +366,36 @@
 .lv-page .course-card .cc-spots.last{color:var(--gold-dark);}
 .lv-page .course-card .cc-spots.full{color:var(--soft);font-weight:700;}
 .lv-page .course-card .cc-price{color:var(--earth);}
+
+/* TERMIN-AUSWAHL (Schritt 2 & 3) */
+.lv-page .kurs-back{
+  display:inline-flex;align-items:center;gap:.4rem;
+  background:none;border:none;cursor:pointer;font-family:inherit;
+  font-size:.8rem;font-weight:700;color:var(--pine);
+  padding:0;margin-bottom:1rem;
+}
+.lv-page .kurs-back:hover{text-decoration:underline;}
+.lv-page .kurs-step-label{
+  font-family:var(--font-raleway),sans-serif;font-weight:600;
+  font-size:.9rem;color:var(--ink);margin:0 0 .65rem;
+}
+.lv-page .termin-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));
+  gap:.7rem;margin-bottom:1.3rem;
+}
+.lv-page .termin-btn{
+  display:flex;flex-direction:column;gap:.25rem;text-align:left;
+  background:var(--white);border:1.5px solid var(--pine-pale);
+  border-radius:13px;padding:.8rem .95rem;
+  font-family:inherit;cursor:pointer;transition:all .18s;
+}
+.lv-page .termin-btn strong{font-size:.85rem;color:var(--ink);font-weight:700;}
+.lv-page .termin-btn span{font-size:.74rem;color:var(--pine);font-weight:600;}
+.lv-page .termin-btn span.knapp{color:var(--gold-dark);}
+.lv-page .termin-btn:hover:not(:disabled){border-color:var(--pine-light);transform:translateY(-2px);}
+.lv-page .termin-btn.on{border-color:var(--pine);background:var(--pine-pale);box-shadow:var(--sh-sm);}
+.lv-page .termin-btn:disabled{opacity:.5;cursor:not-allowed;}
+.lv-page .termin-btn:disabled span{color:var(--soft);}
 
 /* BOOKING */
 .lv-page .booking-box{
@@ -550,8 +581,74 @@
 @keyframes lvGrow{from{width:0}to{}}
 @keyframes lvSpin{to{transform:rotate(360deg)}}
 
+/* ── FAQ ── */
+.lv-page .faq-list{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:1rem;}
+.lv-page .faq-item{
+  background:var(--white);border:1.5px solid var(--pine-pale);border-radius:var(--radius);
+  padding:0;overflow:hidden;transition:box-shadow .2s,border-color .2s;
+}
+.lv-page .faq-item[open]{border-color:var(--pine-light);box-shadow:var(--sh-sm);}
+.lv-page .faq-item summary{
+  list-style:none;cursor:pointer;padding:1.2rem 1.5rem;
+  font-family:var(--font-raleway),sans-serif;font-weight:500;font-size:1.02rem;
+  color:var(--ink);display:flex;align-items:center;justify-content:space-between;gap:1rem;
+}
+.lv-page .faq-item summary::-webkit-details-marker{display:none;}
+.lv-page .faq-item summary::after{
+  content:'+';flex-shrink:0;font-size:1.3rem;font-weight:300;color:var(--pine);
+  transition:transform .2s;line-height:1;
+}
+.lv-page .faq-item[open] summary::after{transform:rotate(45deg);}
+.lv-page .faq-a{padding:0 1.5rem 1.4rem;display:flex;flex-direction:column;gap:.85rem;}
+.lv-page .faq-a p{font-size:.92rem;color:var(--mid);line-height:1.75;margin:0;}
+
+/* ── CONTENT PAGES (Beratung, Legasthenie, Kontakt …) ── */
+.lv-page .content-wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:1.1rem;}
+.lv-page .content-wrap p{font-size:.95rem;color:var(--mid);line-height:1.8;margin:0;}
+.lv-page .content-wrap ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:.5rem;}
+.lv-page .content-wrap ul li{
+  font-size:.92rem;color:var(--mid);line-height:1.6;display:flex;gap:.6rem;
+  background:var(--pine-pale);border-radius:10px;padding:.55rem .9rem;
+}
+.lv-page .content-wrap ul li::before{content:'✓';color:var(--pine);font-weight:700;flex-shrink:0;}
+.lv-page .content-wrap h3{
+  font-family:var(--font-raleway),sans-serif;font-weight:500;font-size:1.2rem;
+  color:var(--ink);margin:.6rem 0 0;
+}
+.lv-page .content-wrap .price-box{
+  background:var(--sand);border:1.5px solid var(--gold);border-radius:var(--radius);
+  padding:1.1rem 1.4rem;font-family:var(--font-raleway),sans-serif;font-weight:500;
+  font-size:1.05rem;color:var(--ink);
+}
+.lv-page .content-wrap .fussnote{font-size:.8rem;color:var(--soft);line-height:1.7;}
+
+/* ── KONTAKT ── */
+.lv-page .contact-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:2.5rem;max-width:1000px;margin:0 auto;align-items:start;
+}
+.lv-page .contact-card{
+  background:var(--white);border:1.5px solid var(--pine-pale);border-radius:var(--radius);
+  padding:2rem;box-shadow:var(--sh-sm);display:flex;flex-direction:column;gap:1rem;
+}
+.lv-page .contact-row{display:flex;align-items:center;gap:.8rem;font-size:.94rem;color:var(--mid);}
+.lv-page .contact-row strong{color:var(--ink);}
+.lv-page .contact-row a{color:var(--pine);text-decoration:none;font-weight:600;}
+.lv-page .contact-row a:hover{text-decoration:underline;}
+.lv-page .contact-ico{
+  width:38px;height:38px;border-radius:10px;background:var(--pine-pale);
+  display:flex;align-items:center;justify-content:center;font-size:1.05rem;flex-shrink:0;
+}
+.lv-page .map-embed{
+  border-radius:var(--radius);overflow:hidden;border:1.5px solid var(--pine-pale);
+  box-shadow:var(--sh-sm);height:100%;min-height:340px;
+}
+.lv-page .map-embed iframe{width:100%;height:100%;min-height:340px;border:0;display:block;}
+
 /* ── RESPONSIVE ── */
 @media(max-width:960px){
+  .lv-page .contact-grid{grid-template-columns:1fr;}
+  .lv-page .map-embed{min-height:280px;}
+  .lv-page .map-embed iframe{min-height:280px;}
   .lv-page .hero{grid-template-columns:1fr;min-height:auto;gap:2.5rem;}
   .lv-page .svc-grid{grid-template-columns:1fr 1fr;}
   .lv-page .summer-layout{grid-template-columns:1fr;}
