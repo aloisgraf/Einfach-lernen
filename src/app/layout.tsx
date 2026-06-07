@@ -20,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de" className={raleway.variable}>
+    <html lang="de" className={raleway.variable} data-scroll-behavior="smooth">
       <body
         className="min-h-screen antialiased"
         style={{ fontFamily: "var(--font-raleway), sans-serif" }}
