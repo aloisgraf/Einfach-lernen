@@ -1,6 +1,22 @@
 import { Metadata } from "next";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import LvHeader from "@/components/LvHeader";
+import LvFooter from "@/components/LvFooter";
+import { Raleway, Nunito } from "next/font/google";
+import "../lernversum.css";
+
+const raleway = Raleway({
+  variable: "--font-raleway",
+  subsets: ["latin"],
+  weight: ["200", "300", "400", "500", "600"],
+  display: "swap",
+});
+
+const nunito = Nunito({
+  variable: "--font-nunito",
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Datenschutz | Einfach Lernen Pongau",
@@ -8,17 +24,12 @@ export const metadata: Metadata = {
 
 export default function Datenschutz() {
   return (
-    <div className="min-h-screen pt-24 pb-16 bg-gray-50">
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-[#2d6a4f] transition-colors mb-8"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Zurück zur Startseite
-        </Link>
+    <div className={`lv-page ${raleway.variable} ${nunito.variable}`}>
+      <LvHeader />
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
+      <div className="min-h-screen pt-12 pb-16 bg-gray-50">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
           <h1 className="text-3xl font-extrabold text-[#1a1a2e] mb-8">Datenschutzerklärung</h1>
 
           <div className="prose prose-sm max-w-none text-gray-600 space-y-6">
@@ -26,8 +37,8 @@ export default function Datenschutz() {
               <h2 className="text-lg font-bold text-[#1a1a2e] mb-2">1. Verantwortlicher</h2>
               <p>
                 Einfach Lernen Pongau<br />
-                Musterstraße 1, 5600 St. Johann im Pongau<br />
-                E-Mail: office@einfachlernen-pongau.at
+                Bauernschmiedgasse 380, 5531 Eben im Pongau<br />
+                E-Mail: info@einfachlernen-pongau.at
               </p>
             </section>
 
@@ -128,8 +139,8 @@ export default function Datenschutz() {
               <p className="mt-2">
                 Zur Ausübung eurer Rechte oder bei Fragen zum Datenschutz wendet
                 euch bitte an:{" "}
-                <a href="mailto:office@einfachlernen-pongau.at" className="text-[#2d6a4f] underline">
-                  office@einfachlernen-pongau.at
+                <a href="mailto:info@einfachlernen-pongau.at" className="text-[#2d6a4f] underline">
+                  info@einfachlernen-pongau.at
                 </a>
               </p>
               <p className="mt-2">
@@ -153,8 +164,11 @@ export default function Datenschutz() {
 
             <p className="text-xs text-gray-400 mt-8">Stand: Juni 2026</p>
           </div>
+          </div>
         </div>
       </div>
+
+      <LvFooter />
     </div>
   );
 }

@@ -22,7 +22,17 @@ export async function supabaseSignIn(
       headers: { apikey: SUPABASE_ANON_KEY!, "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-    if (!res.ok) return { error: "Ungültige E-Mail oder Passwort." };
+    if (!res.ok) {
+      const body = await res.json().catch(() => null);
+      const code = body?.error_code ?? body?.code;
+      if (code === "email_not_confirmed") {
+        return { error: "Bitte bestätige zuerst deine E-Mail-Adresse über den Link, den Supabase dir zugeschickt hat." };
+      }
+      if (code === "user_banned") {
+        return { error: "Dieser Account ist gesperrt." };
+      }
+      return { error: "Ungültige E-Mail oder Passwort." };
+    }
     const data = await res.json();
     return { access_token: data.access_token, refresh_token: data.refresh_token };
   } catch {
