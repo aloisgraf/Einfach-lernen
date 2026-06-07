@@ -53,3 +53,21 @@ export function getDb() {
 export function isDbConfigured(): boolean {
   return Boolean(DATABASE_URL);
 }
+
+/**
+ * Begrenzt eine DB-Operation hart auf `ms` Millisekunden. postgres.js'
+ * eigene Timeouts (connect_timeout, statement_timeout) greifen nicht
+ * zuverlässig, wenn die Datenbank z.B. aus dem Ruhezustand aufwacht und
+ * Verbindungsversuche intern hängen bleiben – ohne diese Absicherung
+ * würde die Seite minutenlang warten und Render würde mit 502 antworten,
+ * statt auf den In-Memory-Fallback umzuschalten.
+ */
+export function mitTimeout<T>(promise: Promise<T>, ms = 6000): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`DB-Timeout nach ${ms}ms`)), ms);
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (err) => { clearTimeout(timer); reject(err); }
+    );
+  });
+}

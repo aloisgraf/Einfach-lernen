@@ -46,7 +46,7 @@
  */
 
 import { Buchung, Zeitslot } from "@/types/buchung";
-import { getDb, isDbConfigured } from "./db";
+import { getDb, isDbConfigured, mitTimeout } from "./db";
 
 // ── PostgreSQL-Operationen ────────────────────────────────────────────────────
 
@@ -238,7 +238,7 @@ function memBuchungen(): Buchung[] {
 
 export async function getAlleSlots(): Promise<Zeitslot[]> {
   if (isDbConfigured()) {
-    try { return await dbGetAlleSlots(); } catch { /* fall through */ }
+    try { return await mitTimeout(dbGetAlleSlots()); } catch { /* fall through */ }
   }
   return memSlots();
 }
@@ -247,7 +247,7 @@ export async function getFreigegebeneSlots(): Promise<Zeitslot[]> {
   if (isDbConfigured()) {
     try {
       const sql = getDb()!;
-      return await sql<Zeitslot[]>`SELECT * FROM zeitslots WHERE freigegeben = true ORDER BY datum ASC, uhrzeit_von ASC`;
+      return await mitTimeout(sql<Zeitslot[]>`SELECT * FROM zeitslots WHERE freigegeben = true ORDER BY datum ASC, uhrzeit_von ASC`);
     } catch { /* fall through */ }
   }
   return Array.from(getSlotsMap().values()).filter((s) => s.freigegeben);
@@ -290,7 +290,7 @@ export async function deleteSlot(id: string): Promise<boolean> {
 
 export async function getAlleBuchungen(): Promise<Buchung[]> {
   if (isDbConfigured()) {
-    try { return await dbGetAlleBuchungen(); } catch { /* fall through */ }
+    try { return await mitTimeout(dbGetAlleBuchungen()); } catch { /* fall through */ }
   }
   return memBuchungen();
 }

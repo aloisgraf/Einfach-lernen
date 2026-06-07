@@ -10,7 +10,7 @@
  *   );
  */
 
-import { getDb, isDbConfigured } from "./db";
+import { getDb, isDbConfigured, mitTimeout } from "./db";
 import { BuchungsformularTexte, STANDARD_FORMULAR_TEXTE } from "@/types/formular";
 import { Kurskategorie, STANDARD_KURSKATEGORIEN } from "@/types/kategorie";
 
@@ -30,7 +30,7 @@ async function getEinstellung(schluessel: string): Promise<string | null> {
   if (isDbConfigured()) {
     try {
       const sql = getDb()!;
-      const rows = await sql<{ wert: string }[]>`SELECT wert FROM einstellungen WHERE schluessel = ${schluessel}`;
+      const rows = await mitTimeout(sql<{ wert: string }[]>`SELECT wert FROM einstellungen WHERE schluessel = ${schluessel}`);
       return rows[0]?.wert ?? null;
     } catch { /* fall through */ }
   }
