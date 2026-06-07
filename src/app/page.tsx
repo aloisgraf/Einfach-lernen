@@ -1,5 +1,5 @@
 import { getFreigegebeneSlots, getAlleBuchungen } from "@/lib/slots-store";
-import { getBuchungsformularTexte } from "@/lib/einstellungen-store";
+import { getBuchungsformularTexte, getKurskategorien } from "@/lib/einstellungen-store";
 import SommerBuchung from "./SommerBuchung";
 import LvHeader from "@/components/LvHeader";
 import LvFooter from "@/components/LvFooter";
@@ -29,10 +29,11 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const [slots, buchungen, formularTexte] = await Promise.all([
+  const [slots, buchungen, formularTexte, kategorien] = await Promise.all([
     getFreigegebeneSlots(),
     getAlleBuchungen(),
     getBuchungsformularTexte(),
+    getKurskategorien(),
   ]);
 
   const slotsWithPlaetze = slots.map((s) => ({
@@ -165,7 +166,7 @@ export default async function Home() {
               <div className="bk-badge">☀️ Sommer 2026</div>
               <span className="bk-title">Kursplatz buchen</span>
             </div>
-            <SommerBuchung slots={slotsWithPlaetze} texte={formularTexte} />
+            <SommerBuchung slots={slotsWithPlaetze} texte={formularTexte} kategorien={kategorien} />
           </div>
         </div>
       </section>

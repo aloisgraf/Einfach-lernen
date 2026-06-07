@@ -324,6 +324,48 @@
 .lv-page .wi-earth{background:var(--earth);color:#fff;}
 .lv-page .wi-light{background:var(--pine-light);color:#fff;}
 
+/* KURS-FILTER */
+.lv-page .kurs-filter{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1.1rem;}
+.lv-page .kurs-filter-btn{
+  display:inline-flex;align-items:center;gap:.4rem;
+  background:var(--white);border:1.5px solid var(--pine-pale);
+  border-radius:50px;padding:.45rem 1.05rem;
+  font-family:var(--font-nunito),sans-serif;font-size:.8rem;font-weight:700;color:var(--mid);
+  cursor:pointer;transition:all .18s;
+}
+.lv-page .kurs-filter-btn:hover{border-color:var(--pine-light);color:var(--pine);}
+.lv-page .kurs-filter-btn.on{background:var(--pine);border-color:var(--pine);color:#fff;}
+
+/* KURS-KARTEN */
+.lv-page .course-grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+  gap:.9rem;margin-bottom:1.3rem;
+}
+.lv-page .course-card{
+  position:relative;display:flex;flex-direction:column;gap:.45rem;
+  background:var(--white);border:1.5px solid var(--pine-pale);
+  border-radius:16px;padding:1.15rem 1.05rem;
+  cursor:pointer;transition:all .2s;
+}
+.lv-page .course-card:hover{transform:translateY(-3px);box-shadow:var(--sh-sm);border-color:var(--pine-light);}
+.lv-page .course-card.on{border-color:var(--pine);background:var(--pine-pale);box-shadow:var(--sh-md);}
+.lv-page .course-card input{position:absolute;opacity:0;width:0;height:0;pointer-events:none;}
+.lv-page .course-card .cc-emoji{font-size:1.7rem;line-height:1;}
+.lv-page .course-card h4{
+  font-family:var(--font-raleway),sans-serif;font-weight:600;
+  font-size:.98rem;color:var(--ink);margin:0;letter-spacing:.01em;
+}
+.lv-page .course-card .cc-info{font-size:.76rem;color:var(--mid);line-height:1.5;margin:0;}
+.lv-page .course-card .cc-footer{
+  display:flex;align-items:center;justify-content:space-between;gap:.5rem;
+  margin-top:.3rem;padding-top:.55rem;border-top:1px solid var(--pine-pale);
+  font-size:.78rem;font-weight:800;
+}
+.lv-page .course-card .cc-spots{color:var(--pine);}
+.lv-page .course-card .cc-spots.last{color:var(--gold-dark);}
+.lv-page .course-card .cc-spots.full{color:var(--soft);font-weight:700;}
+.lv-page .course-card .cc-price{color:var(--earth);}
+
 /* BOOKING */
 .lv-page .booking-box{
   background:var(--white);border-radius:20px;

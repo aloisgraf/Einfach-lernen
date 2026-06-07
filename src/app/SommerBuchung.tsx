@@ -6,16 +6,22 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Zeitslot, schwerpunkte } from "@/types/buchung";
 import { BuchungsformularTexte } from "@/types/formular";
+import { Kurskategorie } from "@/types/kategorie";
 import { Loader2 } from "lucide-react";
 
 interface SlotMitPlaetzen extends Zeitslot { freie_plaetze: number; }
 interface Props {
   slots: SlotMitPlaetzen[];
   texte: BuchungsformularTexte;
+  kategorien: Kurskategorie[];
 }
 
-const KURS_ICONS = ["ci-a", "ci-b", "ci-c", "ci-d"];
-const KURS_EMOJIS = ["📖", "🔢", "⭐", "📚"];
+const STANDARD_EMOJI = "⭐";
+
+function kursEmoji(slot: SlotMitPlaetzen, kategorien: Kurskategorie[]) {
+  const erste = slot.kategorien?.[0];
+  return kategorien.find((k) => k.id === erste)?.emoji ?? STANDARD_EMOJI;
+}
 
 const schema = z.object({
   vorname: z.string().min(2, "Pflichtfeld"),
@@ -49,11 +55,16 @@ function Field({ label, hint, error, children }: { label: string; hint?: string;
   );
 }
 
-export default function SommerBuchung({ slots, texte }: Props) {
+export default function SommerBuchung({ slots, texte, kategorien }: Props) {
   const [slotsState, setSlotsState] = useState(slots);
+  const [aktiveKategorie, setAktiveKategorie] = useState<string | null>(null);
   const [ausgewaehlterSlot, setAusgewaehlterSlot] = useState<SlotMitPlaetzen | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+
+  const sichtbareSlots = aktiveKategorie
+    ? slotsState.filter((s) => s.kategorien?.includes(aktiveKategorie))
+    : slotsState;
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -123,21 +134,46 @@ export default function SommerBuchung({ slots, texte }: Props) {
 
   return (
     <div>
-      {/* Kursauswahl im Original-Listen-Design */}
-      {slotsState.length === 0 ? (
+      {/* Kategorie-Filter */}
+      {kategorien.length > 0 && (
+        <div className="kurs-filter">
+          <button
+            type="button"
+            className={`kurs-filter-btn${aktiveKategorie === null ? " on" : ""}`}
+            onClick={() => setAktiveKategorie(null)}
+          >
+            Alle
+          </button>
+          {kategorien.map((kat) => (
+            <button
+              key={kat.id}
+              type="button"
+              className={`kurs-filter-btn${aktiveKategorie === kat.id ? " on" : ""}`}
+              onClick={() => setAktiveKategorie(kat.id)}
+            >
+              <span>{kat.emoji}</span> {kat.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Kursauswahl im Original-Karten-Design */}
+      {sichtbareSlots.length === 0 ? (
         <p style={{ fontSize: ".88rem", color: "var(--soft)", marginBottom: "1.2rem" }}>
-          Aktuell sind keine Termine zur Buchung freigegeben – schau bald wieder vorbei!
+          {slotsState.length === 0
+            ? "Aktuell sind keine Termine zur Buchung freigegeben – schau bald wieder vorbei!"
+            : "Für diese Kategorie sind aktuell keine Termine freigegeben."}
         </p>
       ) : (
-        <div className="course-list">
-          {slotsState.map((slot, i) => {
+        <div className="course-grid">
+          {sichtbareSlots.map((slot) => {
             const selected = ausgewaehlterSlot?.id === slot.id;
             const voll = slot.freie_plaetze <= 0;
             const knapp = slot.freie_plaetze === 1;
             return (
               <label
                 key={slot.id}
-                className={`course-row${selected ? " on" : ""}`}
+                className={`course-card${selected ? " on" : ""}`}
                 style={{ opacity: voll ? 0.55 : 1, cursor: voll ? "not-allowed" : "pointer" }}
               >
                 <input
@@ -147,18 +183,17 @@ export default function SommerBuchung({ slots, texte }: Props) {
                   disabled={voll}
                   onChange={() => !voll && setAusgewaehlterSlot(slot)}
                 />
-                <div className={`ci ${KURS_ICONS[i % KURS_ICONS.length]}`}>{KURS_EMOJIS[i % KURS_EMOJIS.length]}</div>
-                <div className="cr-info">
-                  <strong>{slot.titel}</strong>
-                  <small>
-                    {formatDatum(slot.datum)} · {slot.uhrzeit_von}–{slot.uhrzeit_bis} Uhr
-                    {slot.beschreibung ? ` · ${slot.beschreibung}` : ""}
-                  </small>
-                </div>
-                <div className="cr-right">
-                  <span className={`cr-spots${knapp ? " last" : ""}`}>
+                <div className="cc-emoji">{kursEmoji(slot, kategorien)}</div>
+                <h4>{slot.titel}</h4>
+                <p className="cc-info">
+                  {formatDatum(slot.datum)} · {slot.uhrzeit_von}–{slot.uhrzeit_bis} Uhr
+                  {slot.beschreibung ? ` · ${slot.beschreibung}` : ""}
+                </p>
+                <div className="cc-footer">
+                  <span className={`cc-spots${voll ? " full" : knapp ? " last" : ""}`}>
                     {voll ? "Ausgebucht" : knapp ? "Nur 1 Platz frei!" : `${slot.freie_plaetze} Plätze frei`}
                   </span>
+                  {slot.preis != null && <span className="cc-price">€ {slot.preis}</span>}
                 </div>
               </label>
             );

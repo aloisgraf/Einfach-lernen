@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, Eye, EyeOff, X, Check, Loader2, CalendarClock } from "lucide-react";
 import { Zeitslot } from "@/types/buchung";
+import { Kurskategorie } from "@/types/kategorie";
 
 interface SlotMitPlaetzen extends Zeitslot {
   freie_plaetze: number;
@@ -11,6 +12,7 @@ interface SlotMitPlaetzen extends Zeitslot {
 
 interface Props {
   initialSlots: SlotMitPlaetzen[];
+  kategorien: Kurskategorie[];
 }
 
 const leerFormular = {
@@ -21,6 +23,8 @@ const leerFormular = {
   uhrzeit_bis: "",
   max_teilnehmer: "1",
   freigegeben: false,
+  preis: "",
+  kategorien: [] as string[],
 };
 
 const card: React.CSSProperties = {
@@ -53,7 +57,7 @@ const labelStyle: React.CSSProperties = {
   letterSpacing: "0.05em",
 };
 
-export default function SlotsVerwaltung({ initialSlots }: Props) {
+export default function SlotsVerwaltung({ initialSlots, kategorien }: Props) {
   const router = useRouter();
   const [slots, setSlots] = useState(initialSlots);
   const [formOpen, setFormOpen] = useState(false);
@@ -79,8 +83,19 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
       uhrzeit_bis: slot.uhrzeit_bis,
       max_teilnehmer: String(slot.max_teilnehmer),
       freigegeben: slot.freigegeben,
+      preis: slot.preis != null ? String(slot.preis) : "",
+      kategorien: slot.kategorien ?? [],
     });
     setFormOpen(true);
+  }
+
+  function toggleKategorie(id: string) {
+    setFormData((d) => ({
+      ...d,
+      kategorien: d.kategorien.includes(id)
+        ? d.kategorien.filter((k) => k !== id)
+        : [...d.kategorien, id],
+    }));
   }
 
   async function handleSpeichern() {
@@ -314,10 +329,44 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
                   <input type="time" value={formData.uhrzeit_bis} onChange={(e) => setFormData((d) => ({ ...d, uhrzeit_bis: e.target.value }))} style={inputStyle} />
                 </div>
               </div>
-              <div>
-                <label style={labelStyle}>Max. Teilnehmer *</label>
-                <input type="number" min={1} max={30} value={formData.max_teilnehmer} onChange={(e) => setFormData((d) => ({ ...d, max_teilnehmer: e.target.value }))} style={inputStyle} />
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Max. Teilnehmer *</label>
+                  <input type="number" min={1} max={30} value={formData.max_teilnehmer} onChange={(e) => setFormData((d) => ({ ...d, max_teilnehmer: e.target.value }))} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={labelStyle}>Preis in € (optional)</label>
+                  <input type="number" min={0} step="1" value={formData.preis} onChange={(e) => setFormData((d) => ({ ...d, preis: e.target.value }))} style={inputStyle} placeholder="z.B. 180" />
+                </div>
               </div>
+              {kategorien.length > 0 && (
+                <div>
+                  <label style={labelStyle}>Kategorien (für Filter-Buttons)</label>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {kategorien.map((kat) => {
+                      const aktiv = formData.kategorien.includes(kat.id);
+                      return (
+                        <button
+                          key={kat.id}
+                          type="button"
+                          onClick={() => toggleKategorie(kat.id)}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 6,
+                            padding: "7px 14px", borderRadius: 50,
+                            border: aktiv ? "1.5px solid #1a5c4a" : "1.5px solid #e5e7eb",
+                            background: aktiv ? "#eaf4ef" : "#fff",
+                            color: aktiv ? "#1a5c4a" : "#6b7280",
+                            fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
+                          }}
+                        >
+                          <span>{kat.emoji}</span>
+                          {kat.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
               <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, border: "1.5px solid #e5e7eb", cursor: "pointer" }}>
                 <input
                   type="checkbox"

@@ -12,8 +12,10 @@
 
 import { getDb, isDbConfigured } from "./db";
 import { BuchungsformularTexte, STANDARD_FORMULAR_TEXTE } from "@/types/formular";
+import { Kurskategorie, STANDARD_KURSKATEGORIEN } from "@/types/kategorie";
 
 const FORMULAR_KEY = "buchungsformular_texte";
+const KATEGORIEN_KEY = "kurskategorien";
 
 declare global {
   var __einstellungenStore: Map<string, string> | undefined;
@@ -62,4 +64,19 @@ export async function getBuchungsformularTexte(): Promise<BuchungsformularTexte>
 
 export async function setBuchungsformularTexte(texte: BuchungsformularTexte): Promise<void> {
   await setEinstellung(FORMULAR_KEY, JSON.stringify(texte));
+}
+
+export async function getKurskategorien(): Promise<Kurskategorie[]> {
+  const raw = await getEinstellung(KATEGORIEN_KEY);
+  if (!raw) return STANDARD_KURSKATEGORIEN;
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) && parsed.length > 0 ? parsed : STANDARD_KURSKATEGORIEN;
+  } catch {
+    return STANDARD_KURSKATEGORIEN;
+  }
+}
+
+export async function setKurskategorien(kategorien: Kurskategorie[]): Promise<void> {
+  await setEinstellung(KATEGORIEN_KEY, JSON.stringify(kategorien));
 }

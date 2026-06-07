@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   if (err) return err;
 
   const body = await req.json();
-  const { titel, beschreibung, datum, uhrzeit_von, uhrzeit_bis, max_teilnehmer, freigegeben } =
+  const { titel, beschreibung, datum, uhrzeit_von, uhrzeit_bis, max_teilnehmer, freigegeben, preis, kategorien } =
     body;
 
   if (!titel || !datum || !uhrzeit_von || !uhrzeit_bis) {
@@ -50,6 +50,8 @@ export async function POST(req: NextRequest) {
       uhrzeit_bis,
       max_teilnehmer: Number(max_teilnehmer) || 1,
       freigegeben: Boolean(freigegeben),
+      preis: preis === "" || preis === null || preis === undefined ? null : Number(preis),
+      kategorien: Array.isArray(kategorien) ? kategorien.filter((k) => typeof k === "string") : [],
     });
     return NextResponse.json(slot, { status: 201 });
   } catch (e) {
@@ -66,6 +68,13 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json();
   const { id, ...patch } = body;
   if (!id) return NextResponse.json({ error: "ID fehlt." }, { status: 400 });
+
+  if ("preis" in patch) {
+    patch.preis = patch.preis === "" || patch.preis === null || patch.preis === undefined ? null : Number(patch.preis);
+  }
+  if ("kategorien" in patch) {
+    patch.kategorien = Array.isArray(patch.kategorien) ? patch.kategorien.filter((k: unknown) => typeof k === "string") : [];
+  }
 
   try {
     const updated = await updateSlot(id, patch);

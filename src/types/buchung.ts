@@ -7,6 +7,8 @@ export interface Zeitslot {
   uhrzeit_bis: string;
   max_teilnehmer: number;
   freigegeben: boolean;
+  preis?: number | null;
+  kategorien?: string[];
   erstellt_am: string;
 }
 

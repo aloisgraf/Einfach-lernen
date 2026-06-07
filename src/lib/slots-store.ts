@@ -15,8 +15,14 @@
  *     uhrzeit_bis TEXT NOT NULL,
  *     max_teilnehmer INTEGER NOT NULL DEFAULT 1,
  *     freigegeben BOOLEAN NOT NULL DEFAULT false,
+ *     preis NUMERIC,
+ *     kategorien TEXT[] NOT NULL DEFAULT '{}',
  *     erstellt_am TIMESTAMPTZ NOT NULL DEFAULT now()
  *   );
+ *
+ *   -- Falls die Tabelle bereits existiert, zusätzlich ausführen:
+ *   -- ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS preis NUMERIC;
+ *   -- ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS kategorien TEXT[] NOT NULL DEFAULT '{}';
  *
  *   CREATE TABLE buchungen (
  *     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -52,9 +58,10 @@ async function dbGetSlot(id: string): Promise<Zeitslot | null> {
 async function dbCreateSlot(data: Omit<Zeitslot, "id" | "erstellt_am">): Promise<Zeitslot> {
   const sql = getDb()!;
   const rows = await sql<Zeitslot[]>`
-    INSERT INTO zeitslots (titel, beschreibung, datum, uhrzeit_von, uhrzeit_bis, max_teilnehmer, freigegeben)
+    INSERT INTO zeitslots (titel, beschreibung, datum, uhrzeit_von, uhrzeit_bis, max_teilnehmer, freigegeben, preis, kategorien)
     VALUES (${data.titel}, ${data.beschreibung ?? null}, ${data.datum}, ${data.uhrzeit_von},
-            ${data.uhrzeit_bis}, ${data.max_teilnehmer}, ${data.freigegeben})
+            ${data.uhrzeit_bis}, ${data.max_teilnehmer}, ${data.freigegeben},
+            ${data.preis ?? null}, ${data.kategorien ?? []})
     RETURNING *
   `;
   return rows[0];
@@ -123,6 +130,8 @@ function demoSlots(): Zeitslot[] {
       uhrzeit_bis: "16:30",
       max_teilnehmer: 3,
       freigegeben: true,
+      preis: 180,
+      kategorien: ["rechnen"],
       erstellt_am: new Date().toISOString(),
     },
     {
@@ -133,6 +142,8 @@ function demoSlots(): Zeitslot[] {
       uhrzeit_bis: "15:30",
       max_teilnehmer: 4,
       freigegeben: true,
+      preis: 160,
+      kategorien: ["lesen", "schreiben"],
       erstellt_am: new Date().toISOString(),
     },
     {
@@ -143,15 +154,15 @@ function demoSlots(): Zeitslot[] {
       uhrzeit_bis: "17:00",
       max_teilnehmer: 6,
       freigegeben: true,
+      preis: 140,
+      kategorien: ["konzentration"],
       erstellt_am: new Date().toISOString(),
     },
   ];
 }
 
 declare global {
-  // eslint-disable-next-line no-var
   var __slotsStore: Map<string, Zeitslot> | undefined;
-  // eslint-disable-next-line no-var
   var __buchungenStore: Map<string, Buchung> | undefined;
 }
 
