@@ -3,7 +3,7 @@ import { getBuchungsformularTexte, getWebsiteTexte } from "@/lib/einstellungen-s
 import SommerBuchung from "./SommerBuchung";
 import LvHeader from "@/components/LvHeader";
 import LvFooter from "@/components/LvFooter";
-import { RichText, RichParagraphs } from "@/components/RichText";
+import { RichText, RichParagraphs, splitItems, splitBlocks } from "@/components/RichText";
 import { Metadata } from "next";
 import { Raleway, Nunito } from "next/font/google";
 import "./lernversum.css";
@@ -75,19 +75,23 @@ export default async function Home() {
       <section className="hero">
         <div className="hero-text">
           <div className="hero-location">{texte.hero.location}</div>
-          <h1><RichText text={texte.hero.titel_zeile1} /><br /><RichText text={texte.hero.titel_zeile2} /></h1>
+          <h1><RichText text={texte.hero.heading} /></h1>
           <div className="hero-slogan">{texte.hero.slogan}</div>
           <p className="hero-lead">
             <RichText text={texte.hero.lead} />
           </p>
           <div className="hero-ctas">
-            <a href="#kontakt" className="btn btn-pine">{texte.hero.cta1_label}</a>
-            <a href="#angebot" className="btn btn-outline">{texte.hero.cta2_label}</a>
+            {splitItems(texte.hero.buttons).map((label, i) => (
+              <a key={i} href={i === 0 ? "#kontakt" : "#angebot"} className={`btn ${i === 0 ? "btn-pine" : "btn-outline"}`}>{label}</a>
+            ))}
           </div>
           <div className="hero-pills">
-            <div className="hero-pill"><div className="hero-pill-dot" style={{ background: "var(--pine)" }} />{texte.hero.pill1}</div>
-            <div className="hero-pill"><div className="hero-pill-dot" style={{ background: "var(--pine-light)" }} />{texte.hero.pill2}</div>
-            <div className="hero-pill"><div className="hero-pill-dot" style={{ background: "var(--gold-dark)" }} />{texte.hero.pill3}</div>
+            {splitItems(texte.hero.pills).map((pill, i) => (
+              <div key={i} className="hero-pill">
+                <div className="hero-pill-dot" style={{ background: i === 0 ? "var(--pine)" : i === 1 ? "var(--pine-light)" : "var(--gold-dark)" }} />
+                {pill}
+              </div>
+            ))}
           </div>
         </div>
 
@@ -99,8 +103,8 @@ export default async function Home() {
                 <div className="card-chip cc-gold">✏️</div>
                 <div className="card-chip cc-sand">🧮</div>
               </div>
-              <h3>{texte.hero.karte_titel}</h3>
-              <p>{texte.hero.karte_text}</p>
+              <h3>{texte.hero.card_heading}</h3>
+              <p>{texte.hero.card_text}</p>
               <div className="prog-stack">
                 <div className="prog-row">
                   <span className="prog-lbl">Lesekompetenz</span>
@@ -119,8 +123,9 @@ export default async function Home() {
                 </div>
               </div>
             </div>
-            <div className="float-tag ft-1">{texte.hero.tag1}</div>
-            <div className="float-tag ft-2">{texte.hero.tag2}</div>
+            {splitItems(texte.hero.tags).map((tag, i) => (
+              <div key={i} className={`float-tag ft-${i + 1}`}>{tag}</div>
+            ))}
           </div>
         </div>
       </section>
@@ -142,28 +147,26 @@ export default async function Home() {
       <section className="sec services" id="angebot">
         <div className="services-intro">
           <span className="sec-kicker kk-earth">{texte.angebot.kicker}</span>
-          <h2 className="sec-title"><RichText text={texte.angebot.titel} /></h2>
-          <p className="sec-sub">{texte.angebot.subtitel}</p>
+          <h2 className="sec-title"><RichText text={texte.angebot.heading} /></h2>
+          <p className="sec-sub">{texte.angebot.lead}</p>
         </div>
         <div className="svc-grid">
-          <div className="svc-card sc-a" id="beratung">
-            <div className="svc-icon si-a">🧑‍👧</div>
-            <h3>{texte.angebot.karte1_titel}</h3>
-            <p>{texte.angebot.karte1_text}</p>
-            <a href="#kontakt" className="svc-btn sb-a">{texte.angebot.karte1_button}</a>
-          </div>
-          <div className="svc-card sc-b" id="lernanalyse">
-            <div className="svc-icon si-b">🔍</div>
-            <h3>{texte.angebot.karte2_titel}</h3>
-            <p>{texte.angebot.karte2_text}</p>
-            <a href="#kontakt" className="svc-btn sb-b">{texte.angebot.karte2_button}</a>
-          </div>
-          <div className="svc-card sc-c" id="legasthenie">
-            <div className="svc-icon si-c">📚</div>
-            <h3>{texte.angebot.karte3_titel}</h3>
-            <p>{texte.angebot.karte3_text}</p>
-            <a href="#kontakt" className="svc-btn sb-c">{texte.angebot.karte3_button}</a>
-          </div>
+          {splitBlocks(texte.angebot.cards).map((cardText, i) => {
+            const [titel, text, button] = splitItems(cardText);
+            const icons = ['🧑‍👧', '🔍', '📚'];
+            const cardClass = ['sc-a', 'sc-b', 'sc-c'][i];
+            const btnClass = ['sb-a', 'sb-b', 'sb-c'][i];
+            const iconClass = ['si-a', 'si-b', 'si-c'][i];
+            const ids = ['beratung', 'lernanalyse', 'legasthenie'];
+            return (
+              <div key={i} className={`svc-card ${cardClass}`} id={ids[i]}>
+                <div className={`svc-icon ${iconClass}`}>{icons[i]}</div>
+                <h3>{titel}</h3>
+                <p>{text}</p>
+                <a href="#kontakt" className={`svc-btn ${btnClass}`}>{button}</a>
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -174,20 +177,26 @@ export default async function Home() {
         <div className="summer-layout">
           <div>
             <span className="sec-kicker kk-gold">{texte.sommerkurse.kicker}</span>
-            <h2 className="sec-title"><RichText text={texte.sommerkurse.titel} /></h2>
+            <h2 className="sec-title"><RichText text={texte.sommerkurse.heading} /></h2>
             <p className="sec-sub">{texte.sommerkurse.subtitel}</p>
             <div className="why-list">
-              <div className="why-item"><div className="why-icon wi-gold">☀️</div>{texte.sommerkurse.punkt1}</div>
-              <div className="why-item"><div className="why-icon wi-pine">👥</div>{texte.sommerkurse.punkt2}</div>
-              <div className="why-item"><div className="why-icon wi-earth">🎯</div>{texte.sommerkurse.punkt3}</div>
-              <div className="why-item"><div className="why-icon wi-light">✅</div>{texte.sommerkurse.punkt4}</div>
+              {splitBlocks(texte.sommerkurse.points).map((punkt, i) => {
+                const icons = ['☀️', '👥', '🎯', '✅'];
+                const iconClasses = ['wi-gold', 'wi-pine', 'wi-earth', 'wi-light'];
+                return (
+                  <div key={i} className="why-item">
+                    <div className={`why-icon ${iconClasses[i]}`}>{icons[i]}</div>
+                    {punkt}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
           <div className="booking-box" id="booking">
             <div className="bk-head">
               <div className="bk-badge">{texte.sommerkurse.box_badge}</div>
-              <span className="bk-title">{texte.sommerkurse.box_titel}</span>
+              <span className="bk-title">{texte.sommerkurse.box_title}</span>
             </div>
             {buchungComponent}
           </div>
@@ -201,15 +210,18 @@ export default async function Home() {
         <div className="when-wrap">
           <div>
             <span className="sec-kicker kk-soft">{texte.wann_hilft.kicker}</span>
-            <h2 className="sec-title"><RichText text={texte.wann_hilft.titel} /></h2>
+            <h2 className="sec-title"><RichText text={texte.wann_hilft.heading} /></h2>
             <p className="sec-sub">{texte.wann_hilft.subtitel}</p>
             <div className="when-chips">
-              <div className="chip"><div className="chip-ico">📝</div><p>{texte.wann_hilft.chip1}</p></div>
-              <div className="chip"><div className="chip-ico">🔢</div><p>{texte.wann_hilft.chip2}</p></div>
-              <div className="chip"><div className="chip-ico">😓</div><p>{texte.wann_hilft.chip3}</p></div>
-              <div className="chip"><div className="chip-ico">🎯</div><p>{texte.wann_hilft.chip4}</p></div>
-              <div className="chip"><div className="chip-ico">🏠</div><p>{texte.wann_hilft.chip5}</p></div>
-              <div className="chip"><div className="chip-ico">🗺️</div><p>{texte.wann_hilft.chip6}</p></div>
+              {splitBlocks(texte.wann_hilft.chips).map((chip, i) => {
+                const icons = ['📝', '🔢', '😓', '🎯', '🏠', '🗺️'];
+                return (
+                  <div key={i} className="chip">
+                    <div className="chip-ico">{icons[i]}</div>
+                    <p>{chip}</p>
+                  </div>
+                );
+              })}
             </div>
           </div>
           <div className="when-vis">
@@ -224,7 +236,7 @@ export default async function Home() {
                 <circle cx="76" cy="36" r="6" fill="#F4C842" opacity=".8" />
                 <circle cx="24" cy="50" r="5" fill="#F4C842" opacity=".7" />
               </svg>
-              <h4>{texte.wann_hilft.vision_titel}</h4>
+              <h4>{texte.wann_hilft.vision_heading}</h4>
               <p><RichText text={texte.wann_hilft.vision_text} /></p>
             </div>
           </div>
@@ -237,44 +249,34 @@ export default async function Home() {
       <section className="sec process">
         <div className="process-center">
           <span className="sec-kicker kk-pine">{texte.prozess.kicker}</span>
-          <h2 className="sec-title"><RichText text={texte.prozess.titel} /></h2>
+          <h2 className="sec-title"><RichText text={texte.prozess.heading} /></h2>
         </div>
         <div className="steps">
-          <div className="step">
-            <div className="step-n sn1">1</div>
-            <div className="step-ico">📞</div>
-            <h4>{texte.prozess.schritt1_titel}</h4>
-            <p>{texte.prozess.schritt1_text}</p>
-          </div>
-          <div className="step">
-            <div className="step-n sn2">2</div>
-            <div className="step-ico">🔍</div>
-            <h4>{texte.prozess.schritt2_titel}</h4>
-            <p>{texte.prozess.schritt2_text}</p>
-          </div>
-          <div className="step">
-            <div className="step-n sn3">3</div>
-            <div className="step-ico">✏️</div>
-            <h4>{texte.prozess.schritt3_titel}</h4>
-            <p>{texte.prozess.schritt3_text}</p>
-          </div>
-          <div className="step">
-            <div className="step-n sn4">4</div>
-            <div className="step-ico">📊</div>
-            <h4>{texte.prozess.schritt4_titel}</h4>
-            <p>{texte.prozess.schritt4_text}</p>
-          </div>
+          {splitBlocks(texte.prozess.steps).map((stepBlock, i) => {
+            const [titel, text] = splitItems(stepBlock);
+            const icons = ['📞', '🔍', '✏️', '📊'];
+            const stepClasses = ['sn1', 'sn2', 'sn3', 'sn4'];
+            return (
+              <div key={i} className="step">
+                <div className={`step-n ${stepClasses[i]}`}>{i + 1}</div>
+                <div className="step-ico">{icons[i]}</div>
+                <h4>{titel}</h4>
+                <p>{text}</p>
+              </div>
+            );
+          })}
         </div>
       </section>
 
       {/* CTA */}
       <section className="cta-sec" id="kontakt">
-        <h2><RichText text={texte.cta.titel} /></h2>
+        <h2><RichText text={texte.cta.heading} /></h2>
         <div className="tagline">{texte.cta.tagline}</div>
         <p><RichText text={texte.cta.text} /></p>
         <div className="cta-btns">
-          <a href="mailto:info@einfachlernen-pongau.at" className="btn btn-gold">{texte.cta.button1_label}</a>
-          <a href="#sommerkurse" className="btn btn-white">{texte.cta.button2_label}</a>
+          {splitItems(texte.cta.buttons).map((label, i) => (
+            <a key={i} href={i === 0 ? "mailto:info@einfachlernen-pongau.at" : "#sommerkurse"} className={`btn ${i === 0 ? "btn-gold" : "btn-white"}`}>{label}</a>
+          ))}
         </div>
       </section>
 

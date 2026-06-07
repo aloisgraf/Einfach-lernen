@@ -35,3 +35,13 @@ export function RichParagraphs({ text, className }: { text: string; className?: 
     </>
   );
 }
+
+/** Splitet einen mehrzeiligen Text durch \n getrennte Items */
+export function splitItems(text: string): string[] {
+  return text.split('\n').filter(s => s.trim());
+}
+
+/** Splitet einen mehrzeiligen Text durch Leerzeilen getrennte Blöcke */
+export function splitBlocks(text: string): string[] {
+  return text.split(/\n\s*\n/).filter(s => s.trim());
+}
