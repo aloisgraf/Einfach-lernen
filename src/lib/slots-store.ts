@@ -52,6 +52,38 @@
 import { Buchung, Zeitslot } from "@/types/buchung";
 import { getDb, isDbConfigured, mitTimeout } from "./db";
 
+// ── Schema-Migration ──────────────────────────────────────────────────────────
+
+declare global {
+  var __slotsSchemaMigriert: Promise<void> | undefined;
+}
+
+/**
+ * Stellt sicher, dass alle (nachträglich hinzugekommenen) Spalten in der
+ * zeitslots-Tabelle existieren – läuft einmalig pro Prozess. Ohne das würde
+ * z.B. gruppe_id beim INSERT still und leise wegfallen (siehe fehlendeSpalte),
+ * wodurch mehrtägige Kurse nie korrekt verknüpft werden, obwohl der Admin
+ * "Mehrtägiger Kurs" angehakt hat.
+ */
+function slotsSchemaSicherstellen(): Promise<void> {
+  if (!global.__slotsSchemaMigriert) {
+    const sql = getDb()!;
+    global.__slotsSchemaMigriert = (async () => {
+      const migrationen = [
+        sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS preis NUMERIC`,
+        sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS preis_5er NUMERIC`,
+        sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS preis_10er NUMERIC`,
+        sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS kategorien TEXT[] NOT NULL DEFAULT '{}'`,
+        sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS gruppe_id UUID`,
+      ];
+      for (const migration of migrationen) {
+        try { await mitTimeout(migration, 8000); } catch (e) { console.error("Schema-Migration fehlgeschlagen:", e); }
+      }
+    })();
+  }
+  return global.__slotsSchemaMigriert;
+}
+
 // ── PostgreSQL-Operationen ────────────────────────────────────────────────────
 
 async function dbGetAlleSlots(): Promise<Zeitslot[]> {
@@ -80,6 +112,7 @@ function fehlendeSpalte(e: unknown): string | null {
 }
 
 async function dbCreateSlot(data: Omit<Zeitslot, "id" | "erstellt_am">): Promise<Zeitslot> {
+  await slotsSchemaSicherstellen();
   const sql = getDb()!;
   const felder: Record<string, unknown> = {
     titel: data.titel,
@@ -112,6 +145,7 @@ async function dbCreateSlot(data: Omit<Zeitslot, "id" | "erstellt_am">): Promise
 }
 
 async function dbUpdateSlot(id: string, patch: Partial<Omit<Zeitslot, "id" | "erstellt_am">>): Promise<Zeitslot | null> {
+  await slotsSchemaSicherstellen();
   const sql = getDb()!;
   const felder: Record<string, unknown> = { ...patch };
   // Arrays müssen explizit als Postgres-Array übergeben werden, sonst

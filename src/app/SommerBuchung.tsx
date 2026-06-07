@@ -52,6 +52,12 @@ function formatDatum(datum: string) {
   });
 }
 
+function formatDatumKurz(datum: string) {
+  return new Date(datum + "T12:00:00").toLocaleDateString("de-AT", {
+    weekday: "short", day: "numeric", month: "short",
+  });
+}
+
 function formatDatumsListe(daten: string[]) {
   if (daten.length === 1) return formatDatum(daten[0]);
   if (daten.length === 2) return `${formatDatum(daten[0])} & ${formatDatum(daten[1])}`;
@@ -69,88 +75,124 @@ function Field({ label, hint, error, children }: { label: string; hint?: string;
   );
 }
 
-interface Gruppe {
+interface KursVariante {
+  gruppeId: string;
+  slots: SlotMitPlaetzen[]; // sortiert nach Datum
+}
+
+interface KursFamilie {
   titel: string;
   emoji: string;
-  slots: SlotMitPlaetzen[];
   istGruppenKurs: boolean;
-  gruppenId?: string; // für Gruppenkurse
+  varianten: KursVariante[];   // bei mehrtägigen Kursen: jede Variante = ein Satz zusammengehöriger Termine
+  einzelSlots: SlotMitPlaetzen[]; // bei Einzelblöcken: alle buchbaren Einzeltermine
 }
+
+const PAKETE = [
+  { anzahl: 1, label: "Einzelstunde" },
+  { anzahl: 5, label: "5er-Sommerpaket" },
+  { anzahl: 10, label: "10er-Rundum-Sicher-Paket" },
+] as const;
 
 export default function SommerBuchung({ slots, texte }: Props) {
   const [slotsState, setSlotsState] = useState(slots);
+
+  // Navigation
+  const [gewaehlteFamilie, setGewaehlteFamilie] = useState<string | null>(null);
+  const [gewaehltesTag1Datum, setGewaehltesTag1Datum] = useState<string | null>(null);
+  const [gewaehltesPaket, setGewaehltesPaket] = useState<number | null>(null);
+
   const [ausgewaehlteSlots, setAusgewaehlteSlots] = useState<SlotMitPlaetzen[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Gruppiere Slots: separate Gruppen für Gruppenkurse (gruppe_id) und Einzelslots
-  const gruppen: Gruppe[] = [];
-  const verarbeitete = new Set<string>();
-
-  // 1. Finde alle Gruppenkurse (Slots mit gleicher gruppe_id)
+  // ── Kurse zu Familien gruppieren ────────────────────────────────────────────
+  const familien: KursFamilie[] = [];
   for (const slot of slotsState) {
-    if (slot.gruppe_id && !verarbeitete.has(slot.gruppe_id)) {
-      const gruppenSlots = slotsState.filter((s) => s.gruppe_id === slot.gruppe_id);
-      verarbeitete.add(slot.gruppe_id);
-      gruppen.push({
-        titel: slot.titel,
-        emoji: STANDARD_EMOJI,
-        slots: gruppenSlots.sort((a, b) => a.datum.localeCompare(b.datum)),
-        istGruppenKurs: true,
-        gruppenId: slot.gruppe_id,
-      });
+    let familie = familien.find((f) => f.titel === slot.titel);
+    if (!familie) {
+      familie = { titel: slot.titel, emoji: STANDARD_EMOJI, istGruppenKurs: false, varianten: [], einzelSlots: [] };
+      familien.push(familie);
+    }
+    if (slot.gruppe_id) {
+      familie.istGruppenKurs = true;
+      let variante = familie.varianten.find((v) => v.gruppeId === slot.gruppe_id);
+      if (!variante) {
+        variante = { gruppeId: slot.gruppe_id, slots: [] };
+        familie.varianten.push(variante);
+      }
+      if (!variante.slots.find((s) => s.id === slot.id)) variante.slots.push(slot);
+    } else {
+      familie.einzelSlots.push(slot);
+    }
+  }
+  for (const familie of familien) {
+    for (const variante of familie.varianten) variante.slots.sort((a, b) => a.datum.localeCompare(b.datum));
+    familie.varianten.sort((a, b) => (a.slots[0]?.datum ?? "").localeCompare(b.slots[0]?.datum ?? ""));
+  }
+
+  const aktuelleFamilie = familien.find((f) => f.titel === gewaehlteFamilie) ?? null;
+
+  // ── Mehrtägiger Kurs: Tag-1-Daten & Varianten je Tag-1-Datum ────────────────
+  const tag1Daten = aktuelleFamilie
+    ? Array.from(new Set(aktuelleFamilie.varianten.map((v) => v.slots[0]?.datum).filter((d): d is string => Boolean(d))))
+    : [];
+  const variantenAmTag1 = aktuelleFamilie && gewaehltesTag1Datum
+    ? aktuelleFamilie.varianten.filter((v) => v.slots[0]?.datum === gewaehltesTag1Datum)
+    : [];
+
+  function familieWaehlen(familie: KursFamilie) {
+    setGewaehlteFamilie(familie.titel);
+    setGewaehltesTag1Datum(null);
+    setGewaehltesPaket(null);
+    setAusgewaehlteSlots([]);
+    // Bei nur einer Tag-1-Option direkt vorauswählen
+    if (familie.istGruppenKurs) {
+      const eindeutigeTage = Array.from(new Set(familie.varianten.map((v) => v.slots[0]?.datum)));
+      if (eindeutigeTage.length === 1) setGewaehltesTag1Datum(eindeutigeTage[0] ?? null);
     }
   }
 
-  // 2. Finde alle Einzelslots (keine gruppe_id) und gruppiere sie nach titel
-  for (const slot of slotsState) {
-    if (!slot.gruppe_id) {
-      let gruppe = gruppen.find((g) => g.titel === slot.titel && !g.istGruppenKurs);
-      if (!gruppe) {
-        gruppe = { titel: slot.titel, emoji: STANDARD_EMOJI, slots: [], istGruppenKurs: false };
-        gruppen.push(gruppe);
-      }
-      if (!gruppe.slots.find((s) => s.id === slot.id)) {
-        gruppe.slots.push(slot);
-      }
-    }
+  function variantenWaehlen(variante: KursVariante) {
+    setAusgewaehlteSlots(variante.slots);
   }
 
-  function slotsVonGruppe(slotId: string): SlotMitPlaetzen[] {
-    const slot = slotsState.find((s) => s.id === slotId);
-    if (!slot) return [];
-    if (!slot.gruppe_id) return [slot];
-    return slotsState
-      .filter((s) => s.gruppe_id === slot.gruppe_id)
-      .sort((a, b) => a.datum.localeCompare(b.datum));
-  }
-
-  function toggleSlot(slot: SlotMitPlaetzen) {
+  function paketSlotToggle(slot: SlotMitPlaetzen) {
+    if (gewaehltesPaket == null) return;
     setAusgewaehlteSlots((prev) => {
-      const exists = prev.find((s) => s.id === slot.id);
-      if (exists) {
-        return prev.filter((s) => s.id !== slot.id);
-      } else {
-        // Bei Gruppenkurs: alle slots der Gruppe hinzufügen, nicht nur einen
-        if (slot.gruppe_id) {
-          const gruppen = slotsVonGruppe(slot.id);
-          return [...prev, ...gruppen];
-        }
-        return [...prev, slot];
-      }
+      const existiert = prev.find((s) => s.id === slot.id);
+      if (existiert) return prev.filter((s) => s.id !== slot.id);
+      if (prev.length >= gewaehltesPaket) return prev;
+      return [...prev, slot];
     });
   }
 
   function buchungZuruecksetzen() {
+    setGewaehlteFamilie(null);
+    setGewaehltesTag1Datum(null);
+    setGewaehltesPaket(null);
     setAusgewaehlteSlots([]);
   }
+
+  function zurueckZuKursen() {
+    setGewaehlteFamilie(null);
+    setGewaehltesTag1Datum(null);
+    setGewaehltesPaket(null);
+    setAusgewaehlteSlots([]);
+  }
+
+  const auswahlAbgeschlossen = aktuelleFamilie
+    ? aktuelleFamilie.istGruppenKurs
+      ? ausgewaehlteSlots.length > 0
+      : gewaehltesPaket != null && ausgewaehlteSlots.length === gewaehltesPaket
+    : false;
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
 
   async function onSubmit(data: FormData) {
-    if (ausgewaehlteSlots.length === 0) return;
+    if (!auswahlAbgeschlossen || ausgewaehlteSlots.length === 0) return;
     setStatus("loading");
 
     const optionalParts = [
@@ -160,12 +202,12 @@ export default function SommerBuchung({ slots, texte }: Props) {
     ].filter(Boolean);
 
     try {
-      // Für Gruppenkurse: nur einen Slot buchen, Backend bucht alle automatisch
-      const zuBuchen = ausgewaehlteSlots[0].gruppe_id
+      // Mehrtägiger Kurs: Backend bucht beim ersten Termin automatisch alle der Gruppe.
+      // Einzelblöcke (auch Pakete mit mehreren Terminen): jeden gewählten Termin einzeln buchen.
+      const zuBuchen = ausgewaehlteSlots[0]?.gruppe_id
         ? [ausgewaehlteSlots[0]]
         : ausgewaehlteSlots;
 
-      const buchungen = [];
       for (const slot of zuBuchen) {
         const res = await fetch("/api/buchung", {
           method: "POST",
@@ -184,17 +226,12 @@ export default function SommerBuchung({ slots, texte }: Props) {
         });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? "Fehler");
-        buchungen.push(json);
       }
 
-      // Update UI
       setSlotsState((prev) => prev.map((s) => {
-        const belegt = ausgewaehlteSlots.find((a) => a.gruppe_id
-          ? s.gruppe_id === a.gruppe_id
-          : s.id === a.id);
-        return belegt ? { ...s, freie_plaetze: Math.max(0, s.freie_plaetze - 1) } : s;
+        const betroffen = ausgewaehlteSlots.find((a) => (a.gruppe_id ? s.gruppe_id === a.gruppe_id : s.id === a.id));
+        return betroffen ? { ...s, freie_plaetze: Math.max(0, s.freie_plaetze - 1) } : s;
       }));
-
       setStatus("success");
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Unbekannter Fehler");
@@ -204,7 +241,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
 
   function neueAnfrage() {
     reset();
-    setAusgewaehlteSlots([]);
+    buchungZuruecksetzen();
     setStatus("idle");
     setErrorMsg("");
   }
@@ -217,8 +254,8 @@ export default function SommerBuchung({ slots, texte }: Props) {
         {ausgewaehlteSlots.length > 0 && (
           <p style={{ marginTop: 8, fontWeight: 700 }}>
             {ausgewaehlteSlots[0].titel} ·{" "}
-            {formatDatumsListe(ausgewaehlteSlots.map((s) => s.datum))} ·{" "}
-            {ausgewaehlteSlots[0].uhrzeit_von}–{ausgewaehlteSlots[0].uhrzeit_bis} Uhr
+            {formatDatumsListe(ausgewaehlteSlots.map((s) => s.datum))}
+            {ausgewaehlteSlots.length === 1 && ` · ${ausgewaehlteSlots[0].uhrzeit_von}–${ausgewaehlteSlots[0].uhrzeit_bis} Uhr`}
           </p>
         )}
         <button type="button" onClick={neueAnfrage} className="btn btn-pine" style={{ marginTop: 14 }}>
@@ -230,47 +267,38 @@ export default function SommerBuchung({ slots, texte }: Props) {
 
   return (
     <div>
-      {gruppen.length === 0 ? (
+      {familien.length === 0 ? (
         <p style={{ fontSize: ".88rem", color: "var(--soft)", marginBottom: "1.2rem" }}>
           Aktuell sind keine Termine zur Buchung freigegeben – schau bald wieder vorbei!
         </p>
-      ) : ausgewaehlteSlots.length === 0 ? (
+      ) : !aktuelleFamilie ? (
+        // ── Schritt 1: Kurs wählen ────────────────────────────────────────────
         <div className="course-grid">
-          {gruppen.map((gruppe) => {
-            const gesamtPlaetze = gruppe.slots.reduce((sum, s) => sum + s.freie_plaetze, 0);
-            const preise = Array.from(new Set(gruppe.slots.map((s) => s.preis).filter((p): p is number => p != null)));
-            const terminCount = gruppe.slots.length;
-
+          {familien.map((familie) => {
+            const alleSlots = familie.istGruppenKurs ? familie.varianten.flatMap((v) => v.slots) : familie.einzelSlots;
+            const gesamtPlaetze = alleSlots.reduce((sum, s) => sum + s.freie_plaetze, 0);
+            const preise = Array.from(new Set(alleSlots.map((s) => s.preis).filter((p): p is number => p != null)));
+            const terminAnzahl = familie.istGruppenKurs
+              ? (familie.varianten[0]?.slots.length ?? 0)
+              : familie.einzelSlots.length;
             return (
               <button
                 type="button"
-                key={gruppe.titel}
+                key={familie.titel}
                 className="course-card"
-                onClick={() => {
-                  // Wenn Gruppenkurs: wähle alle Slots dieser Gruppe
-                  // Wenn Einzelblock: öffne Auswahl für Menge
-                  if (gruppe.istGruppenKurs) {
-                    const alleVonGruppe = slotsVonGruppe(gruppe.slots[0].id);
-                    setAusgewaehlteSlots(alleVonGruppe);
-                  } else {
-                    // TODO: Zeige 1/5/10 Auswahl
-                    // Für jetzt: wähle einfach den ersten verfügbaren Slot
-                    const available = gruppe.slots.find((s) => s.freie_plaetze > 0);
-                    if (available) toggleSlot(available);
-                  }
-                }}
+                onClick={() => familieWaehlen(familie)}
               >
-                <div className="cc-emoji">{gruppe.emoji}</div>
-                <h4>{gruppe.titel}</h4>
+                <div className="cc-emoji">{familie.emoji}</div>
+                <h4>{familie.titel}</h4>
                 <p className="cc-info">
-                  {gruppe.istGruppenKurs
-                    ? `${terminCount} Tage · ${terminCount} Termine`
-                    : `${terminCount} Termin${terminCount === 1 ? "" : "e"} verfügbar`}
-                  {gruppe.slots[0].beschreibung ? ` · ${gruppe.slots[0].beschreibung}` : ""}
+                  {familie.istGruppenKurs
+                    ? `${terminAnzahl} zusammengehörige Termine`
+                    : terminAnzahl === 1 ? "1 Termin verfügbar" : `${terminAnzahl} Termine verfügbar`}
+                  {alleSlots[0]?.beschreibung ? ` · ${alleSlots[0].beschreibung}` : ""}
                 </p>
                 <div className="cc-footer">
                   <span className={`cc-spots${gesamtPlaetze <= 0 ? " full" : ""}`}>
-                    {gesamtPlaetze <= 0 ? "Ausgebucht" : "Termin ansehen →"}
+                    {gesamtPlaetze <= 0 ? "Ausgebucht" : "Termine ansehen →"}
                   </span>
                   {preise.length > 0 && (
                     <span className="cc-price">
@@ -278,36 +306,197 @@ export default function SommerBuchung({ slots, texte }: Props) {
                     </span>
                   )}
                 </div>
-                <RabattHinweis slots={gruppe.slots} />
+                <RabattHinweis slots={alleSlots} />
               </button>
             );
           })}
         </div>
       ) : (
         <>
-          <button type="button" className="kurs-back" onClick={buchungZuruecksetzen}>← Auswahl zurücksetzen</button>
+          <button type="button" className="kurs-back" onClick={zurueckZuKursen}>← Anderen Kurs wählen</button>
 
-          <p className="kurs-step-label">📅 Ausgewählte Termine</p>
-          <div style={{ background: "var(--pine-pale)", borderRadius: 11, padding: ".7rem 1rem", marginBottom: "1rem", fontSize: ".85rem", color: "var(--pine-dark)" }}>
-            <div style={{ fontWeight: 700 }}>
-              {ausgewaehlteSlots[0]?.titel} ·{" "}
-              {formatDatumsListe(ausgewaehlteSlots.map((s) => s.datum))} ·{" "}
-              {ausgewaehlteSlots[0]?.uhrzeit_von}–{ausgewaehlteSlots[0]?.uhrzeit_bis} Uhr
-              {ausgewaehlteSlots[0]?.preis != null && ` · € ${ausgewaehlteSlots[0].preis}`}
-            </div>
-            {ausgewaehlteSlots.length > 1 && (
-              <p style={{ fontSize: ".75rem", margin: "0.4rem 0 0", color: "var(--pine)" }}>
-                {ausgewaehlteSlots.length} Termine insgesamt
-              </p>
-            )}
-            <RabattHinweis slots={ausgewaehlteSlots} />
-          </div>
+          {aktuelleFamilie.istGruppenKurs ? (
+            <>
+              {/* Mehrtägiger Kurs: Tag 1 → Uhrzeit (= Variante) → restliche Tage automatisch */}
+              {!gewaehltesTag1Datum ? (
+                <>
+                  <p className="kurs-step-label">{aktuelleFamilie.emoji} {aktuelleFamilie.titel} – wähle Tag 1</p>
+                  <div className="termin-grid">
+                    {tag1Daten.map((datum) => {
+                      const varianten = aktuelleFamilie.varianten.filter((v) => v.slots[0]?.datum === datum);
+                      const gesamtPlaetze = Math.min(...varianten.flatMap((v) => v.slots.map((s) => s.freie_plaetze)));
+                      const anzahlTage = varianten[0]?.slots.length ?? 0;
+                      return (
+                        <button
+                          type="button"
+                          key={datum}
+                          className="termin-btn"
+                          disabled={gesamtPlaetze <= 0}
+                          onClick={() => setGewaehltesTag1Datum(datum)}
+                        >
+                          <strong>Tag 1: {formatDatum(datum)}</strong>
+                          <span>
+                            {gesamtPlaetze <= 0 ? "Ausgebucht" : `Kurs über ${anzahlTage} Tage · ${varianten.length === 1 ? "1 Uhrzeit" : `${varianten.length} Uhrzeiten`} verfügbar`}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : ausgewaehlteSlots.length === 0 ? (
+                <>
+                  <p className="kurs-step-label">
+                    Tag 1 ({formatDatum(gewaehltesTag1Datum)}) – wähle eine Uhrzeit
+                  </p>
+                  {tag1Daten.length > 1 && (
+                    <button type="button" className="kurs-back" onClick={() => setGewaehltesTag1Datum(null)} style={{ marginBottom: ".6rem" }}>
+                      ← Anderen Tag wählen
+                    </button>
+                  )}
+                  <div className="termin-grid">
+                    {variantenAmTag1.map((variante) => {
+                      const tag1Slot = variante.slots[0];
+                      const weitereTage = variante.slots.slice(1);
+                      const gesamtPlaetze = Math.min(...variante.slots.map((s) => s.freie_plaetze));
+                      const voll = gesamtPlaetze <= 0;
+                      const knapp = gesamtPlaetze === 1;
+                      return (
+                        <button
+                          type="button"
+                          key={variante.gruppeId}
+                          className="termin-btn"
+                          disabled={voll}
+                          onClick={() => variantenWaehlen(variante)}
+                          style={{ width: "100%", textAlign: "left" }}
+                        >
+                          <strong>{tag1Slot.uhrzeit_von}–{tag1Slot.uhrzeit_bis} Uhr</strong>
+                          <span className={knapp ? "knapp" : ""}>
+                            {voll
+                              ? "Ausgebucht"
+                              : <>
+                                  Weitere Termine: {weitereTage.map((s, i) => (
+                                    <span key={s.id}>{i > 0 ? ", " : ""}{formatDatumKurz(s.datum)} {s.uhrzeit_von}–{s.uhrzeit_bis}</span>
+                                  ))}
+                                  {knapp && " · Nur 1 Platz frei!"}
+                                </>}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="kurs-step-label">✅ Alle Termine ausgewählt</p>
+                  <p style={{ fontSize: ".82rem", color: "var(--soft)", marginBottom: ".6rem" }}>
+                    Diese {ausgewaehlteSlots.length} Termine werden gemeinsam für dich gebucht:
+                  </p>
+                  <ul style={{ margin: "0 0 1rem", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
+                    {ausgewaehlteSlots.map((s, i) => (
+                      <li key={s.id} className="termin-btn on" style={{ cursor: "default" }}>
+                        <strong>Tag {i + 1}: {formatDatum(s.datum)}</strong>
+                        <span>{s.uhrzeit_von}–{s.uhrzeit_bis} Uhr</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <button type="button" className="kurs-back" onClick={() => { setAusgewaehlteSlots([]); }}>
+                    ← Andere Uhrzeit wählen
+                  </button>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              {/* Einzelblock: Paket wählen → so viele Termine (Datum + Uhrzeit) auswählen */}
+              {gewaehltesPaket == null ? (
+                <>
+                  <p className="kurs-step-label">{aktuelleFamilie.emoji} {aktuelleFamilie.titel} – wähle ein Paket</p>
+                  <div className="termin-grid">
+                    {PAKETE.map(({ anzahl, label }) => {
+                      const verfuegbar = aktuelleFamilie.einzelSlots.filter((s) => s.freie_plaetze > 0).length;
+                      const zuWenig = verfuegbar < anzahl;
+                      const preis = anzahl === 1
+                        ? aktuelleFamilie.einzelSlots.find((s) => s.preis != null)?.preis
+                        : anzahl === 5
+                          ? aktuelleFamilie.einzelSlots.find((s) => s.preis_5er != null)?.preis_5er
+                          : aktuelleFamilie.einzelSlots.find((s) => s.preis_10er != null)?.preis_10er;
+                      return (
+                        <button
+                          type="button"
+                          key={anzahl}
+                          className="termin-btn"
+                          disabled={zuWenig}
+                          onClick={() => setGewaehltesPaket(anzahl)}
+                        >
+                          <strong>{label}</strong>
+                          <span>
+                            {zuWenig
+                              ? `Aktuell nicht genug freie Termine (${verfuegbar} verfügbar)`
+                              : `${anzahl === 1 ? "1 Termin" : `${anzahl} Termine`} nach Wahl${preis != null ? ` · € ${preis}` : ""}`}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="kurs-step-label">
+                    {aktuelleFamilie.emoji} {aktuelleFamilie.titel} – wähle {gewaehltesPaket === 1 ? "deinen Termin" : `${gewaehltesPaket} Termine`}
+                    {gewaehltesPaket > 1 && ` (${ausgewaehlteSlots.length}/${gewaehltesPaket} ausgewählt)`}
+                  </p>
+                  <button type="button" className="kurs-back" onClick={() => { setGewaehltesPaket(null); setAusgewaehlteSlots([]); }} style={{ marginBottom: ".6rem" }}>
+                    ← Anderes Paket wählen
+                  </button>
+                  <div className="termin-grid">
+                    {aktuelleFamilie.einzelSlots.map((slot) => {
+                      const ausgewaehlt = Boolean(ausgewaehlteSlots.find((s) => s.id === slot.id));
+                      const voll = slot.freie_plaetze <= 0;
+                      const knapp = slot.freie_plaetze === 1;
+                      const gesperrt = !ausgewaehlt && ausgewaehlteSlots.length >= gewaehltesPaket;
+                      return (
+                        <button
+                          type="button"
+                          key={slot.id}
+                          className={`termin-btn${ausgewaehlt ? " on" : ""}`}
+                          disabled={voll || gesperrt}
+                          onClick={() => paketSlotToggle(slot)}
+                        >
+                          <strong>{formatDatum(slot.datum)} · {slot.uhrzeit_von}–{slot.uhrzeit_bis} Uhr</strong>
+                          <span className={knapp ? "knapp" : ""}>
+                            {voll ? "Ausgebucht" : knapp ? "Nur 1 Platz frei!" : ausgewaehlt ? "✓ Ausgewählt" : `${slot.freie_plaetze} Plätze frei`}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </>
+          )}
         </>
+      )}
+
+      {auswahlAbgeschlossen && ausgewaehlteSlots.length > 0 && (
+        <div style={{ background: "var(--pine-pale)", borderRadius: 11, padding: ".7rem 1rem", marginBottom: "1rem", fontSize: ".85rem", color: "var(--pine-dark)" }}>
+          <div style={{ fontWeight: 700 }}>
+            Ausgewählt: {ausgewaehlteSlots[0].titel} ·{" "}
+            {formatDatumsListe(ausgewaehlteSlots.map((s) => s.datum))}
+            {ausgewaehlteSlots.length === 1 && ` · ${ausgewaehlteSlots[0].uhrzeit_von}–${ausgewaehlteSlots[0].uhrzeit_bis} Uhr`}
+            {ausgewaehlteSlots.length === 1 && ausgewaehlteSlots[0].preis != null && ` · € ${ausgewaehlteSlots[0].preis}`}
+          </div>
+          {ausgewaehlteSlots.length > 1 && (
+            <p style={{ fontSize: ".75rem", margin: ".3rem 0 0" }}>
+              {ausgewaehlteSlots.map((s) => `${formatDatumKurz(s.datum)} ${s.uhrzeit_von}–${s.uhrzeit_bis}`).join(" · ")}
+            </p>
+          )}
+          <RabattHinweis slots={ausgewaehlteSlots} />
+        </div>
       )}
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        style={{ display: ausgewaehlteSlots.length > 0 ? "block" : "none" }}
+        style={{ display: auswahlAbgeschlossen ? "block" : "none" }}
       >
         <div className="form-grid">
           <div className="fg">
@@ -372,7 +561,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
           <div className="book-error">{errorMsg}</div>
         )}
 
-        <button type="submit" className="book-btn" disabled={status === "loading" || ausgewaehlteSlots.length === 0}>
+        <button type="submit" className="book-btn" disabled={status === "loading" || !auswahlAbgeschlossen}>
           {status === "loading"
             ? <><Loader2 style={{ width: 16, height: 16, animation: "lvSpin 1s linear infinite" }} /> Wird gesendet…</>
             : <>☀️ Kursplatz verbindlich anfragen</>
