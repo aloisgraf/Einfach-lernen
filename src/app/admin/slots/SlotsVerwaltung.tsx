@@ -273,80 +273,117 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
                 </tr>
               </thead>
               <tbody>
-                {slots.map((slot) => (
-                  <tr key={slot.id} style={{ borderBottom: "1px solid #f9fafb" }}>
-                    <td style={{ padding: "14px 16px" }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "#111827", margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
-                        {slot.titel}
-                        {slot.gruppe_id && (
-                          <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#fff4e0", color: "#a16207" }} title="Teil eines mehrtägigen Kurses">
-                            mehrtägig
-                          </span>
-                        )}
-                      </p>
-                      {slot.beschreibung && (
-                        <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>{slot.beschreibung}</p>
-                      )}
-                    </td>
-                    <td style={{ padding: "14px 16px", color: "#6b7280", whiteSpace: "nowrap" }}>{formatDatum(slot.datum)}</td>
-                    <td style={{ padding: "14px 16px", color: "#6b7280", whiteSpace: "nowrap" }}>{slot.uhrzeit_von}–{slot.uhrzeit_bis}</td>
-                    <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                      <span style={{
-                        fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
-                        background: slot.freie_plaetze === 0 ? "#fee2e2" : "#eaf4ef",
-                        color: slot.freie_plaetze === 0 ? "#dc2626" : "#1a5c4a",
-                      }}>
-                        {slot.freie_plaetze}/{slot.max_teilnehmer}
-                      </span>
-                    </td>
-                    <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                      <button
-                        onClick={() => handleToggle(slot)}
-                        disabled={togglingId === slot.id}
-                        style={{
-                          display: "inline-flex", alignItems: "center", gap: 6,
-                          fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 20,
-                          border: "none", cursor: "pointer", fontFamily: "inherit",
-                          background: slot.freigegeben ? "#eaf4ef" : "#f3f4f6",
-                          color: slot.freigegeben ? "#1a5c4a" : "#9ca3af",
-                        }}
-                        title={slot.freigegeben ? "Klicken zum Sperren" : "Klicken zum Freigeben"}
-                      >
-                        {togglingId === slot.id ? (
-                          <Loader2 style={{ width: 12, height: 12 }} />
-                        ) : slot.freigegeben ? (
-                          <Eye style={{ width: 12, height: 12 }} />
-                        ) : (
-                          <EyeOff style={{ width: 12, height: 12 }} />
-                        )}
-                        {slot.freigegeben ? "Freigegeben" : "Gesperrt"}
-                      </button>
-                    </td>
-                    <td style={{ padding: "14px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
-                        <button
-                          onClick={() => openEdit(slot)}
-                          style={{ padding: 8, borderRadius: 8, border: "none", background: "none", cursor: "pointer", color: "#9ca3af" }}
-                          title="Bearbeiten"
-                        >
-                          <Pencil style={{ width: 15, height: 15 }} />
-                        </button>
-                        <button
-                          onClick={() => handleLoeschen(slot.id)}
-                          disabled={deletingId === slot.id}
-                          style={{ padding: 8, borderRadius: 8, border: "none", background: "none", cursor: "pointer", color: "#9ca3af" }}
-                          title="Löschen"
-                        >
-                          {deletingId === slot.id ? (
-                            <Loader2 style={{ width: 15, height: 15 }} />
-                          ) : (
-                            <Trash2 style={{ width: 15, height: 15 }} />
+                {(() => {
+                  const grouped = new Map<string, SlotMitPlaetzen[]>();
+                  for (const slot of slots) {
+                    const key = slot.gruppe_id || slot.id;
+                    if (!grouped.has(key)) grouped.set(key, []);
+                    grouped.get(key)!.push(slot);
+                  }
+                  const sortedGroups = Array.from(grouped.values())
+                    .sort((a, b) => a[0].datum.localeCompare(b[0].datum));
+
+                  return sortedGroups.map((group) => {
+                    const firstSlot = group[0];
+                    const isGroup = group.length > 1;
+                    const allFreie = Math.min(...group.map((s) => s.freie_plaetze));
+
+                    return (
+                      <tr key={firstSlot.id} style={{ borderBottom: "1px solid #f9fafb" }}>
+                        <td style={{ padding: "14px 16px" }}>
+                          <p style={{ fontSize: 13, fontWeight: 600, color: "#111827", margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
+                            {firstSlot.titel}
+                            {isGroup && (
+                              <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#fff4e0", color: "#a16207" }}>
+                                {group.length} Tage
+                              </span>
+                            )}
+                          </p>
+                          {firstSlot.beschreibung && (
+                            <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>{firstSlot.beschreibung}</p>
                           )}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                        </td>
+                        <td style={{ padding: "14px 16px", color: "#6b7280" }}>
+                          {isGroup ? (
+                            <div style={{ fontSize: 11, lineHeight: 1.6 }}>
+                              {group.map((s) => (
+                                <div key={s.id}>{formatDatum(s.datum)}</div>
+                              ))}
+                            </div>
+                          ) : (
+                            formatDatum(firstSlot.datum)
+                          )}
+                        </td>
+                        <td style={{ padding: "14px 16px", color: "#6b7280" }}>
+                          {isGroup ? (
+                            <div style={{ fontSize: 11, lineHeight: 1.6 }}>
+                              {group.map((s) => (
+                                <div key={s.id}>{s.uhrzeit_von}–{s.uhrzeit_bis}</div>
+                              ))}
+                            </div>
+                          ) : (
+                            `${firstSlot.uhrzeit_von}–${firstSlot.uhrzeit_bis}`
+                          )}
+                        </td>
+                        <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                          <span style={{
+                            fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20,
+                            background: allFreie === 0 ? "#fee2e2" : "#eaf4ef",
+                            color: allFreie === 0 ? "#dc2626" : "#1a5c4a",
+                          }}>
+                            {allFreie}/{firstSlot.max_teilnehmer}
+                          </span>
+                        </td>
+                        <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                          <button
+                            onClick={() => handleToggle(firstSlot)}
+                            disabled={togglingId === firstSlot.id}
+                            style={{
+                              display: "inline-flex", alignItems: "center", gap: 6,
+                              fontSize: 11, fontWeight: 700, padding: "4px 12px", borderRadius: 20,
+                              border: "none", cursor: "pointer", fontFamily: "inherit",
+                              background: firstSlot.freigegeben ? "#eaf4ef" : "#f3f4f6",
+                              color: firstSlot.freigegeben ? "#1a5c4a" : "#9ca3af",
+                            }}
+                            title={firstSlot.freigegeben ? "Klicken zum Sperren" : "Klicken zum Freigeben"}
+                          >
+                            {togglingId === firstSlot.id ? (
+                              <Loader2 style={{ width: 12, height: 12 }} />
+                            ) : firstSlot.freigegeben ? (
+                              <Eye style={{ width: 12, height: 12 }} />
+                            ) : (
+                              <EyeOff style={{ width: 12, height: 12 }} />
+                            )}
+                            {firstSlot.freigegeben ? "Freigegeben" : "Gesperrt"}
+                          </button>
+                        </td>
+                        <td style={{ padding: "14px 16px" }}>
+                          <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
+                            <button
+                              onClick={() => openEdit(firstSlot)}
+                              style={{ padding: 8, borderRadius: 8, border: "none", background: "none", cursor: "pointer", color: "#9ca3af" }}
+                              title="Bearbeiten"
+                            >
+                              <Pencil style={{ width: 15, height: 15 }} />
+                            </button>
+                            <button
+                              onClick={() => handleLoeschen(firstSlot.id)}
+                              disabled={deletingId === firstSlot.id}
+                              style={{ padding: 8, borderRadius: 8, border: "none", background: "none", cursor: "pointer", color: "#9ca3af" }}
+                              title="Löschen"
+                            >
+                              {deletingId === firstSlot.id ? (
+                                <Loader2 style={{ width: 15, height: 15 }} />
+                              ) : (
+                                <Trash2 style={{ width: 15, height: 15 }} />
+                              )}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  });
+                })()}
               </tbody>
             </table>
           </div>

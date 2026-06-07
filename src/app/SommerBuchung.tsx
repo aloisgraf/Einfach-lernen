@@ -69,70 +69,80 @@ function Field({ label, hint, error, children }: { label: string; hint?: string;
   );
 }
 
+interface Gruppe {
+  titel: string;
+  emoji: string;
+  slots: SlotMitPlaetzen[];
+  istGruppenKurs: boolean;
+  gruppenId?: string; // für Gruppenkurse
+}
+
 export default function SommerBuchung({ slots, texte }: Props) {
   const [slotsState, setSlotsState] = useState(slots);
-  const [gewaehlterKurs, setGewaehlterKurs] = useState<string | null>(null);
-  const [gewaehltesDatum, setGewaehltesDatum] = useState<string | null>(null);
-  const [ausgewaehlterSlot, setAusgewaehlterSlot] = useState<SlotMitPlaetzen | null>(null);
+  const [ausgewaehlteSlots, setAusgewaehlteSlots] = useState<SlotMitPlaetzen[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
 
-  const kurse: { titel: string; emoji: string; slots: SlotMitPlaetzen[] }[] = [];
+  // Gruppiere Slots: separate Gruppen für Gruppenkurse (gruppe_id) und Einzelslots
+  const gruppen: Gruppe[] = [];
+  const verarbeitete = new Set<string>();
+
+  // 1. Finde alle Gruppenkurse (Slots mit gleicher gruppe_id)
   for (const slot of slotsState) {
-    let gruppe = kurse.find((k) => k.titel === slot.titel);
-    if (!gruppe) {
-      gruppe = { titel: slot.titel, emoji: STANDARD_EMOJI, slots: [] };
-      kurse.push(gruppe);
+    if (slot.gruppe_id && !verarbeitete.has(slot.gruppe_id)) {
+      const gruppenSlots = slotsState.filter((s) => s.gruppe_id === slot.gruppe_id);
+      verarbeitete.add(slot.gruppe_id);
+      gruppen.push({
+        titel: slot.titel,
+        emoji: STANDARD_EMOJI,
+        slots: gruppenSlots.sort((a, b) => a.datum.localeCompare(b.datum)),
+        istGruppenKurs: true,
+        gruppenId: slot.gruppe_id,
+      });
     }
-    gruppe.slots.push(slot);
   }
 
-  const aktuellerKurs = kurse.find((k) => k.titel === gewaehlterKurs) ?? null;
+  // 2. Finde alle Einzelslots (keine gruppe_id) und gruppiere sie nach titel
+  for (const slot of slotsState) {
+    if (!slot.gruppe_id) {
+      let gruppe = gruppen.find((g) => g.titel === slot.titel && !g.istGruppenKurs);
+      if (!gruppe) {
+        gruppe = { titel: slot.titel, emoji: STANDARD_EMOJI, slots: [], istGruppenKurs: false };
+        gruppen.push(gruppe);
+      }
+      if (!gruppe.slots.find((s) => s.id === slot.id)) {
+        gruppe.slots.push(slot);
+      }
+    }
+  }
 
-  // Mehrtägiger Kurs: alle Termine teilen sich dieselbe gruppe_id und werden
-  // gemeinsam als ein Termin gebucht (statt Tag-für-Tag-Auswahl).
-  const istGruppenkurs = Boolean(
-    aktuellerKurs &&
-    aktuellerKurs.slots.length > 1 &&
-    aktuellerKurs.slots.every((s) => s.gruppe_id && s.gruppe_id === aktuellerKurs.slots[0].gruppe_id)
-  );
-  const gruppenTermine = istGruppenkurs && aktuellerKurs
-    ? [...aktuellerKurs.slots].sort((a, b) => a.datum.localeCompare(b.datum))
-    : [];
-
-  function gruppenSlotsVon(slot: SlotMitPlaetzen): SlotMitPlaetzen[] {
+  function slotsVonGruppe(slotId: string): SlotMitPlaetzen[] {
+    const slot = slotsState.find((s) => s.id === slotId);
+    if (!slot) return [];
     if (!slot.gruppe_id) return [slot];
     return slotsState
       .filter((s) => s.gruppe_id === slot.gruppe_id)
       .sort((a, b) => a.datum.localeCompare(b.datum));
   }
 
-  const termine = aktuellerKurs && !istGruppenkurs
-    ? Array.from(new Set(aktuellerKurs.slots.map((s) => s.datum))).sort()
-    : [];
-  const zeitenAmTag = aktuellerKurs && gewaehltesDatum
-    ? aktuellerKurs.slots.filter((s) => s.datum === gewaehltesDatum)
-    : [];
-
-  function kursWaehlen(titel: string) {
-    setGewaehlterKurs(titel);
-    setGewaehltesDatum(null);
-    setAusgewaehlterSlot(null);
-  }
-
-  function datumWaehlen(datum: string, slotsAmTag: SlotMitPlaetzen[]) {
-    setGewaehltesDatum(datum);
-    if (slotsAmTag.length === 1) {
-      setAusgewaehlterSlot(slotsAmTag[0].freie_plaetze > 0 ? slotsAmTag[0] : null);
-    } else {
-      setAusgewaehlterSlot(null);
-    }
+  function toggleSlot(slot: SlotMitPlaetzen) {
+    setAusgewaehlteSlots((prev) => {
+      const exists = prev.find((s) => s.id === slot.id);
+      if (exists) {
+        return prev.filter((s) => s.id !== slot.id);
+      } else {
+        // Bei Gruppenkurs: alle slots der Gruppe hinzufügen, nicht nur einen
+        if (slot.gruppe_id) {
+          const gruppen = slotsVonGruppe(slot.id);
+          return [...prev, ...gruppen];
+        }
+        return [...prev, slot];
+      }
+    });
   }
 
   function buchungZuruecksetzen() {
-    setGewaehlterKurs(null);
-    setGewaehltesDatum(null);
-    setAusgewaehlterSlot(null);
+    setAusgewaehlteSlots([]);
   }
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<FormData>({
@@ -140,7 +150,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
   });
 
   async function onSubmit(data: FormData) {
-    if (!ausgewaehlterSlot) return;
+    if (ausgewaehlteSlots.length === 0) return;
     setStatus("loading");
 
     const optionalParts = [
@@ -150,31 +160,41 @@ export default function SommerBuchung({ slots, texte }: Props) {
     ].filter(Boolean);
 
     try {
-      const res = await fetch("/api/buchung", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          zeitslot_id: ausgewaehlterSlot.id,
-          vorname: data.vorname,
-          nachname: data.nachname,
-          email: data.email,
-          telefon: data.telefon,
-          name_kind: data.name_kind,
-          schulstufe: data.schulstufe,
-          kind_lernen: data.kind_lernen,
-          kind_staerken: optionalParts.join("\n\n"),
-        }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Fehler");
-      // Bei mehrtägigen Kursen bucht der Server automatisch alle Termine der Gruppe mit –
-      // also auch lokal alle betroffenen Termine als belegt markieren.
+      // Für Gruppenkurse: nur einen Slot buchen, Backend bucht alle automatisch
+      const zuBuchen = ausgewaehlteSlots[0].gruppe_id
+        ? [ausgewaehlteSlots[0]]
+        : ausgewaehlteSlots;
+
+      const buchungen = [];
+      for (const slot of zuBuchen) {
+        const res = await fetch("/api/buchung", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            zeitslot_id: slot.id,
+            vorname: data.vorname,
+            nachname: data.nachname,
+            email: data.email,
+            telefon: data.telefon,
+            name_kind: data.name_kind,
+            schulstufe: data.schulstufe,
+            kind_lernen: data.kind_lernen,
+            kind_staerken: optionalParts.join("\n\n"),
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? "Fehler");
+        buchungen.push(json);
+      }
+
+      // Update UI
       setSlotsState((prev) => prev.map((s) => {
-        const betroffen = ausgewaehlterSlot.gruppe_id
-          ? s.gruppe_id === ausgewaehlterSlot.gruppe_id
-          : s.id === ausgewaehlterSlot.id;
-        return betroffen ? { ...s, freie_plaetze: s.freie_plaetze - 1 } : s;
+        const belegt = ausgewaehlteSlots.find((a) => a.gruppe_id
+          ? s.gruppe_id === a.gruppe_id
+          : s.id === a.id);
+        return belegt ? { ...s, freie_plaetze: Math.max(0, s.freie_plaetze - 1) } : s;
       }));
+
       setStatus("success");
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : "Unbekannter Fehler");
@@ -184,7 +204,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
 
   function neueAnfrage() {
     reset();
-    setAusgewaehlterSlot(null);
+    setAusgewaehlteSlots([]);
     setStatus("idle");
     setErrorMsg("");
   }
@@ -194,13 +214,11 @@ export default function SommerBuchung({ slots, texte }: Props) {
       <div className="book-ok" style={{ display: "block" }}>
         <strong>🎉 Anfrage gesendet!</strong>
         <p>Ich melde mich innerhalb von 24 Stunden bei euch.</p>
-        {ausgewaehlterSlot && (
+        {ausgewaehlteSlots.length > 0 && (
           <p style={{ marginTop: 8, fontWeight: 700 }}>
-            {ausgewaehlterSlot.titel} ·{" "}
-            {ausgewaehlterSlot.gruppe_id
-              ? formatDatumsListe(gruppenSlotsVon(ausgewaehlterSlot).map((s) => s.datum))
-              : formatDatum(ausgewaehlterSlot.datum)}{" "}
-            · {ausgewaehlterSlot.uhrzeit_von}–{ausgewaehlterSlot.uhrzeit_bis} Uhr
+            {ausgewaehlteSlots[0].titel} ·{" "}
+            {formatDatumsListe(ausgewaehlteSlots.map((s) => s.datum))} ·{" "}
+            {ausgewaehlteSlots[0].uhrzeit_von}–{ausgewaehlteSlots[0].uhrzeit_bis} Uhr
           </p>
         )}
         <button type="button" onClick={neueAnfrage} className="btn btn-pine" style={{ marginTop: 14 }}>
@@ -212,32 +230,47 @@ export default function SommerBuchung({ slots, texte }: Props) {
 
   return (
     <div>
-      {/* Schritt 1: Kurs wählen */}
-      {kurse.length === 0 ? (
+      {gruppen.length === 0 ? (
         <p style={{ fontSize: ".88rem", color: "var(--soft)", marginBottom: "1.2rem" }}>
           Aktuell sind keine Termine zur Buchung freigegeben – schau bald wieder vorbei!
         </p>
-      ) : !aktuellerKurs ? (
+      ) : ausgewaehlteSlots.length === 0 ? (
         <div className="course-grid">
-          {kurse.map((kurs) => {
-            const gesamtPlaetze = kurs.slots.reduce((sum, s) => sum + s.freie_plaetze, 0);
-            const preise = Array.from(new Set(kurs.slots.map((s) => s.preis).filter((p): p is number => p != null)));
+          {gruppen.map((gruppe) => {
+            const gesamtPlaetze = gruppe.slots.reduce((sum, s) => sum + s.freie_plaetze, 0);
+            const preise = Array.from(new Set(gruppe.slots.map((s) => s.preis).filter((p): p is number => p != null)));
+            const terminCount = gruppe.slots.length;
+
             return (
               <button
                 type="button"
-                key={kurs.titel}
+                key={gruppe.titel}
                 className="course-card"
-                onClick={() => kursWaehlen(kurs.titel)}
+                onClick={() => {
+                  // Wenn Gruppenkurs: wähle alle Slots dieser Gruppe
+                  // Wenn Einzelblock: öffne Auswahl für Menge
+                  if (gruppe.istGruppenKurs) {
+                    const alleVonGruppe = slotsVonGruppe(gruppe.slots[0].id);
+                    setAusgewaehlteSlots(alleVonGruppe);
+                  } else {
+                    // TODO: Zeige 1/5/10 Auswahl
+                    // Für jetzt: wähle einfach den ersten verfügbaren Slot
+                    const available = gruppe.slots.find((s) => s.freie_plaetze > 0);
+                    if (available) toggleSlot(available);
+                  }
+                }}
               >
-                <div className="cc-emoji">{kurs.emoji}</div>
-                <h4>{kurs.titel}</h4>
+                <div className="cc-emoji">{gruppe.emoji}</div>
+                <h4>{gruppe.titel}</h4>
                 <p className="cc-info">
-                  {kurs.slots.length === 1 ? "1 Termin verfügbar" : `${kurs.slots.length} Termine verfügbar`}
-                  {kurs.slots[0].beschreibung ? ` · ${kurs.slots[0].beschreibung}` : ""}
+                  {gruppe.istGruppenKurs
+                    ? `${terminCount} Tage · ${terminCount} Termine`
+                    : `${terminCount} Termin${terminCount === 1 ? "" : "e"} verfügbar`}
+                  {gruppe.slots[0].beschreibung ? ` · ${gruppe.slots[0].beschreibung}` : ""}
                 </p>
                 <div className="cc-footer">
                   <span className={`cc-spots${gesamtPlaetze <= 0 ? " full" : ""}`}>
-                    {gesamtPlaetze <= 0 ? "Ausgebucht" : "Termine ansehen →"}
+                    {gesamtPlaetze <= 0 ? "Ausgebucht" : "Termin ansehen →"}
                   </span>
                   {preise.length > 0 && (
                     <span className="cc-price">
@@ -245,125 +278,36 @@ export default function SommerBuchung({ slots, texte }: Props) {
                     </span>
                   )}
                 </div>
-                <RabattHinweis slots={kurs.slots} />
+                <RabattHinweis slots={gruppe.slots} />
               </button>
             );
           })}
         </div>
       ) : (
         <>
-          <button type="button" className="kurs-back" onClick={buchungZuruecksetzen}>← Anderen Kurs wählen</button>
+          <button type="button" className="kurs-back" onClick={buchungZuruecksetzen}>← Auswahl zurücksetzen</button>
 
-          {istGruppenkurs ? (
-            <>
-              {/* Mehrtägiger Kurs: alle Termine werden gemeinsam als ein Block gebucht */}
-              <p className="kurs-step-label">{aktuellerKurs.emoji} {aktuellerKurs.titel} – mehrtägiger Kurs</p>
-              {(() => {
-                const gesamtPlaetze = Math.min(...gruppenTermine.map((s) => s.freie_plaetze));
-                const voll = gesamtPlaetze <= 0;
-                const knapp = gesamtPlaetze === 1;
-                const aktiv = ausgewaehlterSlot?.gruppe_id === gruppenTermine[0]?.gruppe_id;
-                return (
-                  <button
-                    type="button"
-                    className={`termin-btn${aktiv ? " on" : ""}`}
-                    disabled={voll}
-                    onClick={() => setAusgewaehlterSlot(gruppenTermine[0])}
-                    style={{ width: "100%", textAlign: "left" }}
-                  >
-                    <strong>{formatDatumsListe(gruppenTermine.map((s) => s.datum))}</strong>
-                    <span className={knapp ? "knapp" : ""}>
-                      {voll
-                        ? "Ausgebucht"
-                        : `${gruppenTermine[0].uhrzeit_von}–${gruppenTermine[0].uhrzeit_bis} Uhr · alle ${gruppenTermine.length} Termine werden gemeinsam gebucht${knapp ? " · Nur 1 Platz frei!" : ""}`}
-                    </span>
-                  </button>
-                );
-              })()}
-            </>
-          ) : (
-            <>
-              {/* Schritt 2: Tag wählen */}
-              <p className="kurs-step-label">{aktuellerKurs.emoji} {aktuellerKurs.titel} – wähle einen Tag</p>
-              <div className="termin-grid">
-                {termine.map((datum) => {
-                  const slotsAmTag = aktuellerKurs.slots.filter((s) => s.datum === datum);
-                  const gesamtPlaetze = slotsAmTag.reduce((sum, s) => sum + s.freie_plaetze, 0);
-                  const aktiv = gewaehltesDatum === datum;
-                  return (
-                    <button
-                      type="button"
-                      key={datum}
-                      className={`termin-btn${aktiv ? " on" : ""}`}
-                      disabled={gesamtPlaetze <= 0}
-                      onClick={() => datumWaehlen(datum, slotsAmTag)}
-                    >
-                      <strong>{formatDatum(datum)}</strong>
-                      <span>
-                        {gesamtPlaetze <= 0
-                          ? "Ausgebucht"
-                          : slotsAmTag.length > 1
-                            ? `${slotsAmTag.length} Uhrzeiten`
-                            : `${slotsAmTag[0].uhrzeit_von}–${slotsAmTag[0].uhrzeit_bis} Uhr`}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Schritt 3: Uhrzeit wählen (nur bei mehreren Terminen am selben Tag) */}
-              {gewaehltesDatum && zeitenAmTag.length > 1 && (
-                <>
-                  <p className="kurs-step-label">Wähle eine Uhrzeit am {formatDatum(gewaehltesDatum)}</p>
-                  <div className="termin-grid">
-                    {zeitenAmTag.map((slot) => {
-                      const aktiv = ausgewaehlterSlot?.id === slot.id;
-                      const voll = slot.freie_plaetze <= 0;
-                      const knapp = slot.freie_plaetze === 1;
-                      return (
-                        <button
-                          type="button"
-                          key={slot.id}
-                          className={`termin-btn${aktiv ? " on" : ""}`}
-                          disabled={voll}
-                          onClick={() => setAusgewaehlterSlot(slot)}
-                        >
-                          <strong>{slot.uhrzeit_von}–{slot.uhrzeit_bis} Uhr</strong>
-                          <span className={knapp ? "knapp" : ""}>
-                            {voll ? "Ausgebucht" : knapp ? "Nur 1 Platz frei!" : `${slot.freie_plaetze} Plätze frei`}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </>
-          )}
-        </>
-      )}
-
-      {ausgewaehlterSlot ? (
-        <div style={{ background: "var(--pine-pale)", borderRadius: 11, padding: ".7rem 1rem", marginBottom: "1rem", fontSize: ".85rem", color: "var(--pine-dark)" }}>
-          <div style={{ fontWeight: 700 }}>
-            Ausgewählt: {ausgewaehlterSlot.titel} ·{" "}
-            {ausgewaehlterSlot.gruppe_id
-              ? formatDatumsListe(gruppenSlotsVon(ausgewaehlterSlot).map((s) => s.datum))
-              : formatDatum(ausgewaehlterSlot.datum)}{" "}
-            · {ausgewaehlterSlot.uhrzeit_von}–{ausgewaehlterSlot.uhrzeit_bis} Uhr
-            {ausgewaehlterSlot.preis != null && ` · € ${ausgewaehlterSlot.preis}`}
+          <p className="kurs-step-label">📅 Ausgewählte Termine</p>
+          <div style={{ background: "var(--pine-pale)", borderRadius: 11, padding: ".7rem 1rem", marginBottom: "1rem", fontSize: ".85rem", color: "var(--pine-dark)" }}>
+            <div style={{ fontWeight: 700 }}>
+              {ausgewaehlteSlots[0]?.titel} ·{" "}
+              {formatDatumsListe(ausgewaehlteSlots.map((s) => s.datum))} ·{" "}
+              {ausgewaehlteSlots[0]?.uhrzeit_von}–{ausgewaehlteSlots[0]?.uhrzeit_bis} Uhr
+              {ausgewaehlteSlots[0]?.preis != null && ` · € ${ausgewaehlteSlots[0].preis}`}
+            </div>
+            {ausgewaehlteSlots.length > 1 && (
+              <p style={{ fontSize: ".75rem", margin: "0.4rem 0 0", color: "var(--pine)" }}>
+                {ausgewaehlteSlots.length} Termine insgesamt
+              </p>
+            )}
+            <RabattHinweis slots={ausgewaehlteSlots} />
           </div>
-          <RabattHinweis slots={[ausgewaehlterSlot]} />
-        </div>
-      ) : (
-        <p style={{ fontSize: ".82rem", color: "var(--soft)", marginBottom: "1rem" }}>
-          {!aktuellerKurs ? "Bitte zuerst oben einen Kurs auswählen." : "Bitte wähle Tag und Uhrzeit für deinen Termin."}
-        </p>
+        </>
       )}
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        style={{ opacity: ausgewaehlterSlot ? 1 : 0.45, pointerEvents: ausgewaehlterSlot ? "auto" : "none", transition: "opacity .2s" }}
+        style={{ display: ausgewaehlteSlots.length > 0 ? "block" : "none" }}
       >
         <div className="form-grid">
           <div className="fg">
@@ -428,7 +372,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
           <div className="book-error">{errorMsg}</div>
         )}
 
-        <button type="submit" className="book-btn" disabled={status === "loading" || !ausgewaehlterSlot}>
+        <button type="submit" className="book-btn" disabled={status === "loading" || ausgewaehlteSlots.length === 0}>
           {status === "loading"
             ? <><Loader2 style={{ width: 16, height: 16, animation: "lvSpin 1s linear infinite" }} /> Wird gesendet…</>
             : <>☀️ Kursplatz verbindlich anfragen</>
