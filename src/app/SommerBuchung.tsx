@@ -67,7 +67,7 @@ function formatDatumsListe(daten: string[]) {
 function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: React.ReactNode }) {
   return (
     <div className="fg full">
-      <label>{label}</label>
+      <label style={{ marginBottom: 12, display: "block" }}>{label}</label>
       {hint && <span className="hint">{hint}</span>}
       {children}
       {error && <span className="err">{error}</span>}
@@ -500,22 +500,22 @@ export default function SommerBuchung({ slots, texte }: Props) {
       >
         <div className="form-grid">
           <div className="fg">
-            <label>Vorname *</label>
+            <label style={{ marginBottom: 12 }}>Vorname *</label>
             <input {...register("vorname")} placeholder="Anna" />
             {errors.vorname && <span className="err">{errors.vorname.message}</span>}
           </div>
           <div className="fg">
-            <label>Nachname *</label>
+            <label style={{ marginBottom: 12 }}>Nachname *</label>
             <input {...register("nachname")} placeholder="Muster" />
             {errors.nachname && <span className="err">{errors.nachname.message}</span>}
           </div>
-          <div className="fg">
-            <label>E-Mail *</label>
+          <div className="fg" style={{ gridColumn: "1 / -1" }}>
+            <label style={{ marginBottom: 12 }}>E-Mail *</label>
             <input {...register("email")} type="email" placeholder="anna@beispiel.at" />
             {errors.email && <span className="err">{errors.email.message}</span>}
           </div>
-          <div className="fg">
-            <label>{texte.telefon_label} *</label>
+          <div className="fg" style={{ gridColumn: "1 / -1" }}>
+            <label style={{ marginBottom: 12 }}>{texte.telefon_label} *</label>
             <input {...register("telefon")} type="tel" placeholder="+43 660 123 456" />
             {errors.telefon && <span className="err">{errors.telefon.message}</span>}
           </div>
