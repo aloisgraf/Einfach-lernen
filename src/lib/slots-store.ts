@@ -68,25 +68,27 @@ async function dbGetSlotsByGruppe(gruppeId: string): Promise<Zeitslot[]> {
 
 async function dbCreateSlot(data: Omit<Zeitslot, "id" | "erstellt_am">): Promise<Zeitslot> {
   const sql = getDb()!;
-  const felder: Record<string, unknown> = {
-    titel: data.titel,
-    beschreibung: data.beschreibung ?? null,
-    datum: data.datum,
-    uhrzeit_von: data.uhrzeit_von,
-    uhrzeit_bis: data.uhrzeit_bis,
-    max_teilnehmer: data.max_teilnehmer,
-    freigegeben: data.freigegeben,
-    preis: data.preis ?? null,
-    kategorien: data.kategorien ?? [],
-    gruppe_id: data.gruppe_id ?? null,
-  };
   try {
-    const rows = await sql<Zeitslot[]>`INSERT INTO zeitslots ${sql(felder)} RETURNING *`;
+    const rows = await sql<Zeitslot[]>`
+      INSERT INTO zeitslots (titel, beschreibung, datum, uhrzeit_von, uhrzeit_bis, max_teilnehmer, freigegeben, preis, kategorien, gruppe_id)
+      VALUES (${data.titel}, ${data.beschreibung ?? null}, ${data.datum}, ${data.uhrzeit_von},
+              ${data.uhrzeit_bis}, ${data.max_teilnehmer}, ${data.freigegeben},
+              ${data.preis ?? null}, ${data.kategorien ?? []}, ${data.gruppe_id ?? null})
+      RETURNING *
+    `;
+    if (!rows || !rows[0]) throw new Error("INSERT returned no rows");
     return rows[0];
   } catch (e) {
-    if ((e as { code?: string })?.code === "42703") {
-      delete felder.gruppe_id;
-      const rows = await sql<Zeitslot[]>`INSERT INTO zeitslots ${sql(felder)} RETURNING *`;
+    const errMsg = String(e);
+    if ((e as { code?: string })?.code === "42703" || errMsg.includes('column "gruppe_id" does not exist')) {
+      const rows = await sql<Zeitslot[]>`
+        INSERT INTO zeitslots (titel, beschreibung, datum, uhrzeit_von, uhrzeit_bis, max_teilnehmer, freigegeben, preis, kategorien)
+        VALUES (${data.titel}, ${data.beschreibung ?? null}, ${data.datum}, ${data.uhrzeit_von},
+                ${data.uhrzeit_bis}, ${data.max_teilnehmer}, ${data.freigegeben},
+                ${data.preis ?? null}, ${data.kategorien ?? []})
+        RETURNING *
+      `;
+      if (!rows || !rows[0]) throw new Error("INSERT returned no rows");
       return rows[0];
     }
     throw e;
@@ -102,7 +104,8 @@ async function dbUpdateSlot(id: string, patch: Partial<Omit<Zeitslot, "id" | "er
     `;
     return rows[0] ?? null;
   } catch (e) {
-    if ((e as { code?: string })?.code === "42703" && "gruppe_id" in patch) {
+    const errMsg = String(e);
+    if (((e as { code?: string })?.code === "42703" || errMsg.includes('column "gruppe_id" does not exist')) && "gruppe_id" in patch) {
       const ohneGruppe = { ...patch };
       delete ohneGruppe.gruppe_id;
       if (Object.keys(ohneGruppe).length === 0) return dbGetSlot(id);
