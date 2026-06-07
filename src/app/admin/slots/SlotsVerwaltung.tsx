@@ -150,8 +150,12 @@ export default function SlotsVerwaltung({ initialSlots, kategorien }: Props) {
         router.refresh();
         setSlots((prev) => prev.map((s) => (s.id === editId ? { ...saved, freie_plaetze: s.freie_plaetze } : s)));
       } else {
+        const ausgewaehlteKategorien = kategorien.filter((k) => formData.kategorien.includes(k.id));
+        const autoTitel = ausgewaehlteKategorien.length > 0
+          ? ausgewaehlteKategorien.map((k) => k.label).join(" & ")
+          : "Lerntermin";
         const body = {
-          titel: formData.titel,
+          titel: autoTitel,
           beschreibung: formData.beschreibung,
           max_teilnehmer: Number(formData.max_teilnehmer),
           freigegeben: formData.freigegeben,
@@ -220,9 +224,8 @@ export default function SlotsVerwaltung({ initialSlots, kategorien }: Props) {
   }
 
   const canSave = editId
-    ? Boolean(formData.titel && formData.datum && formData.uhrzeit_von && formData.uhrzeit_bis)
+    ? Boolean(formData.datum && formData.uhrzeit_von && formData.uhrzeit_bis)
     : Boolean(
-        formData.titel &&
         formData.termine.length > 0 &&
         formData.termine.every((t) => t.datum && t.uhrzeit_von && t.uhrzeit_bis)
       );
@@ -372,10 +375,6 @@ export default function SlotsVerwaltung({ initialSlots, kategorien }: Props) {
 
             {/* Modal body */}
             <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 16 }}>
-              <div>
-                <label style={labelStyle}>Titel *</label>
-                <input type="text" value={formData.titel} onChange={(e) => setFormData((d) => ({ ...d, titel: e.target.value }))} style={inputStyle} placeholder="z.B. Nachhilfe Mathematik" />
-              </div>
               <div>
                 <label style={labelStyle}>Beschreibung (optional)</label>
                 <input type="text" value={formData.beschreibung} onChange={(e) => setFormData((d) => ({ ...d, beschreibung: e.target.value }))} style={inputStyle} placeholder="Kurze Zusatzinfo" />
