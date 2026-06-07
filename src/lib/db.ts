@@ -15,6 +15,10 @@ export function getDb() {
       max: 3,
       idle_timeout: 20,
       connect_timeout: 10,
+      // Bounds query execution so a slow/sleeping database fails fast and the
+      // in-memory fallback in den *-store Modulen sofort greift, statt die
+      // Seite minutenlang hängen zu lassen.
+      connection: { statement_timeout: 8000 },
       prepare: false,
       types: {
         date: {
