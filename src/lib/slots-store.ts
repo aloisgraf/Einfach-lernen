@@ -70,10 +70,10 @@ async function dbCreateSlot(data: Omit<Zeitslot, "id" | "erstellt_am">): Promise
   const sql = getDb()!;
   try {
     const rows = await sql<Zeitslot[]>`
-      INSERT INTO zeitslots (titel, beschreibung, datum, uhrzeit_von, uhrzeit_bis, max_teilnehmer, freigegeben, preis, kategorien, gruppe_id)
+      INSERT INTO zeitslots (titel, beschreibung, datum, uhrzeit_von, uhrzeit_bis, max_teilnehmer, freigegeben, preis, gruppe_id)
       VALUES (${data.titel}, ${data.beschreibung ?? null}, ${data.datum}, ${data.uhrzeit_von},
               ${data.uhrzeit_bis}, ${data.max_teilnehmer}, ${data.freigegeben},
-              ${data.preis ?? null}, ${data.kategorien ?? []}, ${data.gruppe_id ?? null})
+              ${data.preis ?? null}, ${data.gruppe_id ?? null})
       RETURNING *
     `;
     if (!rows || !rows[0]) throw new Error("INSERT returned no rows");
@@ -82,10 +82,10 @@ async function dbCreateSlot(data: Omit<Zeitslot, "id" | "erstellt_am">): Promise
     const errMsg = String(e);
     if ((e as { code?: string })?.code === "42703" || errMsg.includes('column "gruppe_id" does not exist')) {
       const rows = await sql<Zeitslot[]>`
-        INSERT INTO zeitslots (titel, beschreibung, datum, uhrzeit_von, uhrzeit_bis, max_teilnehmer, freigegeben, preis, kategorien)
+        INSERT INTO zeitslots (titel, beschreibung, datum, uhrzeit_von, uhrzeit_bis, max_teilnehmer, freigegeben, preis)
         VALUES (${data.titel}, ${data.beschreibung ?? null}, ${data.datum}, ${data.uhrzeit_von},
                 ${data.uhrzeit_bis}, ${data.max_teilnehmer}, ${data.freigegeben},
-                ${data.preis ?? null}, ${data.kategorien ?? []})
+                ${data.preis ?? null})
         RETURNING *
       `;
       if (!rows || !rows[0]) throw new Error("INSERT returned no rows");
