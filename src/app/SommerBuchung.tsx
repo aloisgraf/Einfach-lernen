@@ -31,6 +31,34 @@ function RabattHinweis({ slots }: { slots: SlotMitPlaetzen[] }) {
   );
 }
 
+function berechneGesamtpreis(slots: SlotMitPlaetzen[]): { total: number; label: string } | null {
+  const count = slots.length;
+  if (count === 0) return null;
+  const einzelPreis = slots.find((s) => s.preis != null)?.preis;
+  const preis5er = slots.find((s) => s.preis_5er != null)?.preis_5er;
+  const preis10er = slots.find((s) => s.preis_10er != null)?.preis_10er;
+  if (einzelPreis == null) return null;
+
+  if (count >= 10 && preis10er != null) {
+    const extra = count - 10;
+    return {
+      total: preis10er + extra * einzelPreis,
+      label: extra > 0 ? `10er-Paket + ${extra} Einzelstunde${extra > 1 ? "n" : ""}` : "10er-Rundum-Sicher-Paket",
+    };
+  }
+  if (count >= 5 && preis5er != null) {
+    const extra = count - 5;
+    return {
+      total: preis5er + extra * einzelPreis,
+      label: extra > 0 ? `5er-Paket + ${extra} Einzelstunde${extra > 1 ? "n" : ""}` : "5er-Sommerpaket",
+    };
+  }
+  return {
+    total: count * einzelPreis,
+    label: count === 1 ? "Einzelstunde" : `${count} Einzelstunden`,
+  };
+}
+
 const schema = z.object({
   vorname: z.string().min(2, "Pflichtfeld"),
   nachname: z.string().min(2, "Pflichtfeld"),
@@ -227,6 +255,10 @@ export default function SommerBuchung({ slots, texte }: Props) {
       : gewaehltesPaket != null && ausgewaehlteSlots.length === gewaehltesPaket
     : false;
 
+  const mehrTermineVerfuegbar = aktuelleFamilie && !aktuelleFamilie.istGruppenKurs && !aktuelleFamilie.erzwingeSchwerpunkt
+    ? aktuelleFamilie.einzelSlots.filter((s) => s.freie_plaetze > 0 && !ausgewaehlteSlots.find((a) => a.id === s.id)).length > 0
+    : false;
+
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
@@ -238,13 +270,6 @@ export default function SommerBuchung({ slots, texte }: Props) {
     }
   }, [aktuelleFamilie?.erzwingeSchwerpunkt, setValue]);
 
-  // Auto-switch zu 5er/10er Paket, wenn Kunde genau diese Anzahl Termine auswählt
-  useEffect(() => {
-    if (gewaehltesPaket !== 1 || ausgewaehlteSlots.length === 0) return;
-    if (ausgewaehlteSlots.length === 5 || ausgewaehlteSlots.length === 10) {
-      setGewaehltesPaket(ausgewaehlteSlots.length);
-    }
-  }, [ausgewaehlteSlots.length, gewaehltesPaket]);
 
   async function onSubmit(data: FormData) {
     if (!auswahlAbgeschlossen || ausgewaehlteSlots.length === 0) return;
@@ -532,8 +557,8 @@ export default function SommerBuchung({ slots, texte }: Props) {
         </>
       )}
 
-      {/* Nach Auswahl einer Einzelstunde: "Datum ändern" und "weiteren Termin" Buttons */}
-      {auswahlAbgeschlossen && gewaehltesPaket === 1 && ausgewaehlteSlots.length === 1 && !aktuelleFamilie?.istGruppenKurs && !aktuelleFamilie?.erzwingeSchwerpunkt && (
+      {/* Nach Auswahl: "Auswahl zurücksetzen" und "weiteren Termin" Buttons */}
+      {auswahlAbgeschlossen && !aktuelleFamilie?.istGruppenKurs && !aktuelleFamilie?.erzwingeSchwerpunkt && (
         <div style={{ display: "flex", gap: 12, marginBottom: "1rem", flexWrap: "wrap" }}>
           <button
             type="button"
@@ -541,35 +566,44 @@ export default function SommerBuchung({ slots, texte }: Props) {
             className="kurs-back"
             style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 150 }}
           >
-            📅 Datum ändern
+            {ausgewaehlteSlots.length === 1 ? "📅 Datum ändern" : "🔄 Auswahl zurücksetzen"}
           </button>
-          <button
-            type="button"
-            onClick={weiterenTerminHinzufuegen}
-            className="kurs-back"
-            style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 150, background: "#1a5c4a", color: "#fff", border: "none" }}
-          >
-            ➕ Weiteren Termin auswählen
-          </button>
+          {mehrTermineVerfuegbar && (
+            <button
+              type="button"
+              onClick={weiterenTerminHinzufuegen}
+              className="kurs-back"
+              style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 150, background: "#1a5c4a", color: "#fff", border: "none" }}
+            >
+              ➕ Weiteren Termin auswählen
+            </button>
+          )}
         </div>
       )}
 
-      {auswahlAbgeschlossen && ausgewaehlteSlots.length > 0 && (
-        <div style={{ background: "var(--pine-pale)", borderRadius: 11, padding: ".7rem 1rem", marginBottom: "1rem", fontSize: ".85rem", color: "var(--pine-dark)" }}>
-          <div style={{ fontWeight: 700 }}>
-            Ausgewählt: {ausgewaehlteSlots[0].kurs || ausgewaehlteSlots[0].titel} ·{" "}
-            {formatDatumsListe(ausgewaehlteSlots.map((s) => s.datum))}
-            {ausgewaehlteSlots.length === 1 && ` · ${ausgewaehlteSlots[0].uhrzeit_von}–${ausgewaehlteSlots[0].uhrzeit_bis} Uhr`}
-            {ausgewaehlteSlots.length === 1 && ausgewaehlteSlots[0].preis != null && ` · € ${ausgewaehlteSlots[0].preis}`}
+      {auswahlAbgeschlossen && ausgewaehlteSlots.length > 0 && (() => {
+        const preisInfo = berechneGesamtpreis(ausgewaehlteSlots);
+        return (
+          <div style={{ background: "var(--pine-pale)", borderRadius: 11, padding: ".7rem 1rem", marginBottom: "1rem", fontSize: ".85rem", color: "var(--pine-dark)" }}>
+            <div style={{ fontWeight: 700 }}>
+              Ausgewählt: {ausgewaehlteSlots[0].kurs || ausgewaehlteSlots[0].titel} ·{" "}
+              {formatDatumsListe(ausgewaehlteSlots.map((s) => s.datum))}
+              {ausgewaehlteSlots.length === 1 && ` · ${ausgewaehlteSlots[0].uhrzeit_von}–${ausgewaehlteSlots[0].uhrzeit_bis} Uhr`}
+            </div>
+            {ausgewaehlteSlots.length > 1 && (
+              <p style={{ fontSize: ".75rem", margin: ".3rem 0 0" }}>
+                {ausgewaehlteSlots.map((s) => `${formatDatumKurz(s.datum)} ${s.uhrzeit_von}–${s.uhrzeit_bis}`).join(" · ")}
+              </p>
+            )}
+            {preisInfo && (
+              <div style={{ marginTop: ".5rem", padding: ".5rem .7rem", background: "var(--white)", borderRadius: 8, fontWeight: 600, fontSize: ".9rem" }}>
+                💰 {preisInfo.label}: <strong>€ {preisInfo.total}</strong>
+              </div>
+            )}
+            {!aktuelleFamilie?.istGruppenKurs && <RabattHinweis slots={ausgewaehlteSlots} />}
           </div>
-          {ausgewaehlteSlots.length > 1 && (
-            <p style={{ fontSize: ".75rem", margin: ".3rem 0 0" }}>
-              {ausgewaehlteSlots.map((s) => `${formatDatumKurz(s.datum)} ${s.uhrzeit_von}–${s.uhrzeit_bis}`).join(" · ")}
-            </p>
-          )}
-          <RabattHinweis slots={ausgewaehlteSlots} />
-        </div>
-      )}
+        );
+      })()}
 
       <form
         onSubmit={handleSubmit(onSubmit)}
