@@ -3,7 +3,7 @@ import LvFooter from "@/components/LvFooter";
 import { Metadata } from "next";
 import { Raleway, Nunito } from "next/font/google";
 import { getWebsiteTexte } from "@/lib/einstellungen-store";
-import { RichText, RichParagraphs } from "@/components/RichText";
+import { RichText, ContentSection, parseHeader, parseCta } from "@/components/RichText";
 import "../lernversum.css";
 
 const raleway = Raleway({
@@ -30,6 +30,8 @@ export const dynamic = "force-dynamic";
 export default async function BeratungPage() {
   const texte = await getWebsiteTexte();
   const b = texte.beratung;
+  const h = parseHeader(b.header);
+  const c = parseCta(b.cta);
 
   return (
     <div className={`lv-page ${raleway.variable} ${nunito.variable}`}>
@@ -37,9 +39,9 @@ export default async function BeratungPage() {
 
       <section className="sec" style={{ background: "linear-gradient(150deg, var(--sand) 0%, #fdf6e8 55%, var(--pine-pale) 100%)", paddingBottom: "3rem" }}>
         <div style={{ maxWidth: 760, margin: "0 auto", textAlign: "center" }}>
-          <span className="sec-kicker kk-pine">{b.kicker}</span>
-          <h1 className="sec-title"><RichText text={b.heading} /></h1>
-          <p className="sec-sub" style={{ margin: "0 auto" }}>{b.subheading}</p>
+          <span className="sec-kicker kk-pine">{h.kicker}</span>
+          <h1 className="sec-title"><RichText text={h.titel} /></h1>
+          <p className="sec-sub" style={{ margin: "0 auto" }}>{h.subtitel}</p>
         </div>
       </section>
 
@@ -47,18 +49,16 @@ export default async function BeratungPage() {
 
       <section className="sec" style={{ background: "var(--white)" }}>
         <div className="content-wrap">
-          <RichParagraphs text={b.content} />
-
-          <div className="price-box">{b.price}</div>
+          <ContentSection text={b.content} />
         </div>
       </section>
 
       <section className="cta-sec" id="kontakt">
-        <h2><RichText text={b.cta_heading} /></h2>
+        <h2><RichText text={c.heading} /></h2>
         <div className="tagline">Wo Lernen einfach wird.</div>
-        <p>{b.cta_text}</p>
+        <p><RichText text={c.text} /></p>
         <div className="cta-btns">
-          <a href="mailto:info@einfachlernen-pongau.at" className="btn btn-gold">{b.cta_button}</a>
+          <a href="mailto:info@einfachlernen-pongau.at" className="btn btn-gold">{c.button}</a>
           <a href="/kontakt" className="btn btn-white">📍 Kontakt</a>
         </div>
       </section>

@@ -81,8 +81,8 @@ export default function WebsiteTexteVerwaltung({ initialTexte }: Props) {
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "#111827", margin: "0 0 4px" }}>Website-Texte</h1>
           <p style={{ fontSize: 13, color: "#9ca3af", margin: 0 }}>
-            Hier kannst du alle Texte &amp; Überschriften der Website anpassen – nach Modulen geordnet.
-            Mit <code>**so**</code> kannst du Wörter <strong>fett</strong> hervorheben.
+            Alle Texte &amp; Überschriften der Website – nach Seiten geordnet.
+            <strong>**fett**</strong> · Aufzählung mit <code>- </code> · Überschrift mit <code>## </code> · Preisbox mit <code>[PREIS] </code> · Fußnote mit <code>[*] </code> · FAQ-Paare mit <code>---</code> trennen.
           </p>
         </div>
         <button

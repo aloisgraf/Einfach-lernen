@@ -1,10 +1,11 @@
 import { Metadata } from "next";
 import { Raleway, Nunito } from "next/font/google";
 import { getFreigegebeneSlots, getAlleBuchungen } from "@/lib/slots-store";
-import { getBuchungsformularTexte } from "@/lib/einstellungen-store";
+import { getBuchungsformularTexte, getWebsiteTexte } from "@/lib/einstellungen-store";
 import SommerBuchung from "../SommerBuchung";
 import LvHeader from "@/components/LvHeader";
 import LvFooter from "@/components/LvFooter";
+import { RichText, parseHeader } from "@/components/RichText";
 import "../lernversum.css";
 
 const raleway = Raleway({
@@ -29,10 +30,11 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function BuchenPage() {
-  const [slots, buchungen, formularTexte] = await Promise.all([
+  const [slots, buchungen, formularTexte, texte] = await Promise.all([
     getFreigegebeneSlots(),
     getAlleBuchungen(),
     getBuchungsformularTexte(),
+    getWebsiteTexte(),
   ]);
 
   const slotsWithPlaetze = slots.map((s) => ({
@@ -49,17 +51,18 @@ export default async function BuchenPage() {
     (s) => s.freie_plaetze > 0 && !(s.gruppe_id && ausgebuchteGruppen.has(s.gruppe_id))
   );
 
+  const b = texte.buchen;
+  const h = parseHeader(b.header);
+
   return (
     <div className={`lv-page ${raleway.variable} ${nunito.variable}`}>
       <LvHeader />
 
       <section className="sec" style={{ background: "linear-gradient(150deg, var(--sand) 0%, #fdf6e8 55%, var(--pine-pale) 100%)", paddingBottom: "2.5rem" }}>
         <div style={{ maxWidth: 760, margin: "0 auto", textAlign: "center" }}>
-          <span className="sec-kicker kk-pine">Online-Anmeldung</span>
-          <h1 className="sec-title">Kursplatz buchen</h1>
-          <p className="sec-sub" style={{ margin: "0 auto" }}>
-            Wähle einen freien Termin aus, trage deine Daten ein und sichere dir deinen Platz – ganz unkompliziert online.
-          </p>
+          <span className="sec-kicker kk-pine">{h.kicker}</span>
+          <h1 className="sec-title"><RichText text={h.titel} /></h1>
+          <p className="sec-sub" style={{ margin: "0 auto" }}>{h.subtitel}</p>
         </div>
       </section>
 
@@ -69,8 +72,8 @@ export default async function BuchenPage() {
         <div className="content-wrap" style={{ maxWidth: 640 }}>
           <div className="booking-box" id="booking">
             <div className="bk-head">
-              <div className="bk-badge">☀️ Sommer 2026</div>
-              <span className="bk-title">Kursplatz buchen</span>
+              <div className="bk-badge">{b.box_badge}</div>
+              <span className="bk-title">{b.box_title}</span>
             </div>
             <SommerBuchung slots={buchbareSlots} texte={formularTexte} />
           </div>
