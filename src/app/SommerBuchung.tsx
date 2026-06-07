@@ -4,12 +4,18 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import Kalender from "@/components/Kalender";
 import { Zeitslot, schwerpunkte } from "@/types/buchung";
+import { BuchungsformularTexte } from "@/types/formular";
 import { Loader2 } from "lucide-react";
 
 interface SlotMitPlaetzen extends Zeitslot { freie_plaetze: number; }
-interface Props { slots: SlotMitPlaetzen[]; }
+interface Props {
+  slots: SlotMitPlaetzen[];
+  texte: BuchungsformularTexte;
+}
+
+const KURS_ICONS = ["ci-a", "ci-b", "ci-c", "ci-d"];
+const KURS_EMOJIS = ["📖", "🔢", "⭐", "📚"];
 
 const schema = z.object({
   vorname: z.string().min(2, "Pflichtfeld"),
@@ -28,7 +34,7 @@ type FormData = z.infer<typeof schema>;
 
 function formatDatum(datum: string) {
   return new Date(datum + "T12:00:00").toLocaleDateString("de-AT", {
-    weekday: "long", day: "numeric", month: "long", year: "numeric",
+    day: "numeric", month: "long",
   });
 }
 
@@ -43,7 +49,7 @@ function Field({ label, hint, error, children }: { label: string; hint?: string;
   );
 }
 
-export default function SommerBuchung({ slots }: Props) {
+export default function SommerBuchung({ slots, texte }: Props) {
   const [slotsState, setSlotsState] = useState(slots);
   const [ausgewaehlterSlot, setAusgewaehlterSlot] = useState<SlotMitPlaetzen | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -117,25 +123,55 @@ export default function SommerBuchung({ slots }: Props) {
 
   return (
     <div>
-      <div className="bk-step">
-        <span className="bk-step-dot" />
-        Schritt 1 · Termin wählen
-      </div>
-      <div style={{ background: "var(--sand)", border: "1.5px solid var(--sand-dark)", borderRadius: 12, padding: "1rem" }}>
-        <Kalender slots={slotsState} ausgewaehlt={ausgewaehlterSlot?.id ?? null} onSlotWaehlen={setAusgewaehlterSlot} />
-      </div>
-
-      <div className="bk-step">
-        <span className={`bk-step-dot${ausgewaehlterSlot ? "" : " off"}`} />
-        Schritt 2 · Anmeldung
-      </div>
+      {/* Kursauswahl im Original-Listen-Design */}
+      {slotsState.length === 0 ? (
+        <p style={{ fontSize: ".88rem", color: "var(--soft)", marginBottom: "1.2rem" }}>
+          Aktuell sind keine Termine zur Buchung freigegeben – schau bald wieder vorbei!
+        </p>
+      ) : (
+        <div className="course-list">
+          {slotsState.map((slot, i) => {
+            const selected = ausgewaehlterSlot?.id === slot.id;
+            const voll = slot.freie_plaetze <= 0;
+            const knapp = slot.freie_plaetze === 1;
+            return (
+              <label
+                key={slot.id}
+                className={`course-row${selected ? " on" : ""}`}
+                style={{ opacity: voll ? 0.55 : 1, cursor: voll ? "not-allowed" : "pointer" }}
+              >
+                <input
+                  type="radio"
+                  name="kurs"
+                  checked={selected}
+                  disabled={voll}
+                  onChange={() => !voll && setAusgewaehlterSlot(slot)}
+                />
+                <div className={`ci ${KURS_ICONS[i % KURS_ICONS.length]}`}>{KURS_EMOJIS[i % KURS_EMOJIS.length]}</div>
+                <div className="cr-info">
+                  <strong>{slot.titel}</strong>
+                  <small>
+                    {formatDatum(slot.datum)} · {slot.uhrzeit_von}–{slot.uhrzeit_bis} Uhr
+                    {slot.beschreibung ? ` · ${slot.beschreibung}` : ""}
+                  </small>
+                </div>
+                <div className="cr-right">
+                  <span className={`cr-spots${knapp ? " last" : ""}`}>
+                    {voll ? "Ausgebucht" : knapp ? "Nur 1 Platz frei!" : `${slot.freie_plaetze} Plätze frei`}
+                  </span>
+                </div>
+              </label>
+            );
+          })}
+        </div>
+      )}
 
       {ausgewaehlterSlot ? (
         <div style={{ background: "var(--pine-pale)", borderRadius: 11, padding: ".7rem 1rem", marginBottom: "1rem", fontSize: ".85rem", color: "var(--pine-dark)", fontWeight: 700 }}>
-          {ausgewaehlterSlot.titel} · {formatDatum(ausgewaehlterSlot.datum)} · {ausgewaehlterSlot.uhrzeit_von}–{ausgewaehlterSlot.uhrzeit_bis} Uhr
+          Ausgewählt: {ausgewaehlterSlot.titel} · {formatDatum(ausgewaehlterSlot.datum)} · {ausgewaehlterSlot.uhrzeit_von}–{ausgewaehlterSlot.uhrzeit_bis} Uhr
         </div>
       ) : (
-        <p style={{ fontSize: ".85rem", color: "var(--soft)", marginBottom: "1rem" }}>Bitte zuerst oben einen freien Termin auswählen.</p>
+        <p style={{ fontSize: ".82rem", color: "var(--soft)", marginBottom: "1rem" }}>Bitte zuerst oben einen Kurs auswählen.</p>
       )}
 
       <form
@@ -159,48 +195,36 @@ export default function SommerBuchung({ slots }: Props) {
             {errors.email && <span className="err">{errors.email.message}</span>}
           </div>
           <div className="fg">
-            <label>Telefon *</label>
+            <label>{texte.telefon_label} *</label>
             <input {...register("telefon")} type="tel" placeholder="+43 660 123 456" />
             {errors.telefon && <span className="err">{errors.telefon.message}</span>}
           </div>
         </div>
 
-        <Field
-          label="Name &amp; Schulstufe des Kindes *"
-          hint="Bitte Name und Klasse/Schulstufe ab September angeben."
-          error={errors.name_kind?.message}
-        >
+        <Field label={`${texte.name_kind_label} *`} hint={texte.name_kind_hint} error={errors.name_kind?.message}>
           <textarea {...register("name_kind")} rows={2} placeholder="z.B. Emma, 3. Klasse VS" />
         </Field>
 
-        <Field
-          label="Schwerpunkt *"
-          hint="Worauf soll der Fokus liegen?"
-          error={errors.schulstufe?.message}
-        >
+        <Field label={`${texte.schwerpunkt_label} *`} hint={texte.schwerpunkt_hint} error={errors.schulstufe?.message}>
           <select {...register("schulstufe")} defaultValue="">
             <option value="">Bitte wählen…</option>
             {schwerpunkte.map((s) => <option key={s} value={s}>{s}</option>)}
           </select>
         </Field>
 
-        <Field
-          label="Was soll durch die Förderung erreicht werden? *"
-          hint="z.B. Lücken schließen, Stoff festigen oder wieder mehr Freude am Lernen finden."
-          error={errors.kind_lernen?.message}
-        >
+        <Field label={`${texte.kind_lernen_label} *`} hint={texte.kind_lernen_hint} error={errors.kind_lernen?.message}>
           <textarea {...register("kind_lernen")} rows={3} placeholder="z.B. Lücken in der Rechtschreibung schließen und wieder mehr Freude am Lesen finden." />
         </Field>
 
-        <Field label="Wie würdest du dein Kind beschreiben? (optional)">
+        <Field label={`${texte.kind_beschreibung_label} (optional)`} hint={texte.kind_beschreibung_hint}>
           <textarea {...register("kind_beschreibung")} rows={2} placeholder="Was zeichnet dein Kind aus, was macht ihm Freude?" />
         </Field>
 
-        <Field label="Diagnosen oder frühere Förderung? (optional)">
+        <Field label={`${texte.kind_diagnosen_label} (optional)`} hint={texte.kind_diagnosen_hint}>
           <textarea {...register("kind_diagnosen")} rows={2} placeholder="z.B. Legasthenie-Diagnose vom Schulpsychologischen Dienst, 2023." />
         </Field>
 
-        <Field label="Anmerkung (optional)">
+        <Field label={`${texte.nachricht_label} (optional)`} hint={texte.nachricht_hint}>
           <textarea {...register("nachricht")} rows={2} placeholder="Fragen, Besonderheiten…" />
         </Field>
 

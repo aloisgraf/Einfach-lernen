@@ -1,5 +1,8 @@
 import { getFreigegebeneSlots, getAlleBuchungen } from "@/lib/slots-store";
+import { getBuchungsformularTexte } from "@/lib/einstellungen-store";
 import SommerBuchung from "./SommerBuchung";
+import LvHeader from "@/components/LvHeader";
+import LvFooter from "@/components/LvFooter";
 import { Metadata } from "next";
 import { Raleway, Nunito } from "next/font/google";
 import "./lernversum.css";
@@ -25,21 +28,11 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const TreeLogo = ({ size = 36 }: { size?: number }) => (
-  <svg className="logo-tree" width={size} height={size * (42 / 36)} viewBox="0 0 36 42" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect x="14.5" y="30" width="7" height="11" rx="3" fill="#7C5230" />
-    <ellipse cx="18" cy="18" rx="11" ry="13" fill="#2D6A4F" />
-    <ellipse cx="10" cy="22" rx="7.5" ry="9" fill="#52B788" />
-    <ellipse cx="26" cy="22" rx="7.5" ry="9" fill="#52B788" />
-    <ellipse cx="18" cy="27" rx="9" ry="7" fill="#2D6A4F" />
-    <ellipse cx="18" cy="10" rx="6" ry="7.5" fill="#3d8a62" />
-  </svg>
-);
-
 export default async function Home() {
-  const [slots, buchungen] = await Promise.all([
+  const [slots, buchungen, formularTexte] = await Promise.all([
     getFreigegebeneSlots(),
     getAlleBuchungen(),
+    getBuchungsformularTexte(),
   ]);
 
   const slotsWithPlaetze = slots.map((s) => ({
@@ -50,23 +43,7 @@ export default async function Home() {
   return (
     <div className={`lv-page ${raleway.variable} ${nunito.variable}`}>
 
-      {/* HEADER */}
-      <header>
-        <a href="#" className="logo-wrap">
-          <TreeLogo />
-          <div className="logo-text">
-            <span className="logo-brand">Lernversum</span>
-            <span className="logo-slogan">Wo Lernen einfach wird.</span>
-          </div>
-        </a>
-        <nav>
-          <a href="#beratung">Beratung</a>
-          <a href="#lernanalyse">Lernstandsanalyse</a>
-          <a href="#legasthenie">Legasthenie &amp; Dyskalkulie</a>
-          <a href="#ueber-mich">Über mich</a>
-          <a href="#sommerkurse" className="nav-cta">☀️ Sommerkurse</a>
-        </nav>
-      </header>
+      <LvHeader />
 
       {/* BANNER */}
       <div className="summer-banner">
@@ -188,7 +165,7 @@ export default async function Home() {
               <div className="bk-badge">☀️ Sommer 2026</div>
               <span className="bk-title">Kursplatz buchen</span>
             </div>
-            <SommerBuchung slots={slotsWithPlaetze} />
+            <SommerBuchung slots={slotsWithPlaetze} texte={formularTexte} />
           </div>
         </div>
       </section>
@@ -277,17 +254,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer>
-        <span>© {new Date().getFullYear()} Lernversum · Eben im Pongau · Salzburg</span>
-        <div className="footer-links">
-          <a href="#ueber-mich">Über mich</a>
-          <a href="/datenschutz">Datenschutz</a>
-          <a href="/impressum">Impressum</a>
-          <a href="mailto:info@lernversum.at">info@lernversum.at</a>
-          <a href="/admin/login">Admin</a>
-        </div>
-      </footer>
+      <LvFooter />
     </div>
   );
 }
