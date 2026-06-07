@@ -9,6 +9,8 @@ export interface Zeitslot {
   freigegeben: boolean;
   preis?: number | null;
   kategorien?: string[];
+  /** Verknüpft Termine eines mehrtägigen Kurses – Buchung eines Termins bucht alle Termine der Gruppe. */
+  gruppe_id?: string | null;
   erstellt_am: string;
 }
 

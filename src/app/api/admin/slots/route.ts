@@ -29,31 +29,61 @@ export async function GET() {
   return NextResponse.json(slotsWithPlaetze);
 }
 
+interface Termin {
+  datum: string;
+  uhrzeit_von: string;
+  uhrzeit_bis: string;
+}
+
 export async function POST(req: NextRequest) {
   const err = await guard();
   if (err) return err;
 
   const body = await req.json();
-  const { titel, beschreibung, datum, uhrzeit_von, uhrzeit_bis, max_teilnehmer, freigegeben, preis, kategorien } =
-    body;
+  const { titel, beschreibung, max_teilnehmer, freigegeben, preis, kategorien, termine, alsGruppe } = body;
 
-  if (!titel || !datum || !uhrzeit_von || !uhrzeit_bis) {
+  if (!titel) {
     return NextResponse.json({ error: "Pflichtfelder fehlen." }, { status: 400 });
   }
+  if (!Array.isArray(termine) || termine.length === 0) {
+    return NextResponse.json({ error: "Mindestens ein Termin (Datum + Uhrzeit) erforderlich." }, { status: 400 });
+  }
+  const gueltigeTermine: Termin[] = termine.filter(
+    (t: unknown): t is Termin =>
+      !!t && typeof t === "object" &&
+      typeof (t as Termin).datum === "string" && (t as Termin).datum !== "" &&
+      typeof (t as Termin).uhrzeit_von === "string" && (t as Termin).uhrzeit_von !== "" &&
+      typeof (t as Termin).uhrzeit_bis === "string" && (t as Termin).uhrzeit_bis !== ""
+  );
+  if (gueltigeTermine.length !== termine.length) {
+    return NextResponse.json({ error: "Bitte bei jedem Termin Datum, Von- und Bis-Uhrzeit angeben." }, { status: 400 });
+  }
+
+  const gruppeId = alsGruppe && gueltigeTermine.length > 1 ? crypto.randomUUID() : null;
+
+  const basisDaten = {
+    titel,
+    beschreibung,
+    max_teilnehmer: Number(max_teilnehmer) || 1,
+    freigegeben: Boolean(freigegeben),
+    preis: preis === "" || preis === null || preis === undefined ? null : Number(preis),
+    kategorien: Array.isArray(kategorien) ? kategorien.filter((k) => typeof k === "string") : [],
+  };
 
   try {
-    const slot = await createSlot({
-      titel,
-      beschreibung,
-      datum,
-      uhrzeit_von,
-      uhrzeit_bis,
-      max_teilnehmer: Number(max_teilnehmer) || 1,
-      freigegeben: Boolean(freigegeben),
-      preis: preis === "" || preis === null || preis === undefined ? null : Number(preis),
-      kategorien: Array.isArray(kategorien) ? kategorien.filter((k) => typeof k === "string") : [],
-    });
-    return NextResponse.json(slot, { status: 201 });
+    const erstellt = [];
+    for (const termin of gueltigeTermine) {
+      erstellt.push(
+        await createSlot({
+          ...basisDaten,
+          datum: termin.datum,
+          uhrzeit_von: termin.uhrzeit_von,
+          uhrzeit_bis: termin.uhrzeit_bis,
+          gruppe_id: gruppeId,
+        })
+      );
+    }
+    return NextResponse.json(erstellt, { status: 201 });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("createSlot error:", msg);

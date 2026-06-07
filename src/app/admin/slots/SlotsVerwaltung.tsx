@@ -15,12 +15,22 @@ interface Props {
   kategorien: Kurskategorie[];
 }
 
+interface TerminEntry {
+  datum: string;
+  uhrzeit_von: string;
+  uhrzeit_bis: string;
+}
+
 const leerFormular = {
   titel: "",
   beschreibung: "",
+  // Bearbeiten eines bestehenden Slots (ein Termin):
   datum: "",
   uhrzeit_von: "",
   uhrzeit_bis: "",
+  // Neuanlage (ein oder mehrere Termine):
+  termine: [{ datum: "", uhrzeit_von: "", uhrzeit_bis: "" }] as TerminEntry[],
+  alsGruppe: false,
   max_teilnehmer: "1",
   freigegeben: false,
   preis: "",
@@ -69,13 +79,14 @@ export default function SlotsVerwaltung({ initialSlots, kategorien }: Props) {
 
   function openNeu() {
     setEditId(null);
-    setFormData(leerFormular);
+    setFormData({ ...leerFormular, termine: [{ datum: "", uhrzeit_von: "", uhrzeit_bis: "" }] });
     setFormOpen(true);
   }
 
   function openEdit(slot: SlotMitPlaetzen) {
     setEditId(slot.id);
     setFormData({
+      ...leerFormular,
       titel: slot.titel,
       beschreibung: slot.beschreibung ?? "",
       datum: slot.datum,
@@ -98,26 +109,67 @@ export default function SlotsVerwaltung({ initialSlots, kategorien }: Props) {
     }));
   }
 
+  function terminHinzufuegen() {
+    setFormData((d) => ({ ...d, termine: [...d.termine, { datum: "", uhrzeit_von: "", uhrzeit_bis: "" }] }));
+  }
+
+  function terminEntfernen(index: number) {
+    setFormData((d) => ({ ...d, termine: d.termine.filter((_, i) => i !== index) }));
+  }
+
+  function terminAendern(index: number, feld: keyof TerminEntry, wert: string) {
+    setFormData((d) => ({
+      ...d,
+      termine: d.termine.map((t, i) => (i === index ? { ...t, [feld]: wert } : t)),
+    }));
+  }
+
   async function handleSpeichern() {
     setLoading(true);
     try {
-      const body = {
-        ...formData,
-        max_teilnehmer: Number(formData.max_teilnehmer),
-        ...(editId ? { id: editId } : {}),
-      };
-      const res = await fetch("/api/admin/slots", {
-        method: editId ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const saved = await res.json();
-      if (!res.ok) throw new Error(saved.error ?? "Fehler beim Speichern.");
-      router.refresh();
       if (editId) {
-        setSlots((prev) => prev.map((s) => s.id === editId ? { ...saved, freie_plaetze: s.freie_plaetze } : s));
+        const body = {
+          id: editId,
+          titel: formData.titel,
+          beschreibung: formData.beschreibung,
+          datum: formData.datum,
+          uhrzeit_von: formData.uhrzeit_von,
+          uhrzeit_bis: formData.uhrzeit_bis,
+          max_teilnehmer: Number(formData.max_teilnehmer),
+          freigegeben: formData.freigegeben,
+          preis: formData.preis,
+          kategorien: formData.kategorien,
+        };
+        const res = await fetch("/api/admin/slots", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const saved = await res.json();
+        if (!res.ok) throw new Error(saved.error ?? "Fehler beim Speichern.");
+        router.refresh();
+        setSlots((prev) => prev.map((s) => (s.id === editId ? { ...saved, freie_plaetze: s.freie_plaetze } : s)));
       } else {
-        setSlots((prev) => [...prev, { ...saved, freie_plaetze: Number(formData.max_teilnehmer) }]);
+        const body = {
+          titel: formData.titel,
+          beschreibung: formData.beschreibung,
+          max_teilnehmer: Number(formData.max_teilnehmer),
+          freigegeben: formData.freigegeben,
+          preis: formData.preis,
+          kategorien: formData.kategorien,
+          termine: formData.termine,
+          alsGruppe: formData.alsGruppe,
+        };
+        const res = await fetch("/api/admin/slots", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const saved = await res.json();
+        if (!res.ok) throw new Error(saved.error ?? "Fehler beim Speichern.");
+        router.refresh();
+        const neue: SlotMitPlaetzen[] = (saved as Zeitslot[]).map((s) => ({ ...s, freie_plaetze: Number(formData.max_teilnehmer) }));
+        setSlots((prev) => [...prev, ...neue]);
       }
       setFormOpen(false);
     } catch (e) {
@@ -167,7 +219,13 @@ export default function SlotsVerwaltung({ initialSlots, kategorien }: Props) {
     });
   }
 
-  const canSave = formData.titel && formData.datum && formData.uhrzeit_von && formData.uhrzeit_bis;
+  const canSave = editId
+    ? Boolean(formData.titel && formData.datum && formData.uhrzeit_von && formData.uhrzeit_bis)
+    : Boolean(
+        formData.titel &&
+        formData.termine.length > 0 &&
+        formData.termine.every((t) => t.datum && t.uhrzeit_von && t.uhrzeit_bis)
+      );
 
   return (
     <div style={{ padding: 36 }}>
@@ -220,7 +278,14 @@ export default function SlotsVerwaltung({ initialSlots, kategorien }: Props) {
                 {slots.map((slot) => (
                   <tr key={slot.id} style={{ borderBottom: "1px solid #f9fafb" }}>
                     <td style={{ padding: "14px 16px" }}>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "#111827", margin: 0 }}>{slot.titel}</p>
+                      <p style={{ fontSize: 13, fontWeight: 600, color: "#111827", margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
+                        {slot.titel}
+                        {slot.gruppe_id && (
+                          <span style={{ fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, background: "#fff4e0", color: "#a16207" }} title="Teil eines mehrtägigen Kurses">
+                            mehrtägig
+                          </span>
+                        )}
+                      </p>
                       {slot.beschreibung && (
                         <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>{slot.beschreibung}</p>
                       )}
@@ -315,20 +380,93 @@ export default function SlotsVerwaltung({ initialSlots, kategorien }: Props) {
                 <label style={labelStyle}>Beschreibung (optional)</label>
                 <input type="text" value={formData.beschreibung} onChange={(e) => setFormData((d) => ({ ...d, beschreibung: e.target.value }))} style={inputStyle} placeholder="Kurze Zusatzinfo" />
               </div>
-              <div>
-                <label style={labelStyle}>Datum *</label>
-                <input type="date" value={formData.datum} onChange={(e) => setFormData((d) => ({ ...d, datum: e.target.value }))} style={inputStyle} />
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              {editId ? (
+                <>
+                  <div>
+                    <label style={labelStyle}>Datum *</label>
+                    <input type="date" value={formData.datum} onChange={(e) => setFormData((d) => ({ ...d, datum: e.target.value }))} style={inputStyle} />
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div>
+                      <label style={labelStyle}>Von *</label>
+                      <input type="time" value={formData.uhrzeit_von} onChange={(e) => setFormData((d) => ({ ...d, uhrzeit_von: e.target.value }))} style={inputStyle} />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Bis *</label>
+                      <input type="time" value={formData.uhrzeit_bis} onChange={(e) => setFormData((d) => ({ ...d, uhrzeit_bis: e.target.value }))} style={inputStyle} />
+                    </div>
+                  </div>
+                </>
+              ) : (
                 <div>
-                  <label style={labelStyle}>Von *</label>
-                  <input type="time" value={formData.uhrzeit_von} onChange={(e) => setFormData((d) => ({ ...d, uhrzeit_von: e.target.value }))} style={inputStyle} />
+                  <label style={labelStyle}>Termine *</label>
+                  <p style={{ fontSize: 11, color: "#9ca3af", margin: "0 0 10px", lineHeight: 1.5 }}>
+                    Trage Datum und Uhrzeit für jeden Termin ein. Für mehrere Uhrzeiten am selben Tag oder
+                    für einen Kurs über mehrere Tage füge weitere Termine hinzu.
+                  </p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                    {formData.termine.map((termin, i) => (
+                      <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                        <div style={{ flex: 1.3 }}>
+                          {i === 0 && <span style={labelStyle}>Datum</span>}
+                          <input type="date" value={termin.datum} onChange={(e) => terminAendern(i, "datum", e.target.value)} style={inputStyle} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          {i === 0 && <span style={labelStyle}>Von</span>}
+                          <input type="time" value={termin.uhrzeit_von} onChange={(e) => terminAendern(i, "uhrzeit_von", e.target.value)} style={inputStyle} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          {i === 0 && <span style={labelStyle}>Bis</span>}
+                          <input type="time" value={termin.uhrzeit_bis} onChange={(e) => terminAendern(i, "uhrzeit_bis", e.target.value)} style={inputStyle} />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => terminEntfernen(i)}
+                          disabled={formData.termine.length === 1}
+                          style={{
+                            padding: 10, borderRadius: 8, border: "1.5px solid #e5e7eb", background: "#fff",
+                            cursor: formData.termine.length === 1 ? "not-allowed" : "pointer",
+                            color: formData.termine.length === 1 ? "#e5e7eb" : "#9ca3af", display: "flex",
+                          }}
+                          title="Termin entfernen"
+                        >
+                          <X style={{ width: 14, height: 14 }} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={terminHinzufuegen}
+                    style={{
+                      marginTop: 10, display: "flex", alignItems: "center", gap: 6,
+                      padding: "8px 14px", borderRadius: 10, border: "1.5px dashed #d1d5db",
+                      background: "#fff", color: "#6b7280", fontSize: 12, fontWeight: 700,
+                      cursor: "pointer", fontFamily: "inherit",
+                    }}
+                  >
+                    <Plus style={{ width: 13, height: 13 }} />
+                    Weiteren Termin hinzufügen
+                  </button>
+
+                  {formData.termine.length > 1 && (
+                    <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, border: "1.5px solid #e5e7eb", cursor: "pointer", marginTop: 14 }}>
+                      <input
+                        type="checkbox"
+                        checked={formData.alsGruppe}
+                        onChange={(e) => setFormData((d) => ({ ...d, alsGruppe: e.target.checked }))}
+                        style={{ width: 15, height: 15, accentColor: "#1a5c4a" }}
+                      />
+                      <div>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "#374151", margin: 0 }}>Mehrtägiger Kurs</p>
+                        <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>
+                          Alle Termine gehören zu einem Kurs – bucht ein Kunde einen Termin, werden automatisch alle Termine für ihn gebucht.
+                        </p>
+                      </div>
+                    </label>
+                  )}
                 </div>
-                <div>
-                  <label style={labelStyle}>Bis *</label>
-                  <input type="time" value={formData.uhrzeit_bis} onChange={(e) => setFormData((d) => ({ ...d, uhrzeit_bis: e.target.value }))} style={inputStyle} />
-                </div>
-              </div>
+              )}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <div>
                   <label style={labelStyle}>Max. Teilnehmer *</label>

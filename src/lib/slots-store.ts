@@ -17,12 +17,18 @@
  *     freigegeben BOOLEAN NOT NULL DEFAULT false,
  *     preis NUMERIC,
  *     kategorien TEXT[] NOT NULL DEFAULT '{}',
+ *     gruppe_id UUID,
  *     erstellt_am TIMESTAMPTZ NOT NULL DEFAULT now()
  *   );
  *
  *   -- Falls die Tabelle bereits existiert, zusätzlich ausführen:
  *   -- ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS preis NUMERIC;
  *   -- ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS kategorien TEXT[] NOT NULL DEFAULT '{}';
+ *   -- ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS gruppe_id UUID;
+ *
+ *   -- gruppe_id verknüpft die Termine eines mehrtägigen Kurses: bucht ein Kunde
+ *   -- einen Termin mit gesetzter gruppe_id, werden automatisch alle Termine
+ *   -- derselben Gruppe für ihn gebucht (siehe createBuchung unten).
  *
  *   CREATE TABLE buchungen (
  *     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -55,13 +61,18 @@ async function dbGetSlot(id: string): Promise<Zeitslot | null> {
   return rows[0] ?? null;
 }
 
+async function dbGetSlotsByGruppe(gruppeId: string): Promise<Zeitslot[]> {
+  const sql = getDb()!;
+  return sql<Zeitslot[]>`SELECT * FROM zeitslots WHERE gruppe_id = ${gruppeId} ORDER BY datum ASC`;
+}
+
 async function dbCreateSlot(data: Omit<Zeitslot, "id" | "erstellt_am">): Promise<Zeitslot> {
   const sql = getDb()!;
   const rows = await sql<Zeitslot[]>`
-    INSERT INTO zeitslots (titel, beschreibung, datum, uhrzeit_von, uhrzeit_bis, max_teilnehmer, freigegeben, preis, kategorien)
+    INSERT INTO zeitslots (titel, beschreibung, datum, uhrzeit_von, uhrzeit_bis, max_teilnehmer, freigegeben, preis, kategorien, gruppe_id)
     VALUES (${data.titel}, ${data.beschreibung ?? null}, ${data.datum}, ${data.uhrzeit_von},
             ${data.uhrzeit_bis}, ${data.max_teilnehmer}, ${data.freigegeben},
-            ${data.preis ?? null}, ${data.kategorien ?? []})
+            ${data.preis ?? null}, ${data.kategorien ?? []}, ${data.gruppe_id ?? null})
     RETURNING *
   `;
   return rows[0];
@@ -218,6 +229,13 @@ export async function getSlot(id: string): Promise<Zeitslot | null> {
   return getSlotsMap().get(id) ?? null;
 }
 
+export async function getSlotsByGruppe(gruppeId: string): Promise<Zeitslot[]> {
+  if (isDbConfigured()) {
+    try { return await dbGetSlotsByGruppe(gruppeId); } catch { /* fall through */ }
+  }
+  return memSlots().filter((s) => s.gruppe_id === gruppeId);
+}
+
 export async function createSlot(data: Omit<Zeitslot, "id" | "erstellt_am">): Promise<Zeitslot> {
   if (isDbConfigured()) return dbCreateSlot(data);
   const slot: Zeitslot = { ...data, id: crypto.randomUUID(), erstellt_am: new Date().toISOString() };
@@ -260,18 +278,15 @@ export async function countBuchungenFuerSlot(slotId: string): Promise<number> {
   return memBuchungen().filter((b) => b.zeitslot_id === slotId).length;
 }
 
-export async function createBuchung(
-  data: Omit<Buchung, "id" | "erstellt_am">
-): Promise<Buchung | { error: string }> {
-  const slot = await getSlot(data.zeitslot_id);
-  if (!slot) return { error: "Zeitslot nicht gefunden." };
-  if (!slot.freigegeben) return { error: "Dieser Zeitslot ist nicht verfügbar." };
-
+async function einzelnesSlotPruefen(slot: Zeitslot): Promise<string | null> {
+  if (!slot.freigegeben) return "Dieser Termin ist nicht verfügbar.";
   const belegt = await countBuchungenFuerSlot(slot.id);
-  if (belegt >= slot.max_teilnehmer) return { error: "Dieser Zeitslot ist bereits ausgebucht." };
+  if (belegt >= slot.max_teilnehmer) return "Dieser Termin ist bereits ausgebucht.";
+  return null;
+}
 
+async function einzelneBuchungAnlegen(data: Omit<Buchung, "id" | "erstellt_am">): Promise<Buchung> {
   if (isDbConfigured()) return dbCreateBuchung(data);
-
   const buchung: Buchung = {
     ...data,
     id: crypto.randomUUID(),
@@ -279,6 +294,37 @@ export async function createBuchung(
   };
   getBuchungenMap().set(buchung.id, buchung);
   return buchung;
+}
+
+/**
+ * Bucht einen Zeitslot. Gehört der Slot zu einer Gruppe (mehrtägiger Kurs),
+ * werden automatisch alle Termine der Gruppe für denselben Kunden gebucht –
+ * entweder alle oder keiner (jeder Termin braucht einen freien Platz).
+ */
+export async function createBuchung(
+  data: Omit<Buchung, "id" | "erstellt_am">
+): Promise<Buchung | { error: string }> {
+  const slot = await getSlot(data.zeitslot_id);
+  if (!slot) return { error: "Zeitslot nicht gefunden." };
+
+  if (slot.gruppe_id) {
+    const gruppenSlots = await getSlotsByGruppe(slot.gruppe_id);
+    for (const s of gruppenSlots) {
+      const fehler = await einzelnesSlotPruefen(s);
+      if (fehler) return { error: `${fehler} (Kurs besteht aus mehreren Terminen, die gemeinsam gebucht werden.)` };
+    }
+    let erste: Buchung | null = null;
+    for (const s of gruppenSlots) {
+      const buchung = await einzelneBuchungAnlegen({ ...data, zeitslot_id: s.id });
+      if (!erste) erste = buchung;
+    }
+    return erste!;
+  }
+
+  const fehler = await einzelnesSlotPruefen(slot);
+  if (fehler) return { error: fehler };
+
+  return einzelneBuchungAnlegen(data);
 }
 
 export async function getFreiePlaetze(slotId: string): Promise<number> {

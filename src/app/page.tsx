@@ -42,7 +42,19 @@ async function SommerkursBuchungBox() {
     freie_plaetze: s.max_teilnehmer - buchungen.filter((b) => b.zeitslot_id === s.id).length,
   }));
 
-  return <SommerBuchung slots={slotsWithPlaetze} texte={formularTexte} kategorien={kategorien} />;
+  // Mehrtägige Kurse (gruppe_id) werden nur angezeigt, solange JEDER Termin der
+  // Gruppe noch frei ist – sonst könnte die automatische Buchung aller Tage nicht klappen.
+  const ausgebuchteGruppen = new Set(
+    Array.from(new Set(slotsWithPlaetze.filter((s) => s.gruppe_id).map((s) => s.gruppe_id!)))
+      .filter((gruppeId) => slotsWithPlaetze.some((s) => s.gruppe_id === gruppeId && s.freie_plaetze <= 0))
+  );
+
+  // Ausgebuchte Termine werden nicht mehr angezeigt, sobald sie voll sind.
+  const buchbareSlots = slotsWithPlaetze.filter(
+    (s) => s.freie_plaetze > 0 && !(s.gruppe_id && ausgebuchteGruppen.has(s.gruppe_id))
+  );
+
+  return <SommerBuchung slots={buchbareSlots} texte={formularTexte} kategorien={kategorien} />;
 }
 
 function BuchungLadeAnzeige() {

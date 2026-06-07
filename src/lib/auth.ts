@@ -2,8 +2,12 @@ import { cookies } from "next/headers";
 
 const COOKIE_NAME = "el_admin_token";
 const REFRESH_COOKIE = "el_admin_refresh";
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// NEXT_PUBLIC_*-Variablen werden von Next.js beim Build fix in den Code eingesetzt –
+// auf dem Server gelesene Werte können dadurch veraltet/undefined sein, wenn die
+// Variable erst nach dem Build gesetzt wird. SUPABASE_URL/SUPABASE_ANON_KEY (ohne
+// Präfix) werden zur Laufzeit aus process.env gelesen und sind für den Server zuverlässiger.
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export function isSupabaseAuthConfigured(): boolean {
   return Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
@@ -80,7 +84,21 @@ export async function isAdminLoggedIn(): Promise<boolean> {
     if (!refreshToken) return false;
 
     const newToken = await refreshAccessToken(refreshToken);
-    return newToken !== null;
+    if (!newToken) return false;
+
+    // Neuen Access Token speichern, damit nicht bei jedem Request neu erneuert wird.
+    // In Server Components ist der Cookie-Store read-only – cookies().set() wirft dort
+    // einen Fehler. Das darf den Login-Status nicht kippen, also separat abfangen.
+    try {
+      cookieStore.set(COOKIE_NAME, newToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 60 * 60 * 8,
+      });
+    } catch { /* read-only Cookie-Store (Server Component) – Refresh bleibt trotzdem gültig */ }
+    return true;
   } catch {
     return false;
   }
