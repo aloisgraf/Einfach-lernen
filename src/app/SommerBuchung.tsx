@@ -327,25 +327,27 @@ export default function SommerBuchung({ slots, texte }: Props) {
         data.q6_frage?.trim() && `Frage:\n${data.q6_frage.trim()}`,
       ].filter(Boolean);
 
-      for (const slot of zuBuchen) {
-        const res = await fetch("/api/buchung", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            zeitslot_id: slot.id,
-            vorname: data.vorname,
-            nachname: data.nachname,
-            email: data.email,
-            telefon: data.telefon,
-            name_kind: data.q1_name_klasse,
-            schulstufe: data.q2_bereiche,
-            kind_lernen: data.q3_ziele,
-            kind_staerken: optionalParts.join("\n\n"),
-          }),
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? "Fehler");
-      }
+      const bookings = zuBuchen.map((slot) => ({
+        zeitslot_id: slot.id,
+        name_kind: data.q1_name_klasse,
+        schulstufe: data.q2_bereiche,
+        kind_lernen: data.q3_ziele,
+        kind_staerken: optionalParts.join("\n\n"),
+      }));
+
+      const res = await fetch("/api/buchung-batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vorname: data.vorname,
+          nachname: data.nachname,
+          email: data.email,
+          telefon: data.telefon,
+          bookings,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Fehler");
 
       setSlotsState((prev) => prev.map((s) => {
         const betroffen = ausgewaehlteSlots.find((a) => (a.gruppe_id ? s.gruppe_id === a.gruppe_id : s.id === a.id));
@@ -818,7 +820,6 @@ export default function SommerBuchung({ slots, texte }: Props) {
             : <>☀️ Kursplatz verbindlich anfragen</>
           }
         </button>
-        <p className="book-note">Keine Vorauszahlung · Rückmeldung innerhalb von 24h · Unverbindlich</p>
       </form>
     </div>
   );

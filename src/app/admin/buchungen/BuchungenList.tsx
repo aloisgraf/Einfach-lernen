@@ -48,87 +48,127 @@ export default function BuchungenList({ initialBuchungen }: Props) {
     }
   }
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {buchungen.map(({ buchung: b, slot }) => (
-        <div key={b.id} style={{ ...card, padding: 24, position: "relative" }}>
-          <button
-            onClick={() => handleDelete(b.id)}
-            disabled={deletingId === b.id}
-            style={{
-              position: "absolute",
-              top: 12,
-              right: 12,
-              padding: 8,
-              borderRadius: 8,
-              border: "none",
-              background: "none",
-              cursor: "pointer",
-              color: "#e5e7eb",
-              transition: "color 0.2s",
-            }}
-            title="Löschen"
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = "#ef4444";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = "#e5e7eb";
-            }}
-          >
-            {deletingId === b.id ? (
-              <Loader2 style={{ width: 16, height: 16, animation: "lvSpin 1s linear infinite" }} />
-            ) : (
-              <Trash2 style={{ width: 16, height: 16 }} />
-            )}
-          </button>
+  // Gruppiere Buchungen nach Person (Vorname + Nachname)
+  const groupedByPerson = new Map<string, BuchungMitSlot[]>();
+  for (const item of buchungen) {
+    const key = `${item.buchung.vorname}|${item.buchung.nachname}`;
+    if (!groupedByPerson.has(key)) {
+      groupedByPerson.set(key, []);
+    }
+    groupedByPerson.get(key)!.push(item);
+  }
 
-          {/* Slot-Badge + Datum */}
-          <div style={{ marginBottom: 20 }}>
-            {slot ? (
-              <span style={{
-                display: "inline-flex", alignItems: "center",
-                padding: "4px 12px", borderRadius: 20,
-                background: "#eaf4ef", color: "#1a5c4a",
-                fontSize: 12, fontWeight: 700,
-              }}>
-                {slot.titel} · {formatDatum(slot.datum)} · {slot.uhrzeit_von}–{slot.uhrzeit_bis} Uhr
-              </span>
-            ) : (
-              <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: 20, background: "#f3f4f6", color: "#9ca3af", fontSize: 12 }}>
-                Slot gelöscht
-              </span>
-            )}
-            <p style={{ fontSize: 11, color: "#9ca3af", margin: "8px 0 0" }}>
-              Angemeldet am {new Date(b.erstellt_am).toLocaleDateString("de-AT", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-            </p>
+  const groups = Array.from(groupedByPerson.entries()).map(([key, items]) => ({
+    key,
+    person: items[0].buchung,
+    buchungen: items,
+  }));
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {groups.map(({ key, person, buchungen: personBuchungen }) => (
+        <div key={key} style={{ ...card, overflow: "hidden" }}>
+          {/* Header mit Personen-Info */}
+          <div style={{ background: "#f9fafb", padding: 20, borderBottom: "1px solid #e8eceb" }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: "#111827", margin: "0 0 12px" }}>
+              {person.vorname} {person.nachname}
+            </h3>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, fontSize: 13 }}>
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Email</p>
+                <p style={{ color: "#111827", margin: 0 }}>{person.email}</p>
+              </div>
+              <div>
+                <p style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Telefon</p>
+                <p style={{ color: "#111827", margin: 0 }}>{person.telefon}</p>
+              </div>
+            </div>
           </div>
 
-          {/* Info-Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-            <div style={{ background: "#f9fafb", borderRadius: 10, padding: 16 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", margin: "0 0 10px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Elternteil</p>
-              <p style={{ fontSize: 14, fontWeight: 700, color: "#111827", margin: 0 }}>{b.vorname} {b.nachname}</p>
-              <p style={{ fontSize: 12, color: "#6b7280", margin: "4px 0 0" }}>{b.email}</p>
-              <p style={{ fontSize: 12, color: "#6b7280", margin: "2px 0 0" }}>{b.telefon}</p>
-            </div>
+          {/* Buchungen dieser Person */}
+          <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
+            <p style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", margin: "0 0 8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              {personBuchungen.length} Buchung{personBuchungen.length > 1 ? "en" : ""}
+            </p>
 
-            <div style={{ background: "#f9fafb", borderRadius: 10, padding: 16 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", margin: "0 0 10px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Kind & Schwerpunkt</p>
-              <p style={{ fontSize: 13, fontWeight: 700, color: "#111827", margin: 0, whiteSpace: "pre-line" }}>{b.name_kind}</p>
-              <span style={{ display: "inline-block", marginTop: 8, padding: "2px 10px", borderRadius: 20, background: "#eaf4ef", color: "#1a5c4a", fontSize: 11, fontWeight: 700 }}>{b.schulstufe}</span>
-            </div>
+            {personBuchungen.map(({ buchung: b, slot }) => (
+              <div key={b.id} style={{ borderTop: "1px solid #f3f4f6", paddingTop: 16, position: "relative" }}>
+                {/* Delete Button */}
+                <button
+                  onClick={() => handleDelete(b.id)}
+                  disabled={deletingId === b.id}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    right: 0,
+                    padding: 8,
+                    borderRadius: 8,
+                    border: "none",
+                    background: "none",
+                    cursor: "pointer",
+                    color: "#e5e7eb",
+                    transition: "color 0.2s",
+                  }}
+                  title="Löschen"
+                  onMouseEnter={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.color = "#ef4444";
+                  }}
+                  onMouseLeave={(e) => {
+                    (e.currentTarget as HTMLButtonElement).style.color = "#e5e7eb";
+                  }}
+                >
+                  {deletingId === b.id ? (
+                    <Loader2 style={{ width: 16, height: 16, animation: "lvSpin 1s linear infinite" }} />
+                  ) : (
+                    <Trash2 style={{ width: 16, height: 16 }} />
+                  )}
+                </button>
 
-            <div style={{ background: "#eaf4ef", borderRadius: 10, padding: 16 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: "#1a5c4a", margin: "0 0 8px", textTransform: "uppercase", letterSpacing: "0.06em" }}>Förderziel & Details</p>
-              <p style={{ fontSize: 10, color: "#6b7280", margin: "0 0 3px", fontWeight: 600 }}>Förderziel:</p>
-              <p style={{ fontSize: 12, color: "#374151", margin: "0 0 10px", whiteSpace: "pre-line" }}>{b.kind_lernen}</p>
-              {b.kind_staerken && (
-                <>
-                  <p style={{ fontSize: 10, color: "#6b7280", margin: "0 0 3px", fontWeight: 600 }}>Weitere Details:</p>
-                  <p style={{ fontSize: 12, color: "#374151", margin: 0, whiteSpace: "pre-line" }}>{b.kind_staerken}</p>
-                </>
-              )}
-            </div>
+                {/* Slot-Badge */}
+                <div style={{ marginBottom: 12 }}>
+                  {slot ? (
+                    <span style={{
+                      display: "inline-flex", alignItems: "center",
+                      padding: "4px 12px", borderRadius: 20,
+                      background: "#eaf4ef", color: "#1a5c4a",
+                      fontSize: 12, fontWeight: 700,
+                    }}>
+                      {slot.titel} · {formatDatum(slot.datum)} · {slot.uhrzeit_von}–{slot.uhrzeit_bis} Uhr
+                    </span>
+                  ) : (
+                    <span style={{ display: "inline-block", padding: "4px 12px", borderRadius: 20, background: "#f3f4f6", color: "#9ca3af", fontSize: 12 }}>
+                      Slot gelöscht
+                    </span>
+                  )}
+                </div>
+
+                {/* Kind Info */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <p style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Kind / Klasse</p>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "#111827", margin: 0, whiteSpace: "pre-line" }}>{b.name_kind}</p>
+                  </div>
+                  <div>
+                    <p style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Bereich</p>
+                    <span style={{ display: "inline-block", padding: "2px 10px", borderRadius: 20, background: "#eaf4ef", color: "#1a5c4a", fontSize: 11, fontWeight: 700 }}>{b.schulstufe}</span>
+                  </div>
+                </div>
+
+                {/* Förderziel */}
+                <div style={{ marginTop: 12 }}>
+                  <p style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Förderziel</p>
+                  <p style={{ fontSize: 12, color: "#374151", margin: 0, whiteSpace: "pre-line" }}>{b.kind_lernen}</p>
+                </div>
+
+                {/* Details */}
+                {b.kind_staerken && (
+                  <div style={{ marginTop: 12 }}>
+                    <p style={{ fontSize: 10, fontWeight: 700, color: "#9ca3af", margin: "0 0 4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Details</p>
+                    <p style={{ fontSize: 12, color: "#374151", margin: 0, whiteSpace: "pre-line" }}>{b.kind_staerken}</p>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       ))}
