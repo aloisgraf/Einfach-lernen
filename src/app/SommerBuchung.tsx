@@ -371,11 +371,18 @@ export default function SommerBuchung({ slots, texte }: Props) {
         <strong>🎉 Anfrage gesendet!</strong>
         <p>Ich melde mich innerhalb von 24 Stunden bei euch.</p>
         {ausgewaehlteSlots.length > 0 && (
-          <p style={{ marginTop: 8, fontWeight: 700 }}>
-            {aktuelleFamilie?.titel ?? ausgewaehlteSlots[0].kurs ?? ausgewaehlteSlots[0].titel} ·{" "}
-            {formatDatumsListe(ausgewaehlteSlots.map((s) => s.datum))}
-            {ausgewaehlteSlots.length === 1 && ` · ${ausgewaehlteSlots[0].uhrzeit_von}–${ausgewaehlteSlots[0].uhrzeit_bis} Uhr`}
-          </p>
+          <div style={{ marginTop: 12 }}>
+            <p style={{ fontWeight: 700, margin: "0 0 .6rem" }}>
+              {aktuelleFamilie?.titel ?? ausgewaehlteSlots[0].kurs ?? ausgewaehlteSlots[0].titel}
+            </p>
+            <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: ".4rem" }}>
+              {ausgewaehlteSlots.map((slot) => (
+                <li key={slot.id} style={{ fontWeight: 700 }}>
+                  {formatDatum(slot.datum)} · {slot.uhrzeit_von}–{slot.uhrzeit_bis} Uhr
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
         <button type="button" onClick={neueAnfrage} className="btn btn-pine" style={{ marginTop: 14 }}>
           Weitere Anfrage stellen
