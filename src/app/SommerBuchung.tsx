@@ -282,10 +282,6 @@ export default function SommerBuchung({ slots, texte }: Props) {
     setAusgewaehlteSlots([]);
   }
 
-  /** Erlaubt einen weiteren Termin – bei 5 bzw. 10 Terminen wird automatisch auf das passende Paket umgeschaltet. */
-  function weiterenTerminHinzufuegen() {
-    setGewaehltesPaket((prev) => (prev ?? 1) + 1);
-  }
 
   function buchungZuruecksetzen() {
     setGewaehlteFamilie(null);
@@ -305,12 +301,9 @@ export default function SommerBuchung({ slots, texte }: Props) {
   const auswahlAbgeschlossen = aktuelleFamilie
     ? aktuelleFamilie.istGruppenKurs
       ? ausgewaehlteSlots.length > 0
-      : gewaehltesPaket != null && ausgewaehlteSlots.length === gewaehltesPaket
+      : gewaehltesPaket != null && ausgewaehlteSlots.length >= 1
     : false;
 
-  const mehrTermineVerfuegbar = aktuelleFamilie && !aktuelleFamilie.istGruppenKurs && !aktuelleFamilie.erzwingeSchwerpunkt
-    ? aktuelleFamilie.einzelSlots.filter((s) => s.freie_plaetze > 0 && !ausgewaehlteSlots.find((a) => a.id === s.id)).length > 0
-    : false;
 
   const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -723,7 +716,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
         </>
       )}
 
-      {/* Nach Auswahl: "Auswahl zurücksetzen" und "weiteren Termin" Buttons */}
+      {/* Nach Auswahl: "Auswahl zurücksetzen" Button */}
       {auswahlAbgeschlossen && !aktuelleFamilie?.istGruppenKurs && !aktuelleFamilie?.erzwingeSchwerpunkt && (
         <div style={{ display: "flex", gap: 12, marginBottom: "1rem", flexWrap: "wrap" }}>
           <button
@@ -732,18 +725,8 @@ export default function SommerBuchung({ slots, texte }: Props) {
             className="kurs-back"
             style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 150 }}
           >
-            {ausgewaehlteSlots.length === 1 ? "📅 Datum ändern" : "🔄 Auswahl zurücksetzen"}
+            🔄 Auswahl zurücksetzen
           </button>
-          {mehrTermineVerfuegbar && (
-            <button
-              type="button"
-              onClick={weiterenTerminHinzufuegen}
-              className="kurs-back"
-              style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 150 }}
-            >
-              ➕ Weiteren Termin auswählen
-            </button>
-          )}
         </div>
       )}
 
