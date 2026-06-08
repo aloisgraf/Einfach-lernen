@@ -23,7 +23,6 @@ function RabattHinweis({ slots }: { slots: SlotMitPlaetzen[] }) {
   if (preis5er == null && preis10er == null) return null;
   return (
     <p className="rabatt-hinweis">
-      💡 Mengenrabatt:{" "}
       {preis5er != null && <>ab 5 Terminen <strong>€ {preis5er}</strong></>}
       {preis5er != null && preis10er != null && " · "}
       {preis10er != null && <>ab 10 Terminen <strong>€ {preis10er}</strong></>}
@@ -166,6 +165,8 @@ export default function SommerBuchung({ slots, texte }: Props) {
   const [ausgewaehlteSlots, setAusgewaehlteSlots] = useState<SlotMitPlaetzen[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const [useCalendarView, setUseCalendarView] = useState(true);
+  const [kalenderdatum, setKalenderdatum] = useState<string | null>(null);
 
   // ── Kurse zu Familien gruppieren (Kurs ist die Hauptüberschrift) ────────────
   const familien: KursFamilie[] = [];
@@ -560,7 +561,84 @@ export default function SommerBuchung({ slots, texte }: Props) {
                       ← Anderes Paket wählen
                     </button>
                   )}
-                  <div className="termin-grid">
+                  <div style={{ marginBottom: ".6rem", display: "flex", gap: 8 }}>
+                    <button
+                      type="button"
+                      onClick={() => setUseCalendarView(false)}
+                      style={{
+                        flex: 1,
+                        padding: ".5rem .7rem",
+                        background: !useCalendarView ? "var(--pine)" : "#e5e7eb",
+                        color: !useCalendarView ? "#fff" : "#6b7280",
+                        border: "none",
+                        borderRadius: 8,
+                        fontSize: ".85rem",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      Listenansicht
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUseCalendarView(true)}
+                      style={{
+                        flex: 1,
+                        padding: ".5rem .7rem",
+                        background: useCalendarView ? "var(--pine)" : "#e5e7eb",
+                        color: useCalendarView ? "#fff" : "#6b7280",
+                        border: "none",
+                        borderRadius: 8,
+                        fontSize: ".85rem",
+                        fontWeight: 600,
+                        cursor: "pointer",
+                        fontFamily: "inherit",
+                      }}
+                    >
+                      Kalendaransicht
+                    </button>
+                  </div>
+                  {useCalendarView ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                      {Array.from(new Set(aktuelleFamilie.einzelSlots.map((s) => s.datum)))
+                        .sort()
+                        .map((datum) => {
+                          const slotsAmDatum = aktuelleFamilie.einzelSlots.filter((s) => s.datum === datum);
+                          return (
+                            <div key={datum} style={{ borderLeft: "3px solid var(--pine)", paddingLeft: ".8rem" }}>
+                              <p style={{ fontWeight: 700, fontSize: ".9rem", color: "var(--ink)", margin: "0 0 .5rem" }}>
+                                {formatDatum(datum)}
+                              </p>
+                              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                {slotsAmDatum.map((slot) => {
+                                  const ausgewaehlt = Boolean(ausgewaehlteSlots.find((s) => s.id === slot.id));
+                                  const voll = slot.freie_plaetze <= 0;
+                                  const knapp = slot.freie_plaetze === 1;
+                                  const gesperrt = !ausgewaehlt && ausgewaehlteSlots.length >= gewaehltesPaket;
+                                  return (
+                                    <button
+                                      type="button"
+                                      key={slot.id}
+                                      className={`termin-btn${ausgewaehlt ? " on" : ""}`}
+                                      disabled={voll || gesperrt}
+                                      onClick={() => paketSlotToggle(slot)}
+                                      style={{ textAlign: "left" }}
+                                    >
+                                      <strong>{slot.uhrzeit_von}–{slot.uhrzeit_bis} Uhr</strong>
+                                      <span className={knapp ? "knapp" : ""}>
+                                        {voll ? "Ausgebucht" : knapp ? "Nur 1 Platz frei!" : ausgewaehlt ? "✓ Ausgewählt" : `${slot.freie_plaetze} Plätze frei`}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  ) : (
+                    <div className="termin-grid">
                     {aktuelleFamilie.einzelSlots.map((slot) => {
                       const ausgewaehlt = Boolean(ausgewaehlteSlots.find((s) => s.id === slot.id));
                       const voll = slot.freie_plaetze <= 0;
@@ -582,6 +660,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
                       );
                     })}
                   </div>
+                  )}
                 </>
               )}
             </>
@@ -629,7 +708,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
             )}
             {preisInfo && (
               <div style={{ marginTop: ".5rem", padding: ".5rem .7rem", background: "var(--white)", borderRadius: 8, fontWeight: 600, fontSize: ".9rem" }}>
-                💰 {preisInfo.label}: <strong>€ {preisInfo.total}</strong>
+                {preisInfo.label}: <strong>€ {preisInfo.total}</strong>
               </div>
             )}
             {!aktuelleFamilie?.istGruppenKurs && !aktuelleFamilie?.erzwingeSchwerpunkt && <RabattHinweis slots={ausgewaehlteSlots} />}
