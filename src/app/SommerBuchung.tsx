@@ -272,7 +272,6 @@ export default function SommerBuchung({ slots, texte }: Props) {
     setAusgewaehlteSlots((prev) => {
       const existiert = prev.find((s) => s.id === slot.id);
       if (existiert) return prev.filter((s) => s.id !== slot.id);
-      if (prev.length >= gewaehltesPaket) return prev;
       return [...prev, slot];
     });
   }
@@ -483,7 +482,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
               ) : ausgewaehlteSlots.length === 0 ? (
                 <>
                   <p className="kurs-step-label">
-                    Tag 1 ({formatDatum(gewaehltesTag1Datum)}) – wähle eine Uhrzeit
+                    {formatDatum(gewaehltesTag1Datum)} – wähle eine Uhrzeit
                   </p>
                   {tag1Daten.length > 1 && (
                     <button type="button" className="kurs-back" onClick={() => setGewaehltesTag1Datum(null)} style={{ marginBottom: ".6rem" }}>
@@ -531,7 +530,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
                   <ul style={{ margin: "0 0 1rem", padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
                     {ausgewaehlteSlots.map((s, i) => (
                       <li key={s.id} className="termin-btn on" style={{ cursor: "default" }}>
-                        <strong>Tag {i + 1}: {formatDatum(s.datum)}</strong>
+                        <strong>{formatDatum(s.datum)}</strong>
                         <span>{s.uhrzeit_von}–{s.uhrzeit_bis} Uhr</span>
                       </li>
                     ))}
@@ -641,13 +640,12 @@ export default function SommerBuchung({ slots, texte }: Props) {
                                   const ausgewaehlt = Boolean(ausgewaehlteSlots.find((s) => s.id === slot.id));
                                   const voll = slot.freie_plaetze <= 0;
                                   const knapp = slot.freie_plaetze === 1;
-                                  const gesperrt = !ausgewaehlt && ausgewaehlteSlots.length >= gewaehltesPaket;
                                   return (
                                     <button
                                       type="button"
                                       key={slot.id}
                                       className={`termin-btn${ausgewaehlt ? " on" : ""}`}
-                                      disabled={voll || gesperrt}
+                                      disabled={voll}
                                       onClick={() => paketSlotToggle(slot)}
                                       style={{ textAlign: "left" }}
                                     >
@@ -669,13 +667,12 @@ export default function SommerBuchung({ slots, texte }: Props) {
                       const ausgewaehlt = Boolean(ausgewaehlteSlots.find((s) => s.id === slot.id));
                       const voll = slot.freie_plaetze <= 0;
                       const knapp = slot.freie_plaetze === 1;
-                      const gesperrt = !ausgewaehlt && ausgewaehlteSlots.length >= gewaehltesPaket;
                       return (
                         <button
                           type="button"
                           key={slot.id}
                           className={`termin-btn${ausgewaehlt ? " on" : ""}`}
-                          disabled={voll || gesperrt}
+                          disabled={voll}
                           onClick={() => paketSlotToggle(slot)}
                         >
                           <strong>{formatDatum(slot.datum)} · {slot.uhrzeit_von}–{slot.uhrzeit_bis} Uhr</strong>
