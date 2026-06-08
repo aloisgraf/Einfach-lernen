@@ -25,6 +25,7 @@ export async function supabaseSignIn(
       method: "POST",
       headers: { apikey: SUPABASE_ANON_KEY!, "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
+      signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => null);
@@ -39,7 +40,10 @@ export async function supabaseSignIn(
     }
     const data = await res.json();
     return { access_token: data.access_token, refresh_token: data.refresh_token };
-  } catch {
+  } catch (e) {
+    if (e instanceof Error && e.name === "TimeoutError") {
+      return { error: "Supabase antwortet nicht (Timeout). Prüfe, ob dein Supabase-Projekt aktiv/nicht pausiert ist." };
+    }
     return { error: "Verbindungsfehler." };
   }
 }
@@ -50,6 +54,7 @@ async function refreshAccessToken(refreshToken: string): Promise<string | null> 
       method: "POST",
       headers: { apikey: SUPABASE_ANON_KEY!, "Content-Type": "application/json" },
       body: JSON.stringify({ refresh_token: refreshToken }),
+      signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -63,6 +68,7 @@ async function verifyToken(token: string): Promise<boolean> {
   try {
     const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
       headers: { apikey: SUPABASE_ANON_KEY!, Authorization: `Bearer ${token}` },
+      signal: AbortSignal.timeout(8_000),
     });
     return res.ok;
   } catch {
