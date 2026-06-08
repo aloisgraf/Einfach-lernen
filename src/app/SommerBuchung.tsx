@@ -16,6 +16,26 @@ interface Props {
 
 const STANDARD_EMOJI = "⭐";
 
+// Mapping für Kursnamen und deren Untertitel/Beschreibungen
+const KURS_INFO: Record<string, { displayName: string; subtitle: string }> = {
+  "Einzelstunde": {
+    displayName: "Nachhilfe & Lernbegleitung",
+    subtitle: "Individuell zum Üben aller Fächer, Mathematik bis zur Sekundarstufe (Nachprüfungsvorbereitung möglich), Buchung auch zu zweit",
+  },
+  "Legasthenietraining": {
+    displayName: "Lese- Rechtschreibtraining",
+    subtitle: "Legasthenietraining, mindestens 1 Einheit pro Woche inkl. Übungsmaterial für zu Hause.",
+  },
+  "Dyskalkulietraining": {
+    displayName: "Professionelles Dyskalkulietraining",
+    subtitle: "Professionelles Dyskalkulietraining und Aufbau mathematischer Grundlagen. mindestens 1 Einheit pro Woche inkl. Übungsmaterial für zu Hause.",
+  },
+};
+
+function getKursInfoByDisplayName(displayName: string): { displayName: string; subtitle: string } | null {
+  return Object.values(KURS_INFO).find((info) => info.displayName === displayName) || null;
+}
+
 /** Zeigt einen Hinweis auf Mengenrabatt, falls für den Kurs Paketpreise hinterlegt sind. */
 function RabattHinweis({ slots }: { slots: SlotMitPlaetzen[] }) {
   const preis5er = slots.map((s) => s.preis_5er).find((p): p is number => p != null);
@@ -201,12 +221,16 @@ export default function SommerBuchung({ slots, texte }: Props) {
   // Kapazität für alle drei gleichermaßen (gleicher Zeitslot, gleiche freie_plaetze).
   const einzelstundenFamilie = familien.find((f) => f.titel === "Einzelstunde" && !f.istGruppenKurs && f.einzelSlots.length > 0);
   if (einzelstundenFamilie) {
-    for (const [titel, schwerpunkt] of [
+    // Aktualisiere auch den Anzeigenamen der Einzelstunde
+    einzelstundenFamilie.titel = KURS_INFO["Einzelstunde"]?.displayName || "Einzelstunde";
+
+    for (const [dbKey, schwerpunkt] of [
       ["Legasthenietraining", "Legasthenietraining"],
       ["Dyskalkulietraining", "Dyskalkulietraining"],
     ] as const) {
+      const displayTitel = KURS_INFO[dbKey]?.displayName || dbKey;
       familien.push({
-        titel,
+        titel: displayTitel,
         emoji: STANDARD_EMOJI,
         istGruppenKurs: false,
         varianten: [],
@@ -398,7 +422,11 @@ export default function SommerBuchung({ slots, texte }: Props) {
         </p>
       ) : !aktuelleFamilie ? (
         // ── Schritt 1: Kurs wählen ────────────────────────────────────────────
-        <div className="course-grid">
+        <>
+          <p style={{ fontSize: ".9rem", color: "#6b7280", marginBottom: "1.2rem", fontStyle: "italic" }}>
+            Vor Ort in Eben – oder online
+          </p>
+          <div className="course-grid">
           {familien.map((familie) => {
             const alleSlots = familie.istGruppenKurs ? familie.varianten.flatMap((v) => v.slots) : familie.einzelSlots;
             const gesamtPlaetze = alleSlots.reduce((sum, s) => sum + s.freie_plaetze, 0);
@@ -419,6 +447,14 @@ export default function SommerBuchung({ slots, texte }: Props) {
               >
                 <div className="cc-emoji">{familie.emoji}</div>
                 <h4>{familie.titel}</h4>
+                {(() => {
+                  const info = getKursInfoByDisplayName(familie.titel);
+                  return info?.subtitle ? (
+                    <p style={{ fontSize: ".85rem", color: "#6b7280", margin: "0.3rem 0 0.6rem", lineHeight: 1.4 }}>
+                      {info.subtitle}
+                    </p>
+                  ) : null;
+                })()}
                 <p className="cc-info">
                   {familie.istGruppenKurs
                     ? `${terminAnzahl} zusammengehörige Termine`
@@ -439,7 +475,8 @@ export default function SommerBuchung({ slots, texte }: Props) {
               </button>
             );
           })}
-        </div>
+          </div>
+        </>
       ) : (
         <>
           <button type="button" className="kurs-back" onClick={zurueckZuKursen}>← Anderen Kurs wählen</button>
