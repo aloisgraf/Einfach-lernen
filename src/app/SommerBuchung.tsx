@@ -591,7 +591,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
               type="button"
               onClick={weiterenTerminHinzufuegen}
               className="kurs-back"
-              style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 150, background: "#1a5c4a", color: "#fff", border: "none" }}
+              style={{ marginBottom: 0, flex: "1 1 auto", minWidth: 150 }}
             >
               ➕ Weiteren Termin auswählen
             </button>
