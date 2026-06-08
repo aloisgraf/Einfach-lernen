@@ -381,10 +381,70 @@ export async function countBuchungenFuerSlot(slotId: string): Promise<number> {
   return memBuchungen().filter((b) => b.zeitslot_id === slotId).length;
 }
 
+/** Zählt unterschiedliche Anmelder (nicht Kinder) für einen Slot. */
+async function countAnmeldernFuerSlot(slotId: string): Promise<number> {
+  const buchungen = await getAlleBuchungen();
+  const anmelder = new Set(
+    buchungen
+      .filter((b) => b.zeitslot_id === slotId)
+      .map((b) => `${b.vorname}|${b.nachname}|${b.email}`)
+  );
+  return anmelder.size;
+}
+
+/** Prüft, ob ein bestimmter Anmelder bereits Kinder für einen Slot gebucht hat. */
+async function anmelderHatBereitsGebucht(slotId: string, vorname: string, nachname: string, email: string): Promise<boolean> {
+  const buchungen = await getAlleBuchungen();
+  return buchungen.some((b) =>
+    b.zeitslot_id === slotId &&
+    b.vorname === vorname &&
+    b.nachname === nachname &&
+    b.email === email
+  );
+}
+
 async function einzelnesSlotPruefen(slot: Zeitslot): Promise<string | null> {
   if (!slot.freigegeben) return "Dieser Termin ist nicht verfügbar.";
   const belegt = await countBuchungenFuerSlot(slot.id);
   if (belegt >= slot.max_teilnehmer) return "Dieser Termin ist bereits ausgebucht.";
+  return null;
+}
+
+/** Prüft, ob ein Slot für einen bestimmten Anmelder verfügbar ist.
+ *  - Wenn noch kein Anmelder gebucht hat: verfügbar
+ *  - Wenn der gleiche Anmelder bereits gebucht hat: verfügbar (kann mehr Kinder hinzufügen)
+ *  - Wenn ein anderer Anmelder bereits gebucht hat: ausgebucht
+ */
+async function slotVerfuegbarFuerAnmelder(
+  slot: Zeitslot,
+  vorname: string,
+  nachname: string,
+  email: string
+): Promise<string | null> {
+  if (!slot.freigegeben) return "Dieser Termin ist nicht verfügbar.";
+
+  // Prüfe, wie viele Kinder dieser Anmelder bereits gebucht hat
+  const meineBuchungen = (await getAlleBuchungen()).filter((b) =>
+    b.zeitslot_id === slot.id &&
+    b.vorname === vorname &&
+    b.nachname === nachname &&
+    b.email === email
+  );
+
+  // Wenn ich bereits Kinder gebucht habe, prüfe nur, ob noch Platz für weitere Kinder ist
+  if (meineBuchungen.length > 0) {
+    if (meineBuchungen.length >= slot.max_teilnehmer) {
+      return "Du hast bereits die maximale Anzahl von Kindern für diesen Termin angemeldet.";
+    }
+    return null; // Ich kann noch mehr Kinder hinzufügen
+  }
+
+  // Wenn ich noch nicht gebucht habe, prüfe, ob jemand anderes bereits gebucht hat
+  const andereAnmelder = await countAnmeldernFuerSlot(slot.id);
+  if (andereAnmelder > 0) {
+    return "Dieser Termin ist bereits von einer anderen Familie gebucht.";
+  }
+
   return null;
 }
 
@@ -413,7 +473,7 @@ export async function createBuchung(
   if (slot.gruppe_id) {
     const gruppenSlots = await getSlotsByGruppe(slot.gruppe_id);
     for (const s of gruppenSlots) {
-      const fehler = await einzelnesSlotPruefen(s);
+      const fehler = await slotVerfuegbarFuerAnmelder(s, data.vorname, data.nachname, data.email);
       if (fehler) return { error: `${fehler} (Kurs besteht aus mehreren Terminen, die gemeinsam gebucht werden.)` };
     }
     let erste: Buchung | null = null;
@@ -424,7 +484,7 @@ export async function createBuchung(
     return erste!;
   }
 
-  const fehler = await einzelnesSlotPruefen(slot);
+  const fehler = await slotVerfuegbarFuerAnmelder(slot, data.vorname, data.nachname, data.email);
   if (fehler) return { error: fehler };
 
   return einzelneBuchungAnlegen(data);
