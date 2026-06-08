@@ -607,7 +607,16 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
                       <input
                         type="checkbox"
                         checked={formData.alsGruppe}
-                        onChange={(e) => setFormData((d) => ({ ...d, alsGruppe: e.target.checked }))}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setFormData((d) => ({
+                            ...d,
+                            alsGruppe: checked,
+                            ...(checked
+                              ? { preis_2er: "", preis_5er: "", preis_10er: "", preis_legasthenie: "", preis_dyskalkulie: "" }
+                              : {}),
+                          }));
+                        }}
                         style={{ width: 15, height: 15, accentColor: "#1a5c4a" }}
                       />
                       <div>
@@ -626,43 +635,51 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
                   <input type="number" min={1} max={30} value={formData.max_teilnehmer} onChange={(e) => setFormData((d) => ({ ...d, max_teilnehmer: e.target.value }))} style={inputStyle} />
                 </div>
                 <div>
-                  <label style={labelStyle}>Preis Einzelstunde in € (optional)</label>
-                  <input type="number" min={0} step="1" value={formData.preis} onChange={(e) => setFormData((d) => ({ ...d, preis: e.target.value }))} style={inputStyle} placeholder="z.B. 180" />
+                  <label style={labelStyle}>{formData.alsGruppe ? "Gesamtpreis für den Kurs in € (optional)" : "Preis Einzelstunde in € (optional)"}</label>
+                  <input type="number" min={0} step="1" value={formData.preis} onChange={(e) => setFormData((d) => ({ ...d, preis: e.target.value }))} style={inputStyle} placeholder={formData.alsGruppe ? "z.B. 320" : "z.B. 180"} />
                 </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={labelStyle}>Preis für 2 Kinder in € (optional)</label>
-                  <input type="number" min={0} step="1" value={formData.preis_2er} onChange={(e) => setFormData((d) => ({ ...d, preis_2er: e.target.value }))} style={inputStyle} placeholder="z.B. 160" />
-                </div>
-                <div>
-                  <label style={labelStyle}>Preis ab 5 Terminen in € (optional)</label>
-                  <input type="number" min={0} step="1" value={formData.preis_5er} onChange={(e) => setFormData((d) => ({ ...d, preis_5er: e.target.value }))} style={inputStyle} placeholder="z.B. 160" />
-                </div>
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={labelStyle}>Preis ab 10 Terminen in € (optional)</label>
-                  <input type="number" min={0} step="1" value={formData.preis_10er} onChange={(e) => setFormData((d) => ({ ...d, preis_10er: e.target.value }))} style={inputStyle} placeholder="z.B. 140" />
-                </div>
-                <div></div>
-              </div>
-              <p style={{ fontSize: 11, color: "#9ca3af", margin: "-6px 0 0" }}>
-                Diese Preise werden dem Kunden als Mengenrabatt-Hinweis angezeigt (z.B. „ab 5 Terminen nur € 160″).
-              </p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-                <div>
-                  <label style={labelStyle}>Preis Legasthenietraining in € (optional)</label>
-                  <input type="number" min={0} step="1" value={formData.preis_legasthenie} onChange={(e) => setFormData((d) => ({ ...d, preis_legasthenie: e.target.value }))} style={inputStyle} placeholder="z.B. 60" />
-                </div>
-                <div>
-                  <label style={labelStyle}>Preis Dyskalkulietraining in € (optional)</label>
-                  <input type="number" min={0} step="1" value={formData.preis_dyskalkulie} onChange={(e) => setFormData((d) => ({ ...d, preis_dyskalkulie: e.target.value }))} style={inputStyle} placeholder="z.B. 60" />
-                </div>
-              </div>
-              <p style={{ fontSize: 11, color: "#9ca3af", margin: "-6px 0 0" }}>
-                Eigene Preise für Legasthenie-/Dyskalkulietraining. Diese Termine teilen sich die Plätze mit der normalen Einzelstunde.
-              </p>
+              {formData.alsGruppe ? (
+                <p style={{ fontSize: 11, color: "#9ca3af", margin: "-6px 0 0" }}>
+                  Bei einem mehrtägigen Kurs ist dies der Gesamtpreis für alle Termine zusammen – Mengenrabatte und Sonderpreise gelten hier nicht.
+                </p>
+              ) : (
+                <>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div>
+                      <label style={labelStyle}>Preis für 2 Kinder in € (optional)</label>
+                      <input type="number" min={0} step="1" value={formData.preis_2er} onChange={(e) => setFormData((d) => ({ ...d, preis_2er: e.target.value }))} style={inputStyle} placeholder="z.B. 160" />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Preis ab 5 Terminen in € (optional)</label>
+                      <input type="number" min={0} step="1" value={formData.preis_5er} onChange={(e) => setFormData((d) => ({ ...d, preis_5er: e.target.value }))} style={inputStyle} placeholder="z.B. 160" />
+                    </div>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div>
+                      <label style={labelStyle}>Preis ab 10 Terminen in € (optional)</label>
+                      <input type="number" min={0} step="1" value={formData.preis_10er} onChange={(e) => setFormData((d) => ({ ...d, preis_10er: e.target.value }))} style={inputStyle} placeholder="z.B. 140" />
+                    </div>
+                    <div></div>
+                  </div>
+                  <p style={{ fontSize: 11, color: "#9ca3af", margin: "-6px 0 0" }}>
+                    Diese Preise werden dem Kunden als Mengenrabatt-Hinweis angezeigt (z.B. „ab 5 Terminen nur € 160″).
+                  </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                    <div>
+                      <label style={labelStyle}>Preis Legasthenietraining in € (optional)</label>
+                      <input type="number" min={0} step="1" value={formData.preis_legasthenie} onChange={(e) => setFormData((d) => ({ ...d, preis_legasthenie: e.target.value }))} style={inputStyle} placeholder="z.B. 60" />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Preis Dyskalkulietraining in € (optional)</label>
+                      <input type="number" min={0} step="1" value={formData.preis_dyskalkulie} onChange={(e) => setFormData((d) => ({ ...d, preis_dyskalkulie: e.target.value }))} style={inputStyle} placeholder="z.B. 60" />
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 11, color: "#9ca3af", margin: "-6px 0 0" }}>
+                    Eigene Preise für Legasthenie-/Dyskalkulietraining. Diese Termine teilen sich die Plätze mit der normalen Einzelstunde.
+                  </p>
+                </>
+              )}
               <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, border: "1.5px solid #e5e7eb", cursor: "pointer" }}>
                 <input
                   type="checkbox"

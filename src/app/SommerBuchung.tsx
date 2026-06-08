@@ -31,9 +31,18 @@ function RabattHinweis({ slots }: { slots: SlotMitPlaetzen[] }) {
   );
 }
 
-function berechneGesamtpreis(slots: SlotMitPlaetzen[], schwerpunkt?: string): { total: number; label: string } | null {
+function berechneGesamtpreis(slots: SlotMitPlaetzen[], schwerpunkt?: string, istGruppenKurs?: boolean): { total: number; label: string } | null {
   const count = slots.length;
   if (count === 0) return null;
+
+  if (istGruppenKurs) {
+    // Bei mehrtägigen Kursen ist der hinterlegte Preis bereits der Gesamtpreis
+    // für den ganzen Kurs (auf jedem Termin der Gruppe identisch gespeichert) –
+    // er darf nicht mit der Anzahl der Termine multipliziert werden.
+    const gesamtpreis = slots.find((s) => s.preis != null)?.preis;
+    if (gesamtpreis == null) return null;
+    return { total: gesamtpreis, label: "Kurs gesamt" };
+  }
 
   if (schwerpunkt === "Legasthenietraining") {
     const p = slots.find((s) => s.preis_legasthenie != null)?.preis_legasthenie;
@@ -600,7 +609,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
       )}
 
       {auswahlAbgeschlossen && ausgewaehlteSlots.length > 0 && (() => {
-        const preisInfo = berechneGesamtpreis(ausgewaehlteSlots, aktuelleFamilie?.erzwingeSchwerpunkt);
+        const preisInfo = berechneGesamtpreis(ausgewaehlteSlots, aktuelleFamilie?.erzwingeSchwerpunkt, aktuelleFamilie?.istGruppenKurs);
         return (
           <div style={{ background: "var(--pine-pale)", borderRadius: 11, padding: ".7rem 1rem", marginBottom: "1rem", fontSize: ".85rem", color: "var(--pine-dark)" }}>
             <div style={{ fontWeight: 700 }}>
