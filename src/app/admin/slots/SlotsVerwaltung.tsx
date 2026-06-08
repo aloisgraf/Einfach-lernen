@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, Eye, EyeOff, X, Check, Loader2, CalendarClock, Copy } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, X, Check, Loader2, CalendarClock, Copy, Edit3 } from "lucide-react";
 import { Zeitslot } from "@/types/buchung";
 
 interface SlotMitPlaetzen extends Zeitslot {
@@ -80,6 +80,10 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [selectedGroupIds, setSelectedGroupIds] = useState<Set<string>>(new Set());
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
+  const [bulkFormData, setBulkFormData] = useState<Partial<typeof leerFormular>>({});
+  const [bulkLoadingFields, setBulkLoadingFields] = useState<Set<string>>(new Set());
 
   function openNeu() {
     setEditId(null);
@@ -153,6 +157,111 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
       termine: [{ datum: "", uhrzeit_von: slot.uhrzeit_von, uhrzeit_bis: slot.uhrzeit_bis }],
     });
     setFormOpen(true);
+  }
+
+  function toggleSelection(groupId: string) {
+    const newSelected = new Set(selectedGroupIds);
+    if (newSelected.has(groupId)) {
+      newSelected.delete(groupId);
+    } else {
+      newSelected.add(groupId);
+    }
+    setSelectedGroupIds(newSelected);
+  }
+
+  function openBulkEdit() {
+    if (selectedGroupIds.size === 0) return;
+
+    // Sammle alle Slots der ausgewählten Gruppen
+    const selectedSlots = slots.filter((s) => {
+      const groupId = s.gruppe_id || s.id;
+      return selectedGroupIds.has(groupId);
+    });
+
+    // Finde Felder mit einheitlichem Wert
+    const commonFields: Partial<typeof leerFormular> = {};
+    const priceFields = ["preis", "preis_2er", "preis_5er", "preis_10er", "preis_legasthenie", "preis_dyskalkulie"] as const;
+    const textFields = ["titel", "kurs", "notizen"] as const;
+    const selectFields = ["max_teilnehmer"] as const;
+
+    // Check title
+    const titles = new Set(selectedSlots.map((s) => s.titel));
+    if (titles.size === 1) commonFields.titel = selectedSlots[0].titel;
+
+    // Check kurs
+    const kurse = new Set(selectedSlots.map((s) => (s as any).kurs ?? ""));
+    if (kurse.size === 1) commonFields.kurs = (selectedSlots[0] as any).kurs ?? "";
+
+    // Check notizen
+    const notizen = new Set(selectedSlots.map((s) => (s as any).notizen ?? ""));
+    if (notizen.size === 1) commonFields.notizen = (selectedSlots[0] as any).notizen ?? "";
+
+    // Check max_teilnehmer
+    const maxTeilnehmer = new Set(selectedSlots.map((s) => s.max_teilnehmer));
+    if (maxTeilnehmer.size === 1) commonFields.max_teilnehmer = String(selectedSlots[0].max_teilnehmer);
+
+    // Check prices
+    for (const field of priceFields) {
+      const values = new Set(selectedSlots.map((s) => {
+        const val = (s as any)[field];
+        return val != null ? String(val) : "";
+      }));
+      if (values.size === 1) {
+        const val = (selectedSlots[0] as any)[field];
+        commonFields[field] = val != null ? String(val) : "";
+      }
+    }
+
+    setBulkFormData(commonFields);
+    setBulkEditOpen(true);
+  }
+
+  async function saveBulk() {
+    if (selectedGroupIds.size === 0 || Object.keys(bulkFormData).length === 0) return;
+
+    setBulkLoadingFields(new Set(Object.keys(bulkFormData)));
+
+    try {
+      for (const field of Object.keys(bulkFormData)) {
+        const updates = slots
+          .filter((s) => selectedGroupIds.has(s.gruppe_id || s.id))
+          .map((s) => ({
+            id: s.id,
+            field: field,
+            value: (bulkFormData as any)[field],
+          }));
+
+        for (const update of updates) {
+          const res = await fetch("/api/admin/slots", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(update),
+          });
+          if (!res.ok) throw new Error("Fehler beim Speichern");
+        }
+      }
+
+      // Aktualisiere die lokalen Slots
+      const updatedSlots = slots.map((s) => {
+        if (selectedGroupIds.has(s.gruppe_id || s.id)) {
+          const update: any = { ...bulkFormData };
+          if (update.max_teilnehmer !== undefined) {
+            update.max_teilnehmer = parseInt(update.max_teilnehmer, 10);
+          }
+          return { ...s, ...update };
+        }
+        return s;
+      });
+      setSlots(updatedSlots);
+
+      setBulkEditOpen(false);
+      setBulkLoadingFields(new Set());
+      setSelectedGroupIds(new Set());
+    } catch (err) {
+      console.error(err);
+      alert("Fehler beim Speichern");
+      setBulkLoadingFields(new Set());
+    }
   }
 
   function terminHinzufuegen() {
@@ -334,20 +443,36 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 32 }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: "#111827", margin: "0 0 4px" }}>Zeitslots</h1>
-          <p style={{ fontSize: 13, color: "#9ca3af", margin: 0 }}>{slots.length} Slots gesamt</p>
+          <p style={{ fontSize: 13, color: "#9ca3af", margin: 0 }}>{slots.length} Slots gesamt {selectedGroupIds.size > 0 && `· ${selectedGroupIds.size} ausgewählt`}</p>
         </div>
-        <button
-          onClick={openNeu}
-          style={{
-            display: "flex", alignItems: "center", gap: 8,
-            padding: "10px 18px", background: "#1a5c4a", color: "#fff",
-            border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700,
-            cursor: "pointer", fontFamily: "inherit",
-          }}
-        >
-          <Plus style={{ width: 15, height: 15 }} />
-          Neuer Slot
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {selectedGroupIds.size > 0 && (
+            <button
+              onClick={openBulkEdit}
+              style={{
+                display: "flex", alignItems: "center", gap: 8,
+                padding: "10px 18px", background: "#7c4c5e", color: "#fff",
+                border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700,
+                cursor: "pointer", fontFamily: "inherit",
+              }}
+            >
+              <Edit3 style={{ width: 15, height: 15 }} />
+              Massenbearbeitung
+            </button>
+          )}
+          <button
+            onClick={openNeu}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "10px 18px", background: "#1a5c4a", color: "#fff",
+              border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700,
+              cursor: "pointer", fontFamily: "inherit",
+            }}
+          >
+            <Plus style={{ width: 15, height: 15 }} />
+            Neuer Slot
+          </button>
+        </div>
       </div>
 
       {/* Empty state */}
@@ -368,6 +493,23 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid #f3f4f6", background: "#fafafa" }}>
+                  <th style={{ padding: "12px 16px", textAlign: "center", fontSize: 11, fontWeight: 700, color: "#9ca3af", whiteSpace: "nowrap" }}>
+                    <input type="checkbox" style={{ cursor: "pointer" }} onChange={(e) => {
+                      if (e.target.checked) {
+                        const allGroupIds = new Set<string>();
+                        const grouped = new Map<string, SlotMitPlaetzen[]>();
+                        for (const slot of slots) {
+                          const key = slot.gruppe_id || slot.id;
+                          if (!grouped.has(key)) grouped.set(key, []);
+                          grouped.get(key)!.push(slot);
+                          allGroupIds.add(key);
+                        }
+                        setSelectedGroupIds(allGroupIds);
+                      } else {
+                        setSelectedGroupIds(new Set());
+                      }
+                    }} />
+                  </th>
                   {["Titel", "Datum", "Zeit", "Plätze", "Status", ""].map((h) => (
                     <th key={h} style={{ padding: "12px 16px", textAlign: h === "Plätze" || h === "Status" ? "center" : h === "" ? "right" : "left", fontSize: 11, fontWeight: 700, color: "#9ca3af", whiteSpace: "nowrap" }}>
                       {h}
@@ -393,6 +535,14 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
 
                     return (
                       <tr key={firstSlot.id} style={{ borderBottom: "1px solid #f9fafb" }}>
+                        <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedGroupIds.has(firstSlot.gruppe_id || firstSlot.id)}
+                            onChange={() => toggleSelection(firstSlot.gruppe_id || firstSlot.id)}
+                            style={{ cursor: "pointer" }}
+                          />
+                        </td>
                         <td style={{ padding: "14px 16px" }}>
                           <p style={{ fontSize: 13, fontWeight: 600, color: "#111827", margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
                             {firstSlot.titel}
@@ -714,6 +864,153 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
               >
                 {loading ? <Loader2 style={{ width: 15, height: 15 }} /> : <Check style={{ width: 15, height: 15 }} />}
                 {editId ? "Speichern" : "Erstellen"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Edit Modal */}
+      {bulkEditOpen && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: "#fff", borderRadius: 14, padding: 24, maxWidth: 500, width: "90%", maxHeight: "80vh", overflowY: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Massenbearbeitung ({selectedGroupIds.size} Slots)</h2>
+              <button onClick={() => setBulkEditOpen(false)} style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+                <X style={{ width: 20, height: 20 }} />
+              </button>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 16, marginBottom: 20 }}>
+              {bulkFormData.titel !== undefined && (
+                <div>
+                  <label style={labelStyle}>Titel</label>
+                  <input
+                    type="text"
+                    value={bulkFormData.titel ?? ""}
+                    onChange={(e) => setBulkFormData((d) => ({ ...d, titel: e.target.value }))}
+                    style={inputStyle}
+                  />
+                </div>
+              )}
+              {bulkFormData.kurs !== undefined && (
+                <div>
+                  <label style={labelStyle}>Kurs</label>
+                  <input
+                    type="text"
+                    value={bulkFormData.kurs ?? ""}
+                    onChange={(e) => setBulkFormData((d) => ({ ...d, kurs: e.target.value }))}
+                    style={inputStyle}
+                  />
+                </div>
+              )}
+              {bulkFormData.notizen !== undefined && (
+                <div>
+                  <label style={labelStyle}>Notizen</label>
+                  <textarea
+                    value={bulkFormData.notizen ?? ""}
+                    onChange={(e) => setBulkFormData((d) => ({ ...d, notizen: e.target.value }))}
+                    style={{ ...inputStyle, resize: "vertical" }}
+                    rows={2}
+                  />
+                </div>
+              )}
+              {bulkFormData.max_teilnehmer !== undefined && (
+                <div>
+                  <label style={labelStyle}>Max. Teilnehmer</label>
+                  <input
+                    type="number"
+                    value={bulkFormData.max_teilnehmer ?? ""}
+                    onChange={(e) => setBulkFormData((d) => ({ ...d, max_teilnehmer: e.target.value }))}
+                    style={inputStyle}
+                  />
+                </div>
+              )}
+              {bulkFormData.preis !== undefined && (
+                <div>
+                  <label style={labelStyle}>Preis in €</label>
+                  <input
+                    type="number"
+                    value={bulkFormData.preis ?? ""}
+                    onChange={(e) => setBulkFormData((d) => ({ ...d, preis: e.target.value }))}
+                    style={inputStyle}
+                  />
+                </div>
+              )}
+              {bulkFormData.preis_5er !== undefined && (
+                <div>
+                  <label style={labelStyle}>Preis ab 5 Terminen in €</label>
+                  <input
+                    type="number"
+                    value={bulkFormData.preis_5er ?? ""}
+                    onChange={(e) => setBulkFormData((d) => ({ ...d, preis_5er: e.target.value }))}
+                    style={inputStyle}
+                  />
+                </div>
+              )}
+              {bulkFormData.preis_10er !== undefined && (
+                <div>
+                  <label style={labelStyle}>Preis ab 10 Terminen in €</label>
+                  <input
+                    type="number"
+                    value={bulkFormData.preis_10er ?? ""}
+                    onChange={(e) => setBulkFormData((d) => ({ ...d, preis_10er: e.target.value }))}
+                    style={inputStyle}
+                  />
+                </div>
+              )}
+              {bulkFormData.preis_legasthenie !== undefined && (
+                <div>
+                  <label style={labelStyle}>Preis Legasthenietraining in €</label>
+                  <input
+                    type="number"
+                    value={bulkFormData.preis_legasthenie ?? ""}
+                    onChange={(e) => setBulkFormData((d) => ({ ...d, preis_legasthenie: e.target.value }))}
+                    style={inputStyle}
+                  />
+                </div>
+              )}
+              {bulkFormData.preis_dyskalkulie !== undefined && (
+                <div>
+                  <label style={labelStyle}>Preis Dyskalkulietraining in €</label>
+                  <input
+                    type="number"
+                    value={bulkFormData.preis_dyskalkulie ?? ""}
+                    onChange={(e) => setBulkFormData((d) => ({ ...d, preis_dyskalkulie: e.target.value }))}
+                    style={inputStyle}
+                  />
+                </div>
+              )}
+            </div>
+
+            {Object.keys(bulkFormData).length === 0 && (
+              <p style={{ textAlign: "center", color: "#9ca3af", marginBottom: 20 }}>
+                Die ausgewählten Slots haben keine gemeinsamen Felder.
+              </p>
+            )}
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                onClick={() => setBulkEditOpen(false)}
+                style={{
+                  flex: 1, padding: "11px", border: "1px solid #e5e7eb", borderRadius: 10, fontSize: 13, fontWeight: 700,
+                  cursor: "pointer", background: "#fff", color: "#111827", fontFamily: "inherit",
+                }}
+              >
+                Abbrechen
+              </button>
+              <button
+                onClick={saveBulk}
+                disabled={Object.keys(bulkFormData).length === 0 || bulkLoadingFields.size > 0}
+                style={{
+                  flex: 1, padding: "11px", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700,
+                  cursor: Object.keys(bulkFormData).length === 0 || bulkLoadingFields.size > 0 ? "not-allowed" : "pointer",
+                  background: Object.keys(bulkFormData).length === 0 || bulkLoadingFields.size > 0 ? "#9ca3af" : "#1a5c4a",
+                  color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, fontFamily: "inherit",
+                }}
+              >
+                {bulkLoadingFields.size > 0 ? <Loader2 style={{ width: 15, height: 15 }} /> : <Check style={{ width: 15, height: 15 }} />}
+                Speichern
               </button>
             </div>
           </div>
