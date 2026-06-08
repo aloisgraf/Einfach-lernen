@@ -499,31 +499,25 @@ export default function SommerBuchung({ slots, texte }: Props) {
                     </button>
                   )}
                   <div className="termin-grid">
-                    {variantenAmTag1.map((variante) => {
+                    {variantenAmTag1.filter((variante) => Math.min(...variante.slots.map((s) => s.freie_plaetze)) > 0).map((variante) => {
                       const tag1Slot = variante.slots[0];
                       const weitereTage = variante.slots.slice(1);
                       const gesamtPlaetze = Math.min(...variante.slots.map((s) => s.freie_plaetze));
-                      const voll = gesamtPlaetze <= 0;
                       const knapp = gesamtPlaetze === 1;
                       return (
                         <button
                           type="button"
                           key={variante.gruppeId}
                           className="termin-btn"
-                          disabled={voll}
                           onClick={() => variantenWaehlen(variante)}
                           style={{ width: "100%", textAlign: "left" }}
                         >
                           <strong>{tag1Slot.uhrzeit_von}–{tag1Slot.uhrzeit_bis} Uhr</strong>
-                          <span className={knapp ? "knapp" : ""}>
-                            {voll
-                              ? "Ausgebucht"
-                              : <>
-                                  Weitere Termine: {weitereTage.map((s, i) => (
-                                    <span key={s.id}>{i > 0 ? ", " : ""}{formatDatumKurz(s.datum)} {s.uhrzeit_von}–{s.uhrzeit_bis}</span>
-                                  ))}
-                                  {knapp && " · Nur 1 Platz frei!"}
-                                </>}
+                          <span className={knapp ? "verfuegbar" : ""}>
+                            Weitere Termine: {weitereTage.map((s, i) => (
+                              <span key={s.id}>{i > 0 ? ", " : ""}{formatDatumKurz(s.datum)} {s.uhrzeit_von}–{s.uhrzeit_bis}</span>
+                            ))}
+                            {knapp && " · 1 Platz verfügbar"}
                           </span>
                         </button>
                       );
@@ -638,7 +632,8 @@ export default function SommerBuchung({ slots, texte }: Props) {
                       {Array.from(new Set(aktuelleFamilie.einzelSlots.map((s) => s.datum)))
                         .sort()
                         .map((datum) => {
-                          const slotsAmDatum = aktuelleFamilie.einzelSlots.filter((s) => s.datum === datum);
+                          const slotsAmDatum = aktuelleFamilie.einzelSlots.filter((s) => s.datum === datum && s.freie_plaetze > 0);
+                          if (slotsAmDatum.length === 0) return null;
                           return (
                             <div key={datum} style={{ borderLeft: "3px solid var(--pine)", paddingLeft: ".8rem" }}>
                               <p style={{ fontWeight: 700, fontSize: ".9rem", color: "var(--ink)", margin: "0 0 .5rem" }}>
@@ -647,20 +642,18 @@ export default function SommerBuchung({ slots, texte }: Props) {
                               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                                 {slotsAmDatum.map((slot) => {
                                   const ausgewaehlt = Boolean(ausgewaehlteSlots.find((s) => s.id === slot.id));
-                                  const voll = slot.freie_plaetze <= 0;
                                   const knapp = slot.freie_plaetze === 1;
                                   return (
                                     <button
                                       type="button"
                                       key={slot.id}
                                       className={`termin-btn${ausgewaehlt ? " on" : ""}`}
-                                      disabled={voll}
                                       onClick={() => paketSlotToggle(slot)}
                                       style={{ textAlign: "left" }}
                                     >
                                       <strong>{slot.uhrzeit_von}–{slot.uhrzeit_bis} Uhr</strong>
-                                      <span className={knapp ? "knapp" : ""}>
-                                        {voll ? "Ausgebucht" : knapp ? "Nur 1 Platz frei!" : ausgewaehlt ? "✓ Ausgewählt" : `${slot.freie_plaetze} Plätze frei`}
+                                      <span className={knapp ? "verfuegbar" : ""}>
+                                        {knapp ? "1 Platz verfügbar" : ausgewaehlt ? "✓ Ausgewählt" : `${slot.freie_plaetze} Plätze frei`}
                                       </span>
                                     </button>
                                   );
@@ -672,21 +665,19 @@ export default function SommerBuchung({ slots, texte }: Props) {
                     </div>
                   ) : (
                     <div className="termin-grid">
-                    {aktuelleFamilie.einzelSlots.map((slot) => {
+                    {aktuelleFamilie.einzelSlots.filter((slot) => slot.freie_plaetze > 0).map((slot) => {
                       const ausgewaehlt = Boolean(ausgewaehlteSlots.find((s) => s.id === slot.id));
-                      const voll = slot.freie_plaetze <= 0;
                       const knapp = slot.freie_plaetze === 1;
                       return (
                         <button
                           type="button"
                           key={slot.id}
                           className={`termin-btn${ausgewaehlt ? " on" : ""}`}
-                          disabled={voll}
                           onClick={() => paketSlotToggle(slot)}
                         >
                           <strong>{formatDatum(slot.datum)} · {slot.uhrzeit_von}–{slot.uhrzeit_bis} Uhr</strong>
-                          <span className={knapp ? "knapp" : ""}>
-                            {voll ? "Ausgebucht" : knapp ? "Nur 1 Platz frei!" : ausgewaehlt ? "✓ Ausgewählt" : `${slot.freie_plaetze} Plätze frei`}
+                          <span className={knapp ? "verfuegbar" : ""}>
+                            {knapp ? "1 Platz verfügbar" : ausgewaehlt ? "✓ Ausgewählt" : `${slot.freie_plaetze} Plätze frei`}
                           </span>
                         </button>
                       );

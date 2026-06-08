@@ -397,6 +397,7 @@
 .lv-page .termin-btn strong{font-size:.85rem;color:var(--ink);font-weight:700;}
 .lv-page .termin-btn span{font-size:.74rem;color:var(--pine);font-weight:600;}
 .lv-page .termin-btn span.knapp{color:var(--gold-dark);}
+.lv-page .termin-btn span.verfuegbar{color:var(--pine);font-weight:700;}
 .lv-page .termin-btn:hover:not(:disabled){border-color:var(--pine-light);transform:translateY(-2px);}
 .lv-page .termin-btn.on{border-color:var(--pine);background:var(--pine-pale);box-shadow:var(--sh-sm);}
 .lv-page .termin-btn:disabled{opacity:.5;cursor:not-allowed;}
