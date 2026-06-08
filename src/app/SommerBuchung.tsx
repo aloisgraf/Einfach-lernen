@@ -35,29 +35,34 @@ function berechneGesamtpreis(slots: SlotMitPlaetzen[], schwerpunkt?: string, ist
   const count = slots.length;
   if (count === 0) return null;
 
+  // Preise können je nach Datenquelle als String ankommen (z.B. NUMERIC-Spalten) –
+  // ohne Konvertierung würde "330" + 0 zu String-Konkatenation ("3300") führen.
+  const num = (v: number | null | undefined): number | null =>
+    v == null ? null : Number(v);
+
   if (istGruppenKurs) {
     // Bei mehrtägigen Kursen ist der hinterlegte Preis bereits der Gesamtpreis
     // für den ganzen Kurs (auf jedem Termin der Gruppe identisch gespeichert) –
     // er darf nicht mit der Anzahl der Termine multipliziert werden.
-    const gesamtpreis = slots.find((s) => s.preis != null)?.preis;
+    const gesamtpreis = num(slots.find((s) => s.preis != null)?.preis);
     if (gesamtpreis == null) return null;
     return { total: gesamtpreis, label: "Kurs gesamt" };
   }
 
   if (schwerpunkt === "Legasthenietraining") {
-    const p = slots.find((s) => s.preis_legasthenie != null)?.preis_legasthenie;
+    const p = num(slots.find((s) => s.preis_legasthenie != null)?.preis_legasthenie);
     if (p == null) return null;
     return { total: count * p, label: count === 1 ? "Legasthenietraining" : `${count} × Legasthenietraining` };
   }
   if (schwerpunkt === "Dyskalkulietraining") {
-    const p = slots.find((s) => s.preis_dyskalkulie != null)?.preis_dyskalkulie;
+    const p = num(slots.find((s) => s.preis_dyskalkulie != null)?.preis_dyskalkulie);
     if (p == null) return null;
     return { total: count * p, label: count === 1 ? "Dyskalkulietraining" : `${count} × Dyskalkulietraining` };
   }
 
-  const einzelPreis = slots.find((s) => s.preis != null)?.preis;
-  const preis5er = slots.find((s) => s.preis_5er != null)?.preis_5er;
-  const preis10er = slots.find((s) => s.preis_10er != null)?.preis_10er;
+  const einzelPreis = num(slots.find((s) => s.preis != null)?.preis);
+  const preis5er = num(slots.find((s) => s.preis_5er != null)?.preis_5er);
+  const preis10er = num(slots.find((s) => s.preis_10er != null)?.preis_10er);
   if (einzelPreis == null) return null;
 
   if (count >= 10 && preis10er != null) {

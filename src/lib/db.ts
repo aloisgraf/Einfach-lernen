@@ -44,6 +44,15 @@ export function getDb() {
           parse: (x: string) => x,
           serialize: (x: string) => x,
         },
+        // Postgres liefert NUMERIC standardmäßig als String (Präzisionsschutz),
+        // wodurch z.B. Preisberechnungen ("330" + 0) zu String-Konkatenation
+        // ("3300") statt Addition werden. Wir parsen sie daher als Zahl.
+        numeric: {
+          from: [1700],
+          to: 1700,
+          parse: (x: string) => (x === null ? null : parseFloat(x)),
+          serialize: (x: number) => String(x),
+        },
       },
     });
   }
