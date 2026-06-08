@@ -141,7 +141,7 @@ function formatDatumsListe(daten: string[]) {
 function Field({ label, hint, error, children }: { label: string; hint?: string; error?: string; children: React.ReactNode }) {
   return (
     <div className="fg full">
-      <label style={{ marginBottom: 12, display: "block" }}>{label}</label>
+      <label style={{ marginTop: 12, display: "block" }}>{label}</label>
       {hint && <span className="hint">{hint}</span>}
       {children}
       {error && <span className="err">{error}</span>}
@@ -737,23 +737,23 @@ export default function SommerBuchung({ slots, texte }: Props) {
 
         <div className="form-grid">
           <div className="fg">
-            <label style={{ marginBottom: 12 }}>Vorname *</label>
-            <input {...register("vorname")} placeholder="Anna" />
+            <label style={{ marginTop: 12, display: "block" }}>Vorname *</label>
+            <input {...register("vorname")} />
             {errors.vorname && <span className="err">{errors.vorname.message}</span>}
           </div>
           <div className="fg">
-            <label style={{ marginBottom: 12 }}>Nachname *</label>
-            <input {...register("nachname")} placeholder="Muster" />
+            <label style={{ marginTop: 12, display: "block" }}>Nachname *</label>
+            <input {...register("nachname")} />
             {errors.nachname && <span className="err">{errors.nachname.message}</span>}
           </div>
           <div className="fg" style={{ gridColumn: "1 / -1" }}>
-            <label style={{ marginBottom: 12 }}>E-Mail *</label>
-            <input {...register("email")} type="email" placeholder="anna@beispiel.at" />
+            <label style={{ marginTop: 12, display: "block" }}>E-Mail *</label>
+            <input {...register("email")} type="email" />
             {errors.email && <span className="err">{errors.email.message}</span>}
           </div>
           <div className="fg" style={{ gridColumn: "1 / -1" }}>
-            <label style={{ marginBottom: 12 }}>Telefonnummer *</label>
-            <input {...register("telefon")} type="tel" placeholder="+43 660 123 456" />
+            <label style={{ marginTop: 12, display: "block" }}>Unter welcher Telefonnummer kann ich dich bei Fragen oder im Notfall erreichen? *</label>
+            <input {...register("telefon")} type="tel" />
             {errors.telefon && <span className="err">{errors.telefon.message}</span>}
           </div>
         </div>
@@ -768,28 +768,28 @@ export default function SommerBuchung({ slots, texte }: Props) {
           </select>
         </Field>
 
-        <Field label="Wie heißt dein Kind? In welche Klasse kommt dein Kind? *" error={errors.q1_name_klasse?.message}>
-          <textarea {...register("q1_name_klasse")} rows={2} placeholder="z.B. Emma, 3. Klasse VS" />
+        <Field label="Wie heißt dein Kind? In welche Klasse kommt dein Kind? (Bitte beide Namen angeben, falls du die Stunde für 2 Kinder buchen möchtest) *" error={errors.q1_name_klasse?.message}>
+          <textarea {...register("q1_name_klasse")} rows={2} />
         </Field>
 
         <Field label="In welchem Bereich/welchen Themen darf ich dein Kind unterstützen? *" error={errors.q2_bereiche?.message}>
-          <textarea {...register("q2_bereiche")} rows={2} placeholder="z.B. Mathematik, Deutsch, Englisch, Schulängstlichkeit, etc." />
+          <textarea {...register("q2_bereiche")} rows={2} />
         </Field>
 
         <Field label="Was soll durch die Förderung erreicht werden? (Wiederholen, Festigen, Lücken schließen...) *" error={errors.q3_ziele?.message}>
-          <textarea {...register("q3_ziele")} rows={3} placeholder="z.B. Lücken in der Rechtschreibung schließen und wieder mehr Freude am Lesen finden." />
+          <textarea {...register("q3_ziele")} rows={3} />
         </Field>
 
         <Field label="Wie würdest du dein Kind beschreiben? (optional)" error={errors.q4_beschreibung?.message}>
-          <textarea {...register("q4_beschreibung")} rows={2} placeholder="Was zeichnet dein Kind aus, was macht ihm Freude?" />
+          <textarea {...register("q4_beschreibung")} rows={2} />
         </Field>
 
         <Field label="Gab es bereits außerschulische Förderung oder Diagnosen? (optional)" error={errors.q5_diagnosen?.message}>
-          <textarea {...register("q5_diagnosen")} rows={2} placeholder="z.B. Legasthenie-Diagnose vom Schulpsychologischen Dienst, 2023." />
+          <textarea {...register("q5_diagnosen")} rows={2} />
         </Field>
 
         <Field label="Hast du eine Frage an mich? (optional)" error={errors.q6_frage?.message}>
-          <textarea {...register("q6_frage")} rows={2} placeholder="Besondere Fragen oder Anforderungen?" />
+          <textarea {...register("q6_frage")} rows={2} />
         </Field>
 
         <label className="consent">
