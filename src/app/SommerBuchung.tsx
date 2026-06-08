@@ -456,7 +456,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
               {/* Mehrtägiger Kurs: Tag 1 → Uhrzeit (= Variante) → restliche Tage automatisch */}
               {!gewaehltesTag1Datum ? (
                 <>
-                  <p className="kurs-step-label">{aktuelleFamilie.emoji} {aktuelleFamilie.titel} – wähle Tag 1</p>
+                  <p className="kurs-step-label">{aktuelleFamilie.emoji} {aktuelleFamilie.titel} – wähle einen Termin</p>
                   <div className="termin-grid">
                     {tag1Daten.map((datum) => {
                       const varianten = aktuelleFamilie.varianten.filter((v) => v.slots[0]?.datum === datum);
@@ -470,7 +470,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
                           disabled={gesamtPlaetze <= 0}
                           onClick={() => setGewaehltesTag1Datum(datum)}
                         >
-                          <strong>Tag 1: {formatDatum(datum)}</strong>
+                          <strong>{formatDatum(datum)}</strong>
                           <span>
                             {gesamtPlaetze <= 0 ? "Ausgebucht" : `Kurs über ${anzahlTage} Tage · ${varianten.length === 1 ? "1 Uhrzeit" : `${varianten.length} Uhrzeiten`} verfügbar`}
                           </span>
@@ -486,7 +486,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
                   </p>
                   {tag1Daten.length > 1 && (
                     <button type="button" className="kurs-back" onClick={() => setGewaehltesTag1Datum(null)} style={{ marginBottom: ".6rem" }}>
-                      ← Anderen Tag wählen
+                      ← Anderen Termin wählen
                     </button>
                   )}
                   <div className="termin-grid">
@@ -780,15 +780,15 @@ export default function SommerBuchung({ slots, texte }: Props) {
           <textarea {...register("q3_ziele")} rows={3} />
         </Field>
 
-        <Field label="Wie würdest du dein Kind beschreiben? (optional)" error={errors.q4_beschreibung?.message}>
+        <Field label="Wie würdest du dein Kind beschreiben?" error={errors.q4_beschreibung?.message}>
           <textarea {...register("q4_beschreibung")} rows={2} />
         </Field>
 
-        <Field label="Gab es bereits außerschulische Förderung oder Diagnosen? (optional)" error={errors.q5_diagnosen?.message}>
+        <Field label="Gab es bereits außerschulische Förderung oder Diagnosen?" error={errors.q5_diagnosen?.message}>
           <textarea {...register("q5_diagnosen")} rows={2} />
         </Field>
 
-        <Field label="Hast du eine Frage an mich? (optional)" error={errors.q6_frage?.message}>
+        <Field label="Hast du eine Frage an mich?" error={errors.q6_frage?.message}>
           <textarea {...register("q6_frage")} rows={2} />
         </Field>
 
