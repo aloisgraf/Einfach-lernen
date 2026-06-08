@@ -76,12 +76,14 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
   const [formOpen, setFormOpen] = useState(false);
   const [formData, setFormData] = useState(leerFormular);
   const [editId, setEditId] = useState<string | null>(null);
+  const [editGruppeIds, setEditGruppeIds] = useState<string[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
   function openNeu() {
     setEditId(null);
+    setEditGruppeIds(null);
     setFormData({ ...leerFormular, termine: [{ datum: "", uhrzeit_von: "", uhrzeit_bis: "" }] });
     setFormOpen(true);
   }
@@ -91,6 +93,7 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
     if (slot.gruppe_id) {
       const gruppenSlots = slots.filter((s) => s.gruppe_id === slot.gruppe_id).sort((a, b) => a.datum.localeCompare(b.datum));
       setEditId(gruppenSlots[0]?.id ?? null);
+      setEditGruppeIds(gruppenSlots.map((s) => s.id));
       setFormData({
         ...leerFormular,
         titel: slot.titel,
@@ -110,6 +113,7 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
     } else {
       // Einzelner Slot - bearbeite nur diesen
       setEditId(slot.id);
+      setEditGruppeIds(null);
       setFormData({
         ...leerFormular,
         titel: slot.titel,
@@ -133,6 +137,7 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
 
   function openKopie(slot: SlotMitPlaetzen) {
     setEditId(null);
+    setEditGruppeIds(null);
     setFormData({
       ...leerFormular,
       kurs: (slot as any).kurs ?? slot.titel,
@@ -168,7 +173,47 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
   async function handleSpeichern() {
     setLoading(true);
     try {
-      if (editId) {
+      if (editGruppeIds) {
+        const sharedFelder = {
+          titel: formData.kurs,
+          kurs: formData.kurs,
+          notizen: formData.notizen,
+          max_teilnehmer: Number(formData.max_teilnehmer),
+          freigegeben: formData.freigegeben,
+          preis: formData.preis,
+          preis_2er: formData.preis_2er,
+          preis_5er: formData.preis_5er,
+          preis_10er: formData.preis_10er,
+          preis_legasthenie: formData.preis_legasthenie,
+          preis_dyskalkulie: formData.preis_dyskalkulie,
+        };
+        const ergebnisse: Zeitslot[] = [];
+        for (let i = 0; i < editGruppeIds.length; i++) {
+          const termin = formData.termine[i] ?? formData.termine[formData.termine.length - 1];
+          const res = await fetch("/api/admin/slots", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: editGruppeIds[i],
+              ...sharedFelder,
+              datum: termin.datum,
+              uhrzeit_von: termin.uhrzeit_von,
+              uhrzeit_bis: termin.uhrzeit_bis,
+            }),
+          });
+          const saved = await res.json();
+          if (!res.ok) {
+            const msg = saved.details ? `${saved.error} (${saved.details})` : saved.error ?? "Fehler beim Speichern.";
+            throw new Error(msg);
+          }
+          ergebnisse.push(saved);
+        }
+        router.refresh();
+        setSlots((prev) => prev.map((s) => {
+          const idx = editGruppeIds.indexOf(s.id);
+          return idx !== -1 ? { ...ergebnisse[idx], freie_plaetze: s.freie_plaetze } : s;
+        }));
+      } else if (editId) {
         const body = {
           id: editId,
           titel: formData.kurs,
@@ -276,7 +321,7 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
     });
   }
 
-  const canSave = editId
+  const canSave = editId && !editGruppeIds
     ? Boolean(formData.datum && formData.uhrzeit_von && formData.uhrzeit_bis)
     : Boolean(
         formData.termine.length > 0 &&
@@ -480,7 +525,7 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
                 <label style={labelStyle}>Notizen (optional)</label>
                 <input type="text" value={formData.notizen} onChange={(e) => setFormData((d) => ({ ...d, notizen: e.target.value }))} style={inputStyle} placeholder="Interne Notizen" />
               </div>
-              {editId ? (
+              {editId && !editGruppeIds ? (
                 <>
                   <div>
                     <label style={labelStyle}>Datum *</label>
@@ -519,37 +564,45 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
                           {i === 0 && <span style={labelStyle}>Bis</span>}
                           <input type="time" value={termin.uhrzeit_bis} onChange={(e) => terminAendern(i, "uhrzeit_bis", e.target.value)} style={inputStyle} />
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => terminEntfernen(i)}
-                          disabled={formData.termine.length === 1}
-                          style={{
-                            padding: 10, borderRadius: 8, border: "1.5px solid #e5e7eb", background: "#fff",
-                            cursor: formData.termine.length === 1 ? "not-allowed" : "pointer",
-                            color: formData.termine.length === 1 ? "#e5e7eb" : "#9ca3af", display: "flex",
-                          }}
-                          title="Termin entfernen"
-                        >
-                          <X style={{ width: 14, height: 14 }} />
-                        </button>
+                        {!editGruppeIds && (
+                          <button
+                            type="button"
+                            onClick={() => terminEntfernen(i)}
+                            disabled={formData.termine.length === 1}
+                            style={{
+                              padding: 10, borderRadius: 8, border: "1.5px solid #e5e7eb", background: "#fff",
+                              cursor: formData.termine.length === 1 ? "not-allowed" : "pointer",
+                              color: formData.termine.length === 1 ? "#e5e7eb" : "#9ca3af", display: "flex",
+                            }}
+                            title="Termin entfernen"
+                          >
+                            <X style={{ width: 14, height: 14 }} />
+                          </button>
+                        )}
                       </div>
                     ))}
                   </div>
-                  <button
-                    type="button"
-                    onClick={terminHinzufuegen}
-                    style={{
-                      marginTop: 10, display: "flex", alignItems: "center", gap: 6,
-                      padding: "8px 14px", borderRadius: 10, border: "1.5px dashed #d1d5db",
-                      background: "#fff", color: "#6b7280", fontSize: 12, fontWeight: 700,
-                      cursor: "pointer", fontFamily: "inherit",
-                    }}
-                  >
-                    <Plus style={{ width: 13, height: 13 }} />
-                    Weiteren Termin hinzufügen
-                  </button>
+                  {editGruppeIds ? (
+                    <p style={{ fontSize: 11, color: "#9ca3af", margin: "10px 0 0", lineHeight: 1.5 }}>
+                      Termine hinzufügen oder entfernen ist beim Bearbeiten eines mehrtägigen Kurses nicht möglich – lege dafür einen neuen Kurs an.
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={terminHinzufuegen}
+                      style={{
+                        marginTop: 10, display: "flex", alignItems: "center", gap: 6,
+                        padding: "8px 14px", borderRadius: 10, border: "1.5px dashed #d1d5db",
+                        background: "#fff", color: "#6b7280", fontSize: 12, fontWeight: 700,
+                        cursor: "pointer", fontFamily: "inherit",
+                      }}
+                    >
+                      <Plus style={{ width: 13, height: 13 }} />
+                      Weiteren Termin hinzufügen
+                    </button>
+                  )}
 
-                  {formData.termine.length > 1 && (
+                  {formData.termine.length > 1 && !editGruppeIds && (
                     <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, border: "1.5px solid #e5e7eb", cursor: "pointer", marginTop: 14 }}>
                       <input
                         type="checkbox"

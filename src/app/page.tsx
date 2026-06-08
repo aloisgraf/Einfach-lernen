@@ -94,40 +94,6 @@ export default async function Home() {
             ))}
           </div>
         </div>
-
-        <div className="hero-visual">
-          <div className="hero-card-wrap">
-            <div className="main-card">
-              <div className="card-top">
-                <div className="card-chip cc-pale">📖</div>
-                <div className="card-chip cc-gold">✏️</div>
-                <div className="card-chip cc-sand">🧮</div>
-              </div>
-              <h3>{texte.hero.card_heading}</h3>
-              <p>{texte.hero.card_text}</p>
-              <div className="prog-stack">
-                <div className="prog-row">
-                  <span className="prog-lbl">Lesekompetenz</span>
-                  <div className="prog-track"><div className="prog-bar pb-1" /></div>
-                  <span className="prog-val pv-1">+84%</span>
-                </div>
-                <div className="prog-row">
-                  <span className="prog-lbl">Rechtschreiben</span>
-                  <div className="prog-track"><div className="prog-bar pb-2" /></div>
-                  <span className="prog-val pv-2">+70%</span>
-                </div>
-                <div className="prog-row">
-                  <span className="prog-lbl">Rechnen</span>
-                  <div className="prog-track"><div className="prog-bar pb-3" /></div>
-                  <span className="prog-val pv-3">+76%</span>
-                </div>
-              </div>
-            </div>
-            {splitItems(texte.hero.tags).map((tag, i) => (
-              <div key={i} className={`float-tag ft-${i + 1}`}>{tag}</div>
-            ))}
-          </div>
-        </div>
       </section>
 
       <hr className="divider" />
