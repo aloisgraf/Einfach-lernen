@@ -108,13 +108,14 @@ const schema = z.object({
   vorname: z.string().min(2, "Pflichtfeld"),
   nachname: z.string().min(2, "Pflichtfeld"),
   email: z.string().email("Ungültige E-Mail"),
-  name_kind: z.string().min(2, "Pflichtfeld"),
-  schulstufe: z.string().min(1, "Bitte wählen"),
-  kind_lernen: z.string().min(3, "Pflichtfeld"),
   telefon: z.string().min(7, "Pflichtfeld"),
-  kind_beschreibung: z.string().optional(),
-  kind_diagnosen: z.string().optional(),
-  nachricht: z.string().optional(),
+  q0_kinder_anzahl: z.string().min(1, "Bitte wählen"),
+  q1_name_klasse: z.string().min(2, "Pflichtfeld"),
+  q2_bereiche: z.string().min(3, "Pflichtfeld"),
+  q3_ziele: z.string().min(3, "Pflichtfeld"),
+  q4_beschreibung: z.string().optional(),
+  q5_diagnosen: z.string().optional(),
+  q6_frage: z.string().optional(),
   datenschutz: z.boolean().refine((v) => v, { message: "Bitte bestätigen" }),
 });
 type FormData = z.infer<typeof schema>;
@@ -170,8 +171,8 @@ interface KursFamilie {
 
 const PAKETE = [
   { anzahl: 1, label: "Einzelstunde" },
-  { anzahl: 5, label: "5er-Sommerpaket" },
-  { anzahl: 10, label: "10er-Rundum-Sicher-Paket" },
+  { anzahl: 5, label: "5 Einheiten" },
+  { anzahl: 10, label: "10 Einheiten" },
 ] as const;
 
 export default function SommerBuchung({ slots, texte }: Props) {
@@ -187,7 +188,6 @@ export default function SommerBuchung({ slots, texte }: Props) {
   const [errorMsg, setErrorMsg] = useState("");
   const [useCalendarView, setUseCalendarView] = useState(true);
   const [kalenderdatum, setKalenderdatum] = useState<string | null>(null);
-  const [weiterKinder, setWeitereKinder] = useState<Array<{ name: string; schulstufe: string; lernen: string; beschreibung: string; diagnosen: string }>>([]);
 
   // ── Kurse zu Familien gruppieren (Kurs ist die Hauptüberschrift) ────────────
   const familien: KursFamilie[] = [];
@@ -288,7 +288,6 @@ export default function SommerBuchung({ slots, texte }: Props) {
     setGewaehltesTag1Datum(null);
     setGewaehltesPaket(null);
     setAusgewaehlteSlots([]);
-    setWeitereKinder([]);
   }
 
   function zurueckZuKursen() {
@@ -309,28 +308,11 @@ export default function SommerBuchung({ slots, texte }: Props) {
     resolver: zodResolver(schema),
   });
 
-  // Bei Legasthenie-/Dyskalkulietraining den Schwerpunkt im Formular vorschlagen
-  useEffect(() => {
-    if (aktuelleFamilie?.erzwingeSchwerpunkt) {
-      setValue("schulstufe", aktuelleFamilie.erzwingeSchwerpunkt);
-    }
-  }, [aktuelleFamilie?.erzwingeSchwerpunkt, setValue]);
 
 
   async function onSubmit(data: FormData) {
     if (!auswahlAbgeschlossen || ausgewaehlteSlots.length === 0) return;
     setStatus("loading");
-
-    const allKinder = [
-      {
-        name: data.name_kind,
-        schulstufe: data.schulstufe,
-        lernen: data.kind_lernen,
-        beschreibung: data.kind_beschreibung || "",
-        diagnosen: data.kind_diagnosen || "",
-      },
-      ...weiterKinder,
-    ];
 
     try {
       // Mehrtägiger Kurs: Backend bucht beim ersten Termin automatisch alle der Gruppe.
@@ -339,40 +321,36 @@ export default function SommerBuchung({ slots, texte }: Props) {
         ? [ausgewaehlteSlots[0]]
         : ausgewaehlteSlots;
 
-      // Für jedes Kind und jeden Slot eine Buchung erstellen
-      for (const kind of allKinder) {
-        if (!kind.name.trim() || !kind.schulstufe || !kind.lernen.trim()) continue;
+      const optionalParts = [
+        `Anzahl Kinder: ${data.q0_kinder_anzahl}`,
+        data.q4_beschreibung?.trim() && `Wie würde ich dein Kind beschreiben:\n${data.q4_beschreibung.trim()}`,
+        data.q5_diagnosen?.trim() && `Außerschulische Förderung / Diagnosen:\n${data.q5_diagnosen.trim()}`,
+        data.q6_frage?.trim() && `Frage:\n${data.q6_frage.trim()}`,
+      ].filter(Boolean);
 
-        const optionalParts = [
-          kind.beschreibung?.trim() && `Beschreibung des Kindes:\n${kind.beschreibung.trim()}`,
-          kind.diagnosen?.trim() && `Diagnosen / frühere Förderung:\n${kind.diagnosen.trim()}`,
-          data.nachricht?.trim() && `Nachricht:\n${data.nachricht.trim()}`,
-        ].filter(Boolean);
-
-        for (const slot of zuBuchen) {
-          const res = await fetch("/api/buchung", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              zeitslot_id: slot.id,
-              vorname: data.vorname,
-              nachname: data.nachname,
-              email: data.email,
-              telefon: data.telefon,
-              name_kind: kind.name,
-              schulstufe: kind.schulstufe,
-              kind_lernen: kind.lernen,
-              kind_staerken: optionalParts.join("\n\n"),
-            }),
-          });
-          const json = await res.json();
-          if (!res.ok) throw new Error(json.error ?? "Fehler");
-        }
+      for (const slot of zuBuchen) {
+        const res = await fetch("/api/buchung", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            zeitslot_id: slot.id,
+            vorname: data.vorname,
+            nachname: data.nachname,
+            email: data.email,
+            telefon: data.telefon,
+            name_kind: data.q1_name_klasse,
+            schulstufe: data.q2_bereiche,
+            kind_lernen: data.q3_ziele,
+            kind_staerken: optionalParts.join("\n\n"),
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error ?? "Fehler");
       }
 
       setSlotsState((prev) => prev.map((s) => {
         const betroffen = ausgewaehlteSlots.find((a) => (a.gruppe_id ? s.gruppe_id === a.gruppe_id : s.id === a.id));
-        return betroffen ? { ...s, freie_plaetze: Math.max(0, s.freie_plaetze - allKinder.length) } : s;
+        return betroffen ? { ...s, freie_plaetze: Math.max(0, s.freie_plaetze - 1) } : s;
       }));
       setStatus("success");
     } catch (err) {
@@ -758,6 +736,8 @@ export default function SommerBuchung({ slots, texte }: Props) {
         onSubmit={handleSubmit(onSubmit)}
         style={{ display: auswahlAbgeschlossen ? "block" : "none" }}
       >
+        <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: "1.5rem 0 1rem", color: "var(--ink)" }}>Deine Angaben</h3>
+
         <div className="form-grid">
           <div className="fg">
             <label style={{ marginBottom: 12 }}>Vorname *</label>
@@ -775,123 +755,44 @@ export default function SommerBuchung({ slots, texte }: Props) {
             {errors.email && <span className="err">{errors.email.message}</span>}
           </div>
           <div className="fg" style={{ gridColumn: "1 / -1" }}>
-            <label style={{ marginBottom: 12 }}>{texte.telefon_label} *</label>
+            <label style={{ marginBottom: 12 }}>Telefonnummer *</label>
             <input {...register("telefon")} type="tel" placeholder="+43 660 123 456" />
             {errors.telefon && <span className="err">{errors.telefon.message}</span>}
           </div>
         </div>
 
-        <Field label={`${texte.name_kind_label} *`} hint={texte.name_kind_hint} error={errors.name_kind?.message}>
-          <textarea {...register("name_kind")} rows={2} placeholder="z.B. Emma, 3. Klasse VS" />
-        </Field>
+        <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: "1.5rem 0 1rem", color: "var(--ink)" }}>Fragen zum Kind</h3>
 
-        <Field label={`${texte.schwerpunkt_label} *`} hint={texte.schwerpunkt_hint} error={errors.schulstufe?.message}>
-          <select {...register("schulstufe")} defaultValue="">
+        <Field label="Wird die Stunde für 1 oder 2 Kinder gebucht? *" error={errors.q0_kinder_anzahl?.message}>
+          <select {...register("q0_kinder_anzahl")} defaultValue="">
             <option value="">Bitte wählen…</option>
-            {schwerpunkte.map((s) => <option key={s} value={s}>{s}</option>)}
+            <option value="1 Kind">1 Kind</option>
+            <option value="2 Kinder">2 Kinder</option>
           </select>
         </Field>
 
-        <Field label={`${texte.kind_lernen_label} *`} hint={texte.kind_lernen_hint} error={errors.kind_lernen?.message}>
-          <textarea {...register("kind_lernen")} rows={3} placeholder="z.B. Lücken in der Rechtschreibung schließen und wieder mehr Freude am Lesen finden." />
+        <Field label="Wie heißt dein Kind? In welche Klasse kommt dein Kind? *" error={errors.q1_name_klasse?.message}>
+          <textarea {...register("q1_name_klasse")} rows={2} placeholder="z.B. Emma, 3. Klasse VS" />
         </Field>
 
-        <Field label={`${texte.kind_beschreibung_label} (optional)`} hint={texte.kind_beschreibung_hint}>
-          <textarea {...register("kind_beschreibung")} rows={2} placeholder="Was zeichnet dein Kind aus, was macht ihm Freude?" />
+        <Field label="In welchem Bereich/welchen Themen darf ich dein Kind unterstützen? *" error={errors.q2_bereiche?.message}>
+          <textarea {...register("q2_bereiche")} rows={2} placeholder="z.B. Mathematik, Deutsch, Englisch, Schulängstlichkeit, etc." />
         </Field>
 
-        <Field label={`${texte.kind_diagnosen_label} (optional)`} hint={texte.kind_diagnosen_hint}>
-          <textarea {...register("kind_diagnosen")} rows={2} placeholder="z.B. Legasthenie-Diagnose vom Schulpsychologischen Dienst, 2023." />
+        <Field label="Was soll durch die Förderung erreicht werden? (Wiederholen, Festigen, Lücken schließen...) *" error={errors.q3_ziele?.message}>
+          <textarea {...register("q3_ziele")} rows={3} placeholder="z.B. Lücken in der Rechtschreibung schließen und wieder mehr Freude am Lesen finden." />
         </Field>
 
-        <button
-          type="button"
-          onClick={() => setWeitereKinder([...weiterKinder, { name: "", schulstufe: "", lernen: "", beschreibung: "", diagnosen: "" }])}
-          style={{ display: "flex", alignItems: "center", gap: 6, padding: "10px 14px", background: "var(--pine-pale)", border: "1.5px solid var(--pine)", borderRadius: 10, color: "var(--pine)", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", marginTop: ".5rem" }}
-        >
-          ➕ Weiteres Kind hinzufügen
-        </button>
+        <Field label="Wie würdest du dein Kind beschreiben? (optional)" error={errors.q4_beschreibung?.message}>
+          <textarea {...register("q4_beschreibung")} rows={2} placeholder="Was zeichnet dein Kind aus, was macht ihm Freude?" />
+        </Field>
 
-        {weiterKinder.length > 0 && (
-          <div style={{ background: "var(--sand-pale)", borderRadius: 10, padding: "1rem", marginTop: "1rem" }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)", margin: "0 0 1rem" }}>Weitere Kinder ({weiterKinder.length})</p>
-            {weiterKinder.map((kind, idx) => (
-              <div key={idx} style={{ marginBottom: "1rem", paddingBottom: "1rem", borderBottom: idx < weiterKinder.length - 1 ? "1px solid #e5e7eb" : "none" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: ".8rem" }}>
-                  <div className="fg">
-                    <label style={{ marginBottom: 6, display: "block", fontSize: 12, fontWeight: 600, color: "#6b7280" }}>Name / Klasse *</label>
-                    <input
-                      type="text"
-                      value={kind.name}
-                      onChange={(e) => {
-                        const updated = [...weiterKinder];
-                        updated[idx].name = e.target.value;
-                        setWeitereKinder(updated);
-                      }}
-                      placeholder="z.B. Emma, 3. Klasse VS"
-                      style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1.5px solid #e5e7eb", fontSize: 13, boxSizing: "border-box", fontFamily: "inherit" }}
-                    />
-                  </div>
-                  <div className="fg">
-                    <label style={{ marginBottom: 6, display: "block", fontSize: 12, fontWeight: 600, color: "#6b7280" }}>Schulstufe *</label>
-                    <select
-                      value={kind.schulstufe}
-                      onChange={(e) => {
-                        const updated = [...weiterKinder];
-                        updated[idx].schulstufe = e.target.value;
-                        setWeitereKinder(updated);
-                      }}
-                      style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1.5px solid #e5e7eb", fontSize: 13, boxSizing: "border-box", fontFamily: "inherit" }}
-                    >
-                      <option value="">Bitte wählen</option>
-                      {schwerpunkte.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="fg full">
-                  <label style={{ marginBottom: 6, display: "block", fontSize: 12, fontWeight: 600, color: "#6b7280" }}>Was soll das Kind lernen? *</label>
-                  <textarea
-                    value={kind.lernen}
-                    onChange={(e) => {
-                      const updated = [...weiterKinder];
-                      updated[idx].lernen = e.target.value;
-                      setWeitereKinder(updated);
-                    }}
-                    rows={2}
-                    placeholder="z.B. Lücken in der Rechtschreibung schließen"
-                    style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1.5px solid #e5e7eb", fontSize: 13, boxSizing: "border-box", fontFamily: "inherit", resize: "vertical" }}
-                  />
-                </div>
-                <div className="fg full" style={{ marginTop: ".8rem" }}>
-                  <label style={{ marginBottom: 6, display: "block", fontSize: 12, fontWeight: 600, color: "#6b7280" }}>Besonderheiten (optional)</label>
-                  <textarea
-                    value={kind.beschreibung}
-                    onChange={(e) => {
-                      const updated = [...weiterKinder];
-                      updated[idx].beschreibung = e.target.value;
-                      setWeitereKinder(updated);
-                    }}
-                    rows={1}
-                    placeholder="Was zeichnet das Kind aus?"
-                    style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1.5px solid #e5e7eb", fontSize: 13, boxSizing: "border-box", fontFamily: "inherit", resize: "vertical" }}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setWeitereKinder(weiterKinder.filter((_, i) => i !== idx))}
-                  style={{ marginTop: ".8rem", padding: "8px 12px", background: "#fee2e2", border: "1px solid #fecaca", borderRadius: 8, color: "#dc2626", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
-                >
-                  ✕ Dieses Kind entfernen
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
+        <Field label="Gab es bereits außerschulische Förderung oder Diagnosen? (optional)" error={errors.q5_diagnosen?.message}>
+          <textarea {...register("q5_diagnosen")} rows={2} placeholder="z.B. Legasthenie-Diagnose vom Schulpsychologischen Dienst, 2023." />
+        </Field>
 
-        <Field label={`${texte.nachricht_label} (optional)`} hint={texte.nachricht_hint}>
-          <textarea {...register("nachricht")} rows={2} placeholder="Fragen, Besonderheiten…" />
+        <Field label="Hast du eine Frage an mich? (optional)" error={errors.q6_frage?.message}>
+          <textarea {...register("q6_frage")} rows={2} placeholder="Besondere Fragen oder Anforderungen?" />
         </Field>
 
         <label className="consent">
