@@ -74,6 +74,8 @@ function slotsSchemaSicherstellen(): Promise<void> {
         sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS preis_2er NUMERIC`,
         sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS preis_5er NUMERIC`,
         sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS preis_10er NUMERIC`,
+        sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS preis_legasthenie NUMERIC`,
+        sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS preis_dyskalkulie NUMERIC`,
         sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS kategorien TEXT[] NOT NULL DEFAULT '{}'`,
         sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS gruppe_id UUID`,
         sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS kurs TEXT`,
@@ -131,6 +133,8 @@ async function dbCreateSlot(data: Omit<Zeitslot, "id" | "erstellt_am">): Promise
     preis_2er: (data as any).preis_2er ?? null,
     preis_5er: data.preis_5er ?? null,
     preis_10er: data.preis_10er ?? null,
+    preis_legasthenie: (data as any).preis_legasthenie ?? null,
+    preis_dyskalkulie: (data as any).preis_dyskalkulie ?? null,
     gruppe_id: data.gruppe_id ?? null,
   };
   for (let versuch = 0; versuch < Object.keys(felder).length; versuch++) {

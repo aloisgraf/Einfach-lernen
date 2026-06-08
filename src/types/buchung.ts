@@ -16,6 +16,10 @@ export interface Zeitslot {
   preis_5er?: number | null;
   /** Vergünstigter Gesamtpreis ab 10 gebuchten Terminen – wird dem Kunden als Hinweis angezeigt. */
   preis_10er?: number | null;
+  /** Preis pro Stunde für Legasthenietraining (optional, falls abweichend vom Normalpreis). */
+  preis_legasthenie?: number | null;
+  /** Preis pro Stunde für Dyskalkulietraining (optional, falls abweichend vom Normalpreis). */
+  preis_dyskalkulie?: number | null;
   kategorien?: string[];
   /** Verknüpft Termine eines mehrtägigen Kurses – Buchung eines Termins bucht alle Termine der Gruppe. */
   gruppe_id?: string | null;

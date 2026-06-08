@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Pencil, Trash2, Eye, EyeOff, X, Check, Loader2, CalendarClock } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, X, Check, Loader2, CalendarClock, Copy } from "lucide-react";
 import { Zeitslot } from "@/types/buchung";
 
 interface SlotMitPlaetzen extends Zeitslot {
@@ -36,6 +36,8 @@ const leerFormular = {
   preis_2er: "",
   preis_5er: "",
   preis_10er: "",
+  preis_legasthenie: "",
+  preis_dyskalkulie: "",
 };
 
 const card: React.CSSProperties = {
@@ -100,6 +102,8 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
         preis_2er: (slot as any).preis_2er != null ? String((slot as any).preis_2er) : "",
         preis_5er: slot.preis_5er != null ? String(slot.preis_5er) : "",
         preis_10er: slot.preis_10er != null ? String(slot.preis_10er) : "",
+        preis_legasthenie: slot.preis_legasthenie != null ? String(slot.preis_legasthenie) : "",
+        preis_dyskalkulie: slot.preis_dyskalkulie != null ? String(slot.preis_dyskalkulie) : "",
         termine: gruppenSlots.map((s) => ({ datum: s.datum, uhrzeit_von: s.uhrzeit_von, uhrzeit_bis: s.uhrzeit_bis })),
         alsGruppe: true,
       });
@@ -120,8 +124,29 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
         preis_2er: (slot as any).preis_2er != null ? String((slot as any).preis_2er) : "",
         preis_5er: slot.preis_5er != null ? String(slot.preis_5er) : "",
         preis_10er: slot.preis_10er != null ? String(slot.preis_10er) : "",
+        preis_legasthenie: slot.preis_legasthenie != null ? String(slot.preis_legasthenie) : "",
+        preis_dyskalkulie: slot.preis_dyskalkulie != null ? String(slot.preis_dyskalkulie) : "",
       });
     }
+    setFormOpen(true);
+  }
+
+  function openKopie(slot: SlotMitPlaetzen) {
+    setEditId(null);
+    setFormData({
+      ...leerFormular,
+      kurs: (slot as any).kurs ?? slot.titel,
+      notizen: (slot as any).notizen ?? "",
+      max_teilnehmer: String(slot.max_teilnehmer),
+      freigegeben: slot.freigegeben,
+      preis: slot.preis != null ? String(slot.preis) : "",
+      preis_2er: (slot as any).preis_2er != null ? String((slot as any).preis_2er) : "",
+      preis_5er: slot.preis_5er != null ? String(slot.preis_5er) : "",
+      preis_10er: slot.preis_10er != null ? String(slot.preis_10er) : "",
+      preis_legasthenie: slot.preis_legasthenie != null ? String(slot.preis_legasthenie) : "",
+      preis_dyskalkulie: slot.preis_dyskalkulie != null ? String(slot.preis_dyskalkulie) : "",
+      termine: [{ datum: "", uhrzeit_von: slot.uhrzeit_von, uhrzeit_bis: slot.uhrzeit_bis }],
+    });
     setFormOpen(true);
   }
 
@@ -158,6 +183,8 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
           preis_2er: formData.preis_2er,
           preis_5er: formData.preis_5er,
           preis_10er: formData.preis_10er,
+          preis_legasthenie: formData.preis_legasthenie,
+          preis_dyskalkulie: formData.preis_dyskalkulie,
         };
         const res = await fetch("/api/admin/slots", {
           method: "PATCH",
@@ -182,6 +209,8 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
           preis_2er: formData.preis_2er,
           preis_5er: formData.preis_5er,
           preis_10er: formData.preis_10er,
+          preis_legasthenie: formData.preis_legasthenie,
+          preis_dyskalkulie: formData.preis_dyskalkulie,
           termine: formData.termine,
           alsGruppe: formData.alsGruppe,
         };
@@ -389,6 +418,13 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
                         <td style={{ padding: "14px 16px" }}>
                           <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 4 }}>
                             <button
+                              onClick={() => openKopie(firstSlot)}
+                              style={{ padding: 8, borderRadius: 8, border: "none", background: "none", cursor: "pointer", color: "#9ca3af" }}
+                              title="Kopieren"
+                            >
+                              <Copy style={{ width: 15, height: 15 }} />
+                            </button>
+                            <button
                               onClick={() => openEdit(firstSlot)}
                               style={{ padding: 8, borderRadius: 8, border: "none", background: "none", cursor: "pointer", color: "#9ca3af" }}
                               title="Bearbeiten"
@@ -560,6 +596,19 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
               </div>
               <p style={{ fontSize: 11, color: "#9ca3af", margin: "-6px 0 0" }}>
                 Diese Preise werden dem Kunden als Mengenrabatt-Hinweis angezeigt (z.B. „ab 5 Terminen nur € 160″).
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Preis Legasthenietraining in € (optional)</label>
+                  <input type="number" min={0} step="1" value={formData.preis_legasthenie} onChange={(e) => setFormData((d) => ({ ...d, preis_legasthenie: e.target.value }))} style={inputStyle} placeholder="z.B. 60" />
+                </div>
+                <div>
+                  <label style={labelStyle}>Preis Dyskalkulietraining in € (optional)</label>
+                  <input type="number" min={0} step="1" value={formData.preis_dyskalkulie} onChange={(e) => setFormData((d) => ({ ...d, preis_dyskalkulie: e.target.value }))} style={inputStyle} placeholder="z.B. 60" />
+                </div>
+              </div>
+              <p style={{ fontSize: 11, color: "#9ca3af", margin: "-6px 0 0" }}>
+                Eigene Preise für Legasthenie-/Dyskalkulietraining. Diese Termine teilen sich die Plätze mit der normalen Einzelstunde.
               </p>
               <label style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, border: "1.5px solid #e5e7eb", cursor: "pointer" }}>
                 <input

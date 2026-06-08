@@ -31,9 +31,21 @@ function RabattHinweis({ slots }: { slots: SlotMitPlaetzen[] }) {
   );
 }
 
-function berechneGesamtpreis(slots: SlotMitPlaetzen[]): { total: number; label: string } | null {
+function berechneGesamtpreis(slots: SlotMitPlaetzen[], schwerpunkt?: string): { total: number; label: string } | null {
   const count = slots.length;
   if (count === 0) return null;
+
+  if (schwerpunkt === "Legasthenietraining") {
+    const p = slots.find((s) => s.preis_legasthenie != null)?.preis_legasthenie;
+    if (p == null) return null;
+    return { total: count * p, label: count === 1 ? "Legasthenietraining" : `${count} × Legasthenietraining` };
+  }
+  if (schwerpunkt === "Dyskalkulietraining") {
+    const p = slots.find((s) => s.preis_dyskalkulie != null)?.preis_dyskalkulie;
+    if (p == null) return null;
+    return { total: count * p, label: count === 1 ? "Dyskalkulietraining" : `${count} × Dyskalkulietraining` };
+  }
+
   const einzelPreis = slots.find((s) => s.preis != null)?.preis;
   const preis5er = slots.find((s) => s.preis_5er != null)?.preis_5er;
   const preis10er = slots.find((s) => s.preis_10er != null)?.preis_10er;
@@ -357,7 +369,11 @@ export default function SommerBuchung({ slots, texte }: Props) {
           {familien.map((familie) => {
             const alleSlots = familie.istGruppenKurs ? familie.varianten.flatMap((v) => v.slots) : familie.einzelSlots;
             const gesamtPlaetze = alleSlots.reduce((sum, s) => sum + s.freie_plaetze, 0);
-            const preise = Array.from(new Set(alleSlots.map((s) => s.preis).filter((p): p is number => p != null)));
+            const preise = Array.from(new Set(alleSlots.map((s) =>
+              familie.erzwingeSchwerpunkt === "Legasthenietraining" ? s.preis_legasthenie :
+              familie.erzwingeSchwerpunkt === "Dyskalkulietraining" ? s.preis_dyskalkulie :
+              s.preis
+            ).filter((p): p is number => p != null)));
             const terminAnzahl = familie.istGruppenKurs
               ? (familie.varianten[0]?.slots.length ?? 0)
               : familie.einzelSlots.length;
@@ -386,7 +402,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
                     </span>
                   )}
                 </div>
-                <RabattHinweis slots={alleSlots} />
+                {!familie.erzwingeSchwerpunkt && <RabattHinweis slots={alleSlots} />}
               </button>
             );
           })}
@@ -525,9 +541,11 @@ export default function SommerBuchung({ slots, texte }: Props) {
                     {aktuelleFamilie.emoji} {aktuelleFamilie.titel} – wähle {gewaehltesPaket === 1 ? "deinen Termin" : `${gewaehltesPaket} Termine`}
                     {gewaehltesPaket > 1 && ` (${ausgewaehlteSlots.length}/${gewaehltesPaket} ausgewählt)`}
                   </p>
-                  <button type="button" className="kurs-back" onClick={() => { setGewaehltesPaket(null); setAusgewaehlteSlots([]); }} style={{ marginBottom: ".6rem" }}>
-                    ← Anderes Paket wählen
-                  </button>
+                  {!aktuelleFamilie.erzwingeSchwerpunkt && (
+                    <button type="button" className="kurs-back" onClick={() => { setGewaehltesPaket(null); setAusgewaehlteSlots([]); }} style={{ marginBottom: ".6rem" }}>
+                      ← Anderes Paket wählen
+                    </button>
+                  )}
                   <div className="termin-grid">
                     {aktuelleFamilie.einzelSlots.map((slot) => {
                       const ausgewaehlt = Boolean(ausgewaehlteSlots.find((s) => s.id === slot.id));
@@ -582,7 +600,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
       )}
 
       {auswahlAbgeschlossen && ausgewaehlteSlots.length > 0 && (() => {
-        const preisInfo = berechneGesamtpreis(ausgewaehlteSlots);
+        const preisInfo = berechneGesamtpreis(ausgewaehlteSlots, aktuelleFamilie?.erzwingeSchwerpunkt);
         return (
           <div style={{ background: "var(--pine-pale)", borderRadius: 11, padding: ".7rem 1rem", marginBottom: "1rem", fontSize: ".85rem", color: "var(--pine-dark)" }}>
             <div style={{ fontWeight: 700 }}>
@@ -600,7 +618,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
                 💰 {preisInfo.label}: <strong>€ {preisInfo.total}</strong>
               </div>
             )}
-            {!aktuelleFamilie?.istGruppenKurs && <RabattHinweis slots={ausgewaehlteSlots} />}
+            {!aktuelleFamilie?.istGruppenKurs && !aktuelleFamilie?.erzwingeSchwerpunkt && <RabattHinweis slots={ausgewaehlteSlots} />}
           </div>
         );
       })()}

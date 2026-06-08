@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   if (err) return err;
 
   const body = await req.json();
-  const { titel, kurs, notizen, beschreibung, max_teilnehmer, freigegeben, preis, preis_2er, preis_5er, preis_10er, termine, alsGruppe } = body;
+  const { titel, kurs, notizen, beschreibung, max_teilnehmer, freigegeben, preis, preis_2er, preis_5er, preis_10er, preis_legasthenie, preis_dyskalkulie, termine, alsGruppe } = body;
 
   const zuZahl = (v: unknown): number | null =>
     v === "" || v === null || v === undefined ? null : Number(v);
@@ -75,6 +75,8 @@ export async function POST(req: NextRequest) {
     preis_2er: zuZahl(preis_2er),
     preis_5er: zuZahl(preis_5er),
     preis_10er: zuZahl(preis_10er),
+    preis_legasthenie: zuZahl(preis_legasthenie),
+    preis_dyskalkulie: zuZahl(preis_dyskalkulie),
   };
 
   try {
@@ -116,6 +118,8 @@ export async function PATCH(req: NextRequest) {
   if ("preis_2er" in patch) patch.preis_2er = zuZahl(patch.preis_2er);
   if ("preis_5er" in patch) patch.preis_5er = zuZahl(patch.preis_5er);
   if ("preis_10er" in patch) patch.preis_10er = zuZahl(patch.preis_10er);
+  if ("preis_legasthenie" in patch) patch.preis_legasthenie = zuZahl(patch.preis_legasthenie);
+  if ("preis_dyskalkulie" in patch) patch.preis_dyskalkulie = zuZahl(patch.preis_dyskalkulie);
 
   try {
     const updated = await updateSlot(id, patch);
