@@ -222,22 +222,38 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
     setBulkLoadingFields(new Set(Object.keys(bulkFormData)));
 
     try {
-      for (const field of Object.keys(bulkFormData)) {
-        const updates = slots
-          .filter((s) => selectedGroupIds.has(s.gruppe_id || s.id))
-          .map((s) => ({
-            id: s.id,
-            field: field,
-            value: (bulkFormData as any)[field],
-          }));
+      const slotsToUpdate = slots.filter((s) => selectedGroupIds.has(s.gruppe_id || s.id));
 
-        for (const update of updates) {
-          const res = await fetch("/api/admin/slots", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(update),
-          });
-          if (!res.ok) throw new Error("Fehler beim Speichern");
+      // Bereite die Update-Daten vor
+      const updatePayload: any = { id: slotsToUpdate[0].id, ...bulkFormData };
+
+      // Konvertiere Strings zu Nummern für Preise
+      if (updatePayload.preis !== undefined && updatePayload.preis !== "") {
+        updatePayload.preis = updatePayload.preis === "" ? null : parseFloat(updatePayload.preis);
+      }
+      if (updatePayload.preis_5er !== undefined && updatePayload.preis_5er !== "") {
+        updatePayload.preis_5er = updatePayload.preis_5er === "" ? null : parseFloat(updatePayload.preis_5er);
+      }
+      if (updatePayload.preis_10er !== undefined && updatePayload.preis_10er !== "") {
+        updatePayload.preis_10er = updatePayload.preis_10er === "" ? null : parseFloat(updatePayload.preis_10er);
+      }
+      if (updatePayload.preis_legasthenie !== undefined && updatePayload.preis_legasthenie !== "") {
+        updatePayload.preis_legasthenie = updatePayload.preis_legasthenie === "" ? null : parseFloat(updatePayload.preis_legasthenie);
+      }
+      if (updatePayload.preis_dyskalkulie !== undefined && updatePayload.preis_dyskalkulie !== "") {
+        updatePayload.preis_dyskalkulie = updatePayload.preis_dyskalkulie === "" ? null : parseFloat(updatePayload.preis_dyskalkulie);
+      }
+
+      // Aktualisiere jeden Slot
+      for (const slot of slotsToUpdate) {
+        const res = await fetch("/api/admin/slots", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: slot.id, ...bulkFormData }),
+        });
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.error ?? "Fehler beim Speichern");
         }
       }
 
@@ -258,8 +274,8 @@ export default function SlotsVerwaltung({ initialSlots }: Props) {
       setBulkLoadingFields(new Set());
       setSelectedGroupIds(new Set());
     } catch (err) {
-      console.error(err);
-      alert("Fehler beim Speichern");
+      console.error("saveBulk error:", err);
+      alert(err instanceof Error ? err.message : "Fehler beim Speichern");
       setBulkLoadingFields(new Set());
     }
   }
