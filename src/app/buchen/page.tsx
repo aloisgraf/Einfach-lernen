@@ -51,6 +51,43 @@ export default async function BuchenPage() {
     <div className={`lv-page ${raleway.variable} ${nunito.variable}`} style={{ padding: 0 }}>
       <section className="sec" style={{ background: "var(--white)", padding: "2rem max(1.5rem,6vw)" }}>
         <div className="content-wrap" style={{ maxWidth: 640 }}>
+          {/* Hero Header */}
+          <div style={{ textAlign: "center", marginBottom: "2.2rem", paddingBottom: "2rem", borderBottom: "2px solid #eaf4ef" }}>
+            <img
+              src="/logo.png"
+              alt="Einfach Lernen Pongau"
+              style={{ height: 70, marginBottom: "1.1rem", objectFit: "contain" }}
+            />
+            <h1 style={{
+              fontFamily: `var(--font-raleway), sans-serif`,
+              fontSize: "clamp(1.45rem, 5vw, 2rem)",
+              fontWeight: 900,
+              lineHeight: 1.15,
+              color: "#1a5c4a",
+              margin: "0 0 .4rem",
+              textTransform: "uppercase",
+              letterSpacing: ".04em",
+            }}>
+              Fit &amp; Sicher<br />ins neue Schuljahr
+            </h1>
+            <p style={{ fontSize: "1rem", fontWeight: 700, color: "#1a1a2e", margin: "0 0 .2rem" }}>
+              Individuelle Lernförderung in den Sommerferien
+            </p>
+            <p style={{ fontSize: ".88rem", color: "#6b7280", margin: "0 0 1rem" }}>
+              vor Ort in Eben oder online
+            </p>
+            <p style={{
+              fontSize: ".87rem",
+              color: "#4b5563",
+              lineHeight: 1.65,
+              margin: "0 auto",
+              maxWidth: 480,
+            }}>
+              Gezielte Förderung, abgestimmt auf dein Kind, ideal um Lernlücken zu schließen,
+              wichtige Inhalte zu wiederholen oder Gelerntes zu festigen.
+            </p>
+          </div>
+
           <div className="booking-box" id="booking">
             <SommerBuchung slots={buchbareSlots} texte={formularTexte} />
           </div>

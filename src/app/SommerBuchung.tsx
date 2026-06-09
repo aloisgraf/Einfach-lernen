@@ -14,21 +14,20 @@ interface Props {
   texte: BuchungsformularTexte;
 }
 
-const STANDARD_EMOJI = "⭐";
+const STANDARD_EMOJI = "";
 
-// Mapping für Kursnamen und deren Untertitel/Beschreibungen
 const KURS_INFO: Record<string, { displayName: string; subtitle: string }> = {
   "Einzelstunde": {
     displayName: "Nachhilfe & Lernbegleitung",
-    subtitle: "Individuell zum Üben aller Fächer, Mathematik bis zur Sekundarstufe (Nachprüfungsvorbereitung möglich), Buchung auch zu zweit",
+    subtitle: "Individuell zum Üben aller Fächer, Mathematik bis zur Sekundarstufe (Nachprüfungsvorbereitung). Diese Einheiten können auch für 2 Kinder gebucht werden.",
   },
   "Legasthenietraining": {
     displayName: "Lese- Rechtschreibtraining",
     subtitle: "Legasthenietraining, mindestens 1 Einheit pro Woche inkl. Übungsmaterial für zu Hause.",
   },
   "Dyskalkulietraining": {
-    displayName: "Professionelles Dyskalkulietraining",
-    subtitle: "Professionelles Dyskalkulietraining und Aufbau mathematischer Grundlagen. mindestens 1 Einheit pro Woche inkl. Übungsmaterial für zu Hause.",
+    displayName: "Dyskalkulietraining",
+    subtitle: "Dyskalkulietraining und Aufbau mathematischer Grundlagen. Mindestens 1 Einheit pro Woche inkl. Übungsmaterial für zu Hause.",
   },
 };
 
@@ -36,16 +35,15 @@ function getKursInfoByDisplayName(displayName: string): { displayName: string; s
   return Object.values(KURS_INFO).find((info) => info.displayName === displayName) || null;
 }
 
-/** Zeigt einen Hinweis auf Mengenrabatt, falls für den Kurs Paketpreise hinterlegt sind. */
 function RabattHinweis({ slots }: { slots: SlotMitPlaetzen[] }) {
   const preis5er = slots.map((s) => s.preis_5er).find((p): p is number => p != null);
   const preis10er = slots.map((s) => s.preis_10er).find((p): p is number => p != null);
   if (preis5er == null && preis10er == null) return null;
   return (
     <p className="rabatt-hinweis">
-      {preis5er != null && <>ab 5 Terminen <strong>€ {preis5er}</strong></>}
+      {preis5er != null && <>5 Termine <strong>€{preis5er},-</strong></>}
       {preis5er != null && preis10er != null && " · "}
-      {preis10er != null && <>ab 10 Terminen <strong>€ {preis10er}</strong></>}
+      {preis10er != null && <>10 Termine <strong>€{preis10er},-</strong></>}
     </p>
   );
 }
@@ -119,6 +117,85 @@ const schema = z.object({
   datenschutz: z.boolean().refine((v) => v, { message: "Bitte bestätigen" }),
 });
 type FormData = z.infer<typeof schema>;
+
+function KursIkon({ titel, istGruppenKurs }: { titel: string; istGruppenKurs?: boolean }) {
+  if (istGruppenKurs) {
+    return (
+      <div style={{ width: 50, height: 50, borderRadius: "50%", background: "#a7f3d0", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginBottom: ".2rem" }}>
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
+          <circle cx="5.5" cy="7.5" r="2.3" fill="#0d9488"/>
+          <circle cx="12" cy="6" r="2.6" fill="#0d9488"/>
+          <circle cx="18.5" cy="7.5" r="2.3" fill="#0d9488"/>
+          <path d="M1.5 19c0-2.8 1.8-4.3 4-4.3s4 1.5 4 4.3" fill="#0d9488"/>
+          <path d="M8 19c0-3.2 2-5 4-5s4 1.8 4 5" fill="#0d9488"/>
+          <path d="M14.5 19c0-2.8 1.8-4.3 4-4.3s4 1.5 4 4.3" fill="#0d9488"/>
+        </svg>
+      </div>
+    );
+  }
+  if (titel === "Lese- Rechtschreibtraining") {
+    return (
+      <div style={{ width: 50, height: 50, borderRadius: "50%", background: "#ffd6e7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginBottom: ".2rem" }}>
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
+          <path d="M4 4h7c.6 0 1 .4 1 1v13c0 .6-.4 1-1 1H4V4z" fill="#e8547a"/>
+          <path d="M20 4h-7c-.6 0-1 .4-1 1v13c0 .6.4 1 1 1h7V4z" fill="#e8547a" opacity=".6"/>
+          <line x1="12" y1="6" x2="12" y2="18" stroke="white" strokeWidth="1.2"/>
+          <line x1="6" y1="8.5" x2="10.5" y2="8.5" stroke="white" strokeWidth="1.1" strokeLinecap="round"/>
+          <line x1="6" y1="11" x2="10.5" y2="11" stroke="white" strokeWidth="1.1" strokeLinecap="round"/>
+          <line x1="6" y1="13.5" x2="9.5" y2="13.5" stroke="white" strokeWidth="1.1" strokeLinecap="round"/>
+          <path d="M15 15.5l3.5-3.5 1.8 1.8-3.5 3.5-1.8-1.8z" fill="#e8547a"/>
+          <path d="M14.5 17.5l.5-2 1.8 1.8-2.3.2z" fill="#c43066"/>
+        </svg>
+      </div>
+    );
+  }
+  if (titel === "Dyskalkulietraining") {
+    return (
+      <div style={{ width: 50, height: 50, borderRadius: "50%", background: "#ecfccb", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginBottom: ".2rem" }}>
+        <svg viewBox="0 0 24 24" width="28" height="28">
+          <text x="2.5" y="11.5" fontSize="10" fontWeight="900" fill="#4d7c0f">+</text>
+          <text x="13" y="11.5" fontSize="10" fontWeight="900" fill="#4d7c0f">×</text>
+          <text x="2.5" y="22" fontSize="10" fontWeight="900" fill="#4d7c0f">−</text>
+          <text x="13" y="22" fontSize="9" fontWeight="900" fill="#4d7c0f">%</text>
+        </svg>
+      </div>
+    );
+  }
+  if (titel === "Nachhilfe & Lernbegleitung") {
+    return (
+      <div style={{ width: 50, height: 50, borderRadius: "50%", background: "#fde68a", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginBottom: ".2rem" }}>
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none">
+          <circle cx="8" cy="7.5" r="3" fill="#d97706"/>
+          <path d="M2.5 19.5c0-3.5 2.5-5.5 5.5-5.5s5.5 2 5.5 5.5" fill="#d97706"/>
+          <circle cx="18" cy="7" r="2.5" fill="#d97706" opacity=".7"/>
+          <path d="M13 19.5c0-3.2 2.2-5 5-5s5 1.8 5 5" fill="#d97706" opacity=".7"/>
+        </svg>
+      </div>
+    );
+  }
+  return null;
+}
+
+function getGruppenkursDatumInfo(datum: string): { titel: string; untertitel: string | null; beschreibung: string } {
+  const d = new Date(datum + "T12:00:00");
+  const day = d.getDate();
+  const month = d.getMonth();
+  if (month === 7 && day <= 9) {
+    return {
+      titel: "Gruppenkurs für Kinder der 1. und 2. Klassen",
+      untertitel: "Für Kinder, die ab September in die 2. oder 3. Klasse Volksschule kommen.",
+      beschreibung: "An 3 Tagen lernen wir gemeinsam mit viel Bewegung und Abwechslung in der Kleingruppe gezielt an wichtigen Lerninhalten. So ist dein Kind fit für die nächste Schulstufe!",
+    };
+  }
+  if (month === 7 && day >= 10) {
+    return {
+      titel: "Gruppenkurs für Kinder der 3. und 4. Klassen",
+      untertitel: null,
+      beschreibung: "An 3 Tagen lernen wir gemeinsam mit viel Bewegung und Abwechslung in der Kleingruppe gezielt an wichtigen Lerninhalten. So ist dein Kind fit für die nächste Schulstufe und fit für den Übertritt!",
+    };
+  }
+  return { titel: formatDatum(datum), untertitel: null, beschreibung: "" };
+}
 
 function formatDatum(datum: string) {
   return new Date(datum + "T12:00:00").toLocaleDateString("de-AT", {
@@ -402,9 +479,6 @@ export default function SommerBuchung({ slots, texte }: Props) {
       ) : !aktuelleFamilie ? (
         // ── Schritt 1: Kurs wählen ────────────────────────────────────────────
         <>
-          <p style={{ fontSize: ".9rem", color: "#6b7280", marginBottom: "1.2rem", fontStyle: "italic" }}>
-            Vor Ort in Eben – oder online
-          </p>
           <div className="course-grid">
           {familien.map((familie) => {
             const alleSlots = familie.istGruppenKurs ? familie.varianten.flatMap((v) => v.slots) : familie.einzelSlots;
@@ -424,13 +498,14 @@ export default function SommerBuchung({ slots, texte }: Props) {
                 className="course-card"
                 onClick={() => familieWaehlen(familie)}
               >
-                <div className="cc-emoji">{familie.emoji}</div>
+                <KursIkon titel={familie.titel} istGruppenKurs={familie.istGruppenKurs} />
                 <h4>{familie.titel}</h4>
                 {(() => {
                   const info = getKursInfoByDisplayName(familie.titel);
-                  return info?.subtitle ? (
+                  const subtitle = info?.subtitle ?? (familie.istGruppenKurs ? "Gemeinsam machen wir uns fit fürs nächste Schuljahr!" : null);
+                  return subtitle ? (
                     <p style={{ fontSize: ".85rem", color: "#6b7280", margin: "0.3rem 0 0.6rem", lineHeight: 1.4 }}>
-                      {info.subtitle}
+                      {subtitle}
                     </p>
                   ) : null;
                 })()}
@@ -446,7 +521,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
                   </span>
                   {preise.length > 0 && (
                     <span className="cc-price">
-                      {preise.length === 1 ? `€ ${preise[0]}` : `ab € ${Math.min(...preise)}`}
+                      {preise.length === 1 ? `€${preise[0]},-` : `ab €${Math.min(...preise)},-`}
                     </span>
                   )}
                 </div>
@@ -465,27 +540,40 @@ export default function SommerBuchung({ slots, texte }: Props) {
               {/* Mehrtägiger Kurs: Tag 1 → Uhrzeit (= Variante) → restliche Tage automatisch */}
               {!gewaehltesTag1Datum ? (
                 <>
-                  <p className="kurs-step-label">{aktuelleFamilie.emoji} {aktuelleFamilie.titel} – wähle einen Termin</p>
-                  <div className="termin-grid">
-                    {tag1Daten.map((datum) => {
-                      const varianten = aktuelleFamilie.varianten.filter((v) => v.slots[0]?.datum === datum);
-                      const gesamtPlaetze = Math.min(...varianten.flatMap((v) => v.slots.map((s) => s.freie_plaetze)));
-                      const anzahlTage = varianten[0]?.slots.length ?? 0;
-                      return (
-                        <button
-                          type="button"
-                          key={datum}
-                          className="termin-btn"
-                          disabled={gesamtPlaetze <= 0}
-                          onClick={() => setGewaehltesTag1Datum(datum)}
-                        >
-                          <strong>{formatDatum(datum)}</strong>
-                          <span>
-                            {gesamtPlaetze <= 0 ? "Ausgebucht" : `Kurs über ${anzahlTage} Tage · ${varianten.length === 1 ? "1 Uhrzeit" : `${varianten.length} Uhrzeiten`} verfügbar`}
-                          </span>
-                        </button>
-                      );
-                    })}
+                  <p className="kurs-step-label">{aktuelleFamilie.titel}</p>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                    {tag1Daten
+                      .filter((datum) => {
+                        const varianten = aktuelleFamilie.varianten.filter((v) => v.slots[0]?.datum === datum);
+                        return Math.min(...varianten.flatMap((v) => v.slots.map((s) => s.freie_plaetze))) > 0;
+                      })
+                      .map((datum) => {
+                        const varianten = aktuelleFamilie.varianten.filter((v) => v.slots[0]?.datum === datum);
+                        const gesamtPlaetze = Math.min(...varianten.flatMap((v) => v.slots.map((s) => s.freie_plaetze)));
+                        const kursInfo = getGruppenkursDatumInfo(datum);
+                        const knapp = gesamtPlaetze === 1;
+                        return (
+                          <button
+                            type="button"
+                            key={datum}
+                            className="termin-btn"
+                            onClick={() => setGewaehltesTag1Datum(datum)}
+                            style={{ textAlign: "left" }}
+                          >
+                            <strong style={{ fontSize: "1rem" }}>{kursInfo.titel}</strong>
+                            {kursInfo.untertitel && (
+                              <span style={{ fontWeight: 600, fontSize: ".82rem", color: "var(--pine-dark)", display: "block" }}>
+                                {kursInfo.untertitel}
+                              </span>
+                            )}
+                            <span style={{ fontSize: ".82rem", lineHeight: 1.5 }}>{kursInfo.beschreibung}</span>
+                            <span style={{ fontSize: ".8rem", marginTop: ".3rem", display: "block" }}>
+                              Start: {formatDatum(datum)} · {varianten.length === 1 ? "1 Uhrzeit" : `${varianten.length} Uhrzeiten`} verfügbar
+                              {knapp && <span className="verfuegbar"> · 1 Platz verfügbar</span>}
+                            </span>
+                          </button>
+                        );
+                      })}
                   </div>
                 </>
               ) : ausgewaehlteSlots.length === 0 ? (
@@ -549,7 +637,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
               {/* Einzelblock: Paket wählen → so viele Termine (Datum + Uhrzeit) auswählen */}
               {gewaehltesPaket == null ? (
                 <>
-                  <p className="kurs-step-label">{aktuelleFamilie.emoji} {aktuelleFamilie.titel} – wähle ein Paket</p>
+                  <p className="kurs-step-label">{aktuelleFamilie.titel}</p>
                   <div className="termin-grid">
                     {PAKETE.map(({ anzahl, label }) => {
                       const verfuegbar = aktuelleFamilie.einzelSlots.filter((s) => s.freie_plaetze > 0).length;
@@ -571,7 +659,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
                           <span>
                             {zuWenig
                               ? `Aktuell nicht genug freie Termine (${verfuegbar} verfügbar)`
-                              : `${anzahl === 1 ? "1 Termin" : `${anzahl} Termine`} nach Wahl${preis != null ? ` · € ${preis}` : ""}`}
+                              : `${anzahl === 1 ? "1 Termin" : `${anzahl} Termine`}${preis != null ? ` · €${preis},-` : ""}`}
                           </span>
                         </button>
                       );
@@ -581,8 +669,8 @@ export default function SommerBuchung({ slots, texte }: Props) {
               ) : (
                 <>
                   <p className="kurs-step-label">
-                    {aktuelleFamilie.emoji} {aktuelleFamilie.titel} – wähle {gewaehltesPaket === 1 ? "deinen Termin" : `${gewaehltesPaket} Termine`}
-                    {gewaehltesPaket > 1 && ` (${ausgewaehlteSlots.length}/${gewaehltesPaket} ausgewählt)`}
+                    {aktuelleFamilie.titel}
+                    {gewaehltesPaket > 1 && ` – ${ausgewaehlteSlots.length}/${gewaehltesPaket} ausgewählt`}
                   </p>
                   {!aktuelleFamilie.erzwingeSchwerpunkt && (
                     <button type="button" className="kurs-back" onClick={() => { setGewaehltesPaket(null); setAusgewaehlteSlots([]); }} style={{ marginBottom: ".6rem" }}>
@@ -721,7 +809,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
             )}
             {preisInfo && (
               <div style={{ marginTop: ".5rem", padding: ".5rem .7rem", background: "var(--white)", borderRadius: 8, fontWeight: 600, fontSize: ".9rem" }}>
-                {preisInfo.label}: <strong>€ {preisInfo.total}</strong>
+                {preisInfo.label}: <strong>€{preisInfo.total},-</strong>
               </div>
             )}
             {!aktuelleFamilie?.istGruppenKurs && !aktuelleFamilie?.erzwingeSchwerpunkt && <RabattHinweis slots={ausgewaehlteSlots} />}
