@@ -93,24 +93,22 @@ export default function BuchungenList({ initialBuchungen }: Props) {
 
             <div style={{ padding: "18px 20px 20px", display: "flex", flexDirection: "column", gap: 18 }}>
               {/* ── Formulardaten (einmal) ── */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px 20px", padding: "14px 16px", background: "#f9fafb", borderRadius: 10, border: "1px solid #e8eceb" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "14px 16px", background: "#f9fafb", borderRadius: 10, border: "1px solid #e8eceb" }}>
                 <div>
-                  <p style={label}>Kind / Klasse</p>
+                  <p style={label}>Name des Kindes / Klasse</p>
                   <p style={{ fontSize: 13, fontWeight: 600, color: "#111827", margin: 0, whiteSpace: "pre-line" }}>{name_kind}</p>
                 </div>
                 <div>
-                  <p style={label}>Bereich</p>
-                  <span style={{ display: "inline-block", padding: "2px 10px", borderRadius: 20, background: "#eaf4ef", color: "#1a5c4a", fontSize: 11, fontWeight: 700 }}>
-                    {schulstufe}
-                  </span>
+                  <p style={label}>Gebuchter Kurs</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "#1a5c4a", margin: 0, whiteSpace: "pre-line" }}>{items[0].buchung.kurs_name}</p>
                 </div>
-                <div style={{ gridColumn: "1 / -1" }}>
-                  <p style={label}>Förderziel</p>
+                <div>
+                  <p style={label}>Förderziel / Lernziel</p>
                   <p style={{ fontSize: 12, color: "#374151", margin: 0, whiteSpace: "pre-line" }}>{kind_lernen}</p>
                 </div>
                 {kind_staerken && (
-                  <div style={{ gridColumn: "1 / -1" }}>
-                    <p style={label}>Details</p>
+                  <div>
+                    <p style={label}>Besonderheiten / Stärken</p>
                     <p style={{ fontSize: 12, color: "#374151", margin: 0, whiteSpace: "pre-line" }}>{kind_staerken}</p>
                   </div>
                 )}
@@ -154,25 +152,27 @@ export default function BuchungenList({ initialBuchungen }: Props) {
                         </span>
                       </div>
 
-                      {/* Buttons nur bei pending */}
-                      {b.status === "pending" && (
+                      {/* Buttons für pending und confirmed */}
+                      {b.status !== "rejected" && (
                         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                          <button
-                            onClick={() => handleStatusUpdate(b.id, "confirmed")}
-                            disabled={loadingIds.has(b.id)}
-                            style={{
-                              flex: 1, padding: "7px 10px", borderRadius: 8, border: "none",
-                              background: "#dcfce7", color: "#166534", fontWeight: 600, fontSize: 12,
-                              cursor: loadingIds.has(b.id) ? "not-allowed" : "pointer",
-                              display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                              opacity: loadingIds.has(b.id) ? 0.6 : 1,
-                            }}
-                          >
-                            {loadingIds.has(b.id)
-                              ? <Loader2 style={{ width: 13, height: 13, animation: "lvSpin 1s linear infinite" }} />
-                              : <Check style={{ width: 13, height: 13 }} />}
-                            Bestätigen
-                          </button>
+                          {b.status === "pending" && (
+                            <button
+                              onClick={() => handleStatusUpdate(b.id, "confirmed")}
+                              disabled={loadingIds.has(b.id)}
+                              style={{
+                                flex: 1, padding: "7px 10px", borderRadius: 8, border: "none",
+                                background: "#dcfce7", color: "#166534", fontWeight: 600, fontSize: 12,
+                                cursor: loadingIds.has(b.id) ? "not-allowed" : "pointer",
+                                display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                                opacity: loadingIds.has(b.id) ? 0.6 : 1,
+                              }}
+                            >
+                              {loadingIds.has(b.id)
+                                ? <Loader2 style={{ width: 13, height: 13, animation: "lvSpin 1s linear infinite" }} />
+                                : <Check style={{ width: 13, height: 13 }} />}
+                              Bestätigen
+                            </button>
+                          )}
                           <button
                             onClick={() => handleStatusUpdate(b.id, "rejected")}
                             disabled={loadingIds.has(b.id)}
@@ -187,7 +187,7 @@ export default function BuchungenList({ initialBuchungen }: Props) {
                             {loadingIds.has(b.id)
                               ? <Loader2 style={{ width: 13, height: 13, animation: "lvSpin 1s linear infinite" }} />
                               : <X style={{ width: 13, height: 13 }} />}
-                            Ablehnen
+                            {b.status === "confirmed" ? "Löschen" : "Ablehnen"}
                           </button>
                         </div>
                       )}

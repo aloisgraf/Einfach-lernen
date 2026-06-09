@@ -164,8 +164,16 @@ export default async function DashboardPage() {
               <p style={{ color: "#9ca3af", fontSize: 13 }}>Noch keine Buchungen vorhanden.</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {buchungen.slice(0, 5).map((b) => {
-                  const slot = slots.find((s) => s.id === b.zeitslot_id);
+                {buchungen
+                  .map((b) => ({ b, slot: slots.find((s) => s.id === b.zeitslot_id) }))
+                  .sort((a, b) => {
+                    const datumA = a.slot?.datum ?? "";
+                    const datumB = b.slot?.datum ?? "";
+                    if (datumA !== datumB) return datumB.localeCompare(datumA);
+                    return (b.slot?.uhrzeit_von ?? "").localeCompare(a.slot?.uhrzeit_von ?? "");
+                  })
+                  .slice(0, 5)
+                  .map(({ b, slot }) => {
                   return (
                     <div key={b.id} style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                       <div style={{ minWidth: 0 }}>
