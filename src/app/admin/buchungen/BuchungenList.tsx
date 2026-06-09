@@ -19,10 +19,31 @@ function formatDatum(datum: string) {
   });
 }
 
-const label: React.CSSProperties = {
+function parseKindStaerken(raw: string) {
+  const blocks = raw.split("\n\n");
+  const result: { anzahl?: string; beschreibung?: string; diagnosen?: string; frage?: string } = {};
+  for (const block of blocks) {
+    if (block.startsWith("Anzahl Kinder: ")) result.anzahl = block.replace("Anzahl Kinder: ", "");
+    else if (block.startsWith("Wie würde ich dein Kind beschreiben:\n")) result.beschreibung = block.replace("Wie würde ich dein Kind beschreiben:\n", "");
+    else if (block.startsWith("Außerschulische Förderung / Diagnosen:\n")) result.diagnosen = block.replace("Außerschulische Förderung / Diagnosen:\n", "");
+    else if (block.startsWith("Frage:\n")) result.frage = block.replace("Frage:\n", "");
+  }
+  return result;
+}
+
+const labelStyle: React.CSSProperties = {
   fontSize: 10, fontWeight: 700, color: "#9ca3af",
   margin: "0 0 3px", textTransform: "uppercase", letterSpacing: "0.05em",
 };
+
+function FormRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p style={labelStyle}>{label}</p>
+      <p style={{ fontSize: 12, color: "#374151", margin: 0, whiteSpace: "pre-line" }}>{children}</p>
+    </div>
+  );
+}
 
 export default function BuchungenList({ initialBuchungen }: Props) {
   const [buchungen, setBuchungen] = useState(initialBuchungen);
@@ -69,8 +90,8 @@ export default function BuchungenList({ initialBuchungen }: Props) {
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {Array.from(groupedByPerson.values()).map((items) => {
         const person = items[0].buchung;
-        // Formularfelder sind für alle Buchungen dieser Person gleich → einmal aus erster Buchung nehmen
         const { name_kind, schulstufe, kind_lernen, kind_staerken } = person;
+        const extra = parseKindStaerken(kind_staerken);
 
         return (
           <div key={`${person.vorname}|${person.nachname}|${person.email}`}
@@ -94,29 +115,43 @@ export default function BuchungenList({ initialBuchungen }: Props) {
             <div style={{ padding: "18px 20px 20px", display: "flex", flexDirection: "column", gap: 18 }}>
               {/* ── Formulardaten (einmal) ── */}
               <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "14px 16px", background: "#f9fafb", borderRadius: 10, border: "1px solid #e8eceb" }}>
-                <div>
-                  <p style={label}>Name des Kindes / Klasse</p>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "#111827", margin: 0, whiteSpace: "pre-line" }}>{name_kind}</p>
-                </div>
-                <div>
-                  <p style={label}>Gebuchter Kurs</p>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "#1a5c4a", margin: 0, whiteSpace: "pre-line" }}>{items[0].buchung.kurs_name}</p>
-                </div>
-                <div>
-                  <p style={label}>Förderziel / Lernziel</p>
-                  <p style={{ fontSize: 12, color: "#374151", margin: 0, whiteSpace: "pre-line" }}>{kind_lernen}</p>
-                </div>
-                {kind_staerken && (
-                  <div>
-                    <p style={label}>Besonderheiten / Stärken</p>
-                    <p style={{ fontSize: 12, color: "#374151", margin: 0, whiteSpace: "pre-line" }}>{kind_staerken}</p>
-                  </div>
+                <FormRow label="Gebuchter Kurs">
+                  <span style={{ color: "#1a5c4a", fontWeight: 700 }}>{items[0].buchung.kurs_name}</span>
+                </FormRow>
+                {extra.anzahl && (
+                  <FormRow label="Wird die Stunde für 1 oder 2 Kinder gebucht?">
+                    {extra.anzahl}
+                  </FormRow>
+                )}
+                <FormRow label="Wie heißt dein Kind? In welche Klasse kommt dein Kind?">
+                  {name_kind}
+                </FormRow>
+                <FormRow label="In welchem Bereich/welchen Themen darf ich dein Kind unterstützen?">
+                  {schulstufe}
+                </FormRow>
+                <FormRow label="Was soll durch die Förderung erreicht werden?">
+                  {kind_lernen}
+                </FormRow>
+                {extra.beschreibung && (
+                  <FormRow label="Wie würdest du dein Kind beschreiben?">
+                    {extra.beschreibung}
+                  </FormRow>
+                )}
+                {extra.diagnosen && (
+                  <FormRow label="Gab es bereits außerschulische Förderung oder Diagnosen?">
+                    {extra.diagnosen}
+                  </FormRow>
+                )}
+                {extra.frage && (
+                  <FormRow label="Hast du eine Frage an mich?">
+                    {extra.frage}
+                  </FormRow>
                 )}
               </div>
 
               {/* ── Termine (je Buchung einzeln mit Bestätigung) ── */}
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <p style={{ ...label, margin: 0 }}>Gebuchte Termine</p>
+                <p style={{ ...labelStyle, margin: 0 }}>Gebuchte Termine</p>
                 {items
                   .slice()
                   .sort((a, b) => (a.slot?.datum ?? "").localeCompare(b.slot?.datum ?? ""))
