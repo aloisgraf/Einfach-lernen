@@ -1,7 +1,7 @@
 "use client";
 
 import { Buchung, Zeitslot } from "@/types/buchung";
-import { Loader2, Check, X } from "lucide-react";
+import { Loader2, Check, X, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 interface BuchungMitSlot {
@@ -191,39 +191,61 @@ export default function BuchungenList({ initialBuchungen }: Props) {
                       {b.status !== "rejected" && (
                         <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                           {b.status === "pending" && (
+                            <>
+                              <button
+                                onClick={() => handleStatusUpdate(b.id, "confirmed")}
+                                disabled={loadingIds.has(b.id)}
+                                style={{
+                                  flex: 1, padding: "7px 10px", borderRadius: 8, border: "none",
+                                  background: "#dcfce7", color: "#166534", fontWeight: 600, fontSize: 12,
+                                  cursor: loadingIds.has(b.id) ? "not-allowed" : "pointer",
+                                  display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                                  opacity: loadingIds.has(b.id) ? 0.6 : 1,
+                                }}
+                              >
+                                {loadingIds.has(b.id)
+                                  ? <Loader2 style={{ width: 13, height: 13, animation: "lvSpin 1s linear infinite" }} />
+                                  : <Check style={{ width: 13, height: 13 }} />}
+                                Bestätigen
+                              </button>
+                              <button
+                                onClick={() => handleStatusUpdate(b.id, "rejected")}
+                                disabled={loadingIds.has(b.id)}
+                                style={{
+                                  flex: 1, padding: "7px 10px", borderRadius: 8, border: "none",
+                                  background: "#fee2e2", color: "#991b1b", fontWeight: 600, fontSize: 12,
+                                  cursor: loadingIds.has(b.id) ? "not-allowed" : "pointer",
+                                  display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
+                                  opacity: loadingIds.has(b.id) ? 0.6 : 1,
+                                }}
+                              >
+                                {loadingIds.has(b.id)
+                                  ? <Loader2 style={{ width: 13, height: 13, animation: "lvSpin 1s linear infinite" }} />
+                                  : <X style={{ width: 13, height: 13 }} />}
+                                Ablehnen
+                              </button>
+                            </>
+                          )}
+                          {b.status === "confirmed" && (
                             <button
-                              onClick={() => handleStatusUpdate(b.id, "confirmed")}
+                              onClick={() => handleStatusUpdate(b.id, "rejected")}
                               disabled={loadingIds.has(b.id)}
                               style={{
-                                flex: 1, padding: "7px 10px", borderRadius: 8, border: "none",
-                                background: "#dcfce7", color: "#166534", fontWeight: 600, fontSize: 12,
+                                marginLeft: "auto", padding: "4px 8px", borderRadius: 6, border: "none",
+                                background: "transparent", color: "#9ca3af", fontSize: 12,
                                 cursor: loadingIds.has(b.id) ? "not-allowed" : "pointer",
-                                display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                                opacity: loadingIds.has(b.id) ? 0.6 : 1,
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                opacity: loadingIds.has(b.id) ? 0.5 : 0.7,
+                                transition: "opacity 0.2s",
                               }}
+                              onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
+                              onMouseLeave={(e) => (e.currentTarget.style.opacity = loadingIds.has(b.id) ? "0.5" : "0.7")}
                             >
                               {loadingIds.has(b.id)
-                                ? <Loader2 style={{ width: 13, height: 13, animation: "lvSpin 1s linear infinite" }} />
-                                : <Check style={{ width: 13, height: 13 }} />}
-                              Bestätigen
+                                ? <Loader2 style={{ width: 16, height: 16, animation: "lvSpin 1s linear infinite" }} />
+                                : <Trash2 style={{ width: 16, height: 16 }} />}
                             </button>
                           )}
-                          <button
-                            onClick={() => handleStatusUpdate(b.id, "rejected")}
-                            disabled={loadingIds.has(b.id)}
-                            style={{
-                              flex: 1, padding: "7px 10px", borderRadius: 8, border: "none",
-                              background: "#fee2e2", color: "#991b1b", fontWeight: 600, fontSize: 12,
-                              cursor: loadingIds.has(b.id) ? "not-allowed" : "pointer",
-                              display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
-                              opacity: loadingIds.has(b.id) ? 0.6 : 1,
-                            }}
-                          >
-                            {loadingIds.has(b.id)
-                              ? <Loader2 style={{ width: 13, height: 13, animation: "lvSpin 1s linear infinite" }} />
-                              : <X style={{ width: 13, height: 13 }} />}
-                            {b.status === "confirmed" ? "Löschen" : "Ablehnen"}
-                          </button>
                         </div>
                       )}
                     </div>
