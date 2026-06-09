@@ -164,17 +164,38 @@ export default async function DashboardPage() {
               <p style={{ color: "#9ca3af", fontSize: 13 }}>Noch keine Buchungen vorhanden.</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {buchungen.slice(0, 5).map((b) => (
-                  <div key={b.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                    <div>
-                      <p style={{ fontSize: 13, fontWeight: 600, color: "#111827", margin: 0 }}>{b.name_kind}</p>
-                      <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>{b.schulstufe}</p>
+                {buchungen.slice(0, 5).map((b) => {
+                  const slot = slots.find((s) => s.id === b.zeitslot_id);
+                  return (
+                    <div key={b.id} style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 600, color: "#111827", margin: 0 }}>
+                          {b.vorname} {b.nachname}
+                        </p>
+                        <p style={{ fontSize: 11, color: "#9ca3af", margin: "1px 0 0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {b.email}
+                        </p>
+                        <p style={{ fontSize: 11, color: "#1a5c4a", fontWeight: 600, margin: "2px 0 0" }}>
+                          {b.kurs_name}
+                        </p>
+                      </div>
+                      <div style={{ textAlign: "right", flexShrink: 0 }}>
+                        {slot ? (
+                          <>
+                            <p style={{ fontSize: 11, color: "#374151", fontWeight: 600, margin: 0, whiteSpace: "nowrap" }}>
+                              {new Date(slot.datum + "T12:00:00").toLocaleDateString("de-AT", { day: "numeric", month: "short" })}
+                            </p>
+                            <p style={{ fontSize: 11, color: "#9ca3af", margin: "1px 0 0", whiteSpace: "nowrap" }}>
+                              {slot.uhrzeit_von}–{slot.uhrzeit_bis} Uhr
+                            </p>
+                          </>
+                        ) : (
+                          <span style={{ fontSize: 11, color: "#9ca3af" }}>–</span>
+                        )}
+                      </div>
                     </div>
-                    <span style={{ fontSize: 11, color: "#9ca3af", whiteSpace: "nowrap" }}>
-                      {new Date(b.erstellt_am).toLocaleDateString("de-AT", { day: "numeric", month: "short" })}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
