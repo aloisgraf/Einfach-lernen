@@ -9,6 +9,7 @@ const itemSchema = z.object({
   schulstufe: z.string().min(1),
   kind_lernen: z.string().min(3),
   kind_staerken: z.string().optional().default(""),
+  kurs_name: z.string().min(1),
 });
 
 const schema = z.object({
@@ -39,6 +40,7 @@ export async function POST(req: NextRequest) {
         schulstufe: booking.schulstufe,
         kind_lernen: booking.kind_lernen,
         kind_staerken: booking.kind_staerken,
+        kurs_name: booking.kurs_name,
       });
 
       if ("error" in result) {

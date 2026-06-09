@@ -208,9 +208,9 @@ async function dbCountBuchungenFuerSlot(slotId: string): Promise<number> {
 async function dbCreateBuchung(data: Omit<Buchung, "id" | "erstellt_am">): Promise<Buchung> {
   const sql = getDb()!;
   const rows = await sql<Buchung[]>`
-    INSERT INTO buchungen (zeitslot_id, vorname, nachname, email, telefon, name_kind, schulstufe, kind_staerken, kind_lernen)
+    INSERT INTO buchungen (zeitslot_id, vorname, nachname, email, telefon, name_kind, schulstufe, kind_staerken, kind_lernen, kurs_name)
     VALUES (${data.zeitslot_id}, ${data.vorname}, ${data.nachname}, ${data.email},
-            ${data.telefon}, ${data.name_kind}, ${data.schulstufe}, ${data.kind_staerken}, ${data.kind_lernen})
+            ${data.telefon}, ${data.name_kind}, ${data.schulstufe}, ${data.kind_staerken}, ${data.kind_lernen}, ${data.kurs_name})
     RETURNING *
   `;
   return rows[0];

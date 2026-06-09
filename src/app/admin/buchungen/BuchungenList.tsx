@@ -124,6 +124,17 @@ export default function BuchungenList({ initialBuchungen }: Props) {
                   )}
                 </button>
 
+                {/* Kurs-Badge */}
+                <div style={{ marginBottom: 12 }}>
+                  <span style={{
+                    display: "inline-block", padding: "4px 12px", borderRadius: 20,
+                    background: "#1a5c4a", color: "#fff",
+                    fontSize: 12, fontWeight: 700,
+                  }}>
+                    {b.kurs_name}
+                  </span>
+                </div>
+
                 {/* Slot-Badge */}
                 <div style={{ marginBottom: 12 }}>
                   {slot ? (

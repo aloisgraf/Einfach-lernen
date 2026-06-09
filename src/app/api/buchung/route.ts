@@ -13,6 +13,7 @@ const schema = z.object({
   schulstufe: z.string().min(1),
   kind_lernen: z.string().min(3),
   kind_staerken: z.string().optional().default(""),
+  kurs_name: z.string().optional().default("Unbekannter Kurs"),
 });
 
 export async function POST(req: NextRequest) {

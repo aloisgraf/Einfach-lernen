@@ -37,6 +37,7 @@ export interface Buchung {
   schulstufe: string;
   kind_staerken: string;
   kind_lernen: string;
+  kurs_name: string;
   erstellt_am: string;
 }
 

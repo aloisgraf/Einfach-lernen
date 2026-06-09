@@ -51,6 +51,11 @@ export async function sendBuchungEmail(buchung: Buchung, slot: Zeitslot | null) 
           <td style="padding: 4px 0; color: #6b7280;">Telefon</td>
           <td style="padding: 4px 0; color: #111827;">${esc(buchung.telefon)}</td>
         </tr>
+        <tr><td colspan="2" style="padding: 10px 0 6px; font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em;">Kurs</td></tr>
+        <tr>
+          <td style="padding: 4px 0; color: #6b7280;">Typ</td>
+          <td style="padding: 4px 0; color: #111827; font-weight: 600;">${esc(buchung.kurs_name)}</td>
+        </tr>
 
         <tr><td colspan="2" style="padding: 16px 0 6px; font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em;">Kind & Förderung</td></tr>
         <tr>
@@ -141,6 +146,11 @@ export async function sendBuchungEmailBatch(buchungen: Buchung[], slots: Zeitslo
         <tr>
           <td style="padding: 4px 0; color: #6b7280;">Telefon</td>
           <td style="padding: 4px 0; color: #111827;">${esc(buchungen[0].telefon)}</td>
+        </tr>
+        <tr><td colspan="2" style="padding: 10px 0 6px; font-size: 11px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em;">Kurs</td></tr>
+        <tr>
+          <td style="padding: 4px 0; color: #6b7280;">Typ</td>
+          <td style="padding: 4px 0; color: #111827; font-weight: 600;">${esc(buchungen[0].kurs_name)}</td>
         </tr>
       </table>
 

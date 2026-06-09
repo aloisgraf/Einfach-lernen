@@ -538,6 +538,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
         schulstufe: data.q2_bereiche,
         kind_lernen: data.q3_ziele,
         kind_staerken: optionalParts.join("\n\n"),
+        kurs_name: aktuelleFamilie?.titel || "Unbekannter Kurs",
       }));
 
       const res = await fetch("/api/buchung-batch", {
