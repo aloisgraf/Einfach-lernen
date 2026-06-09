@@ -74,6 +74,7 @@ function slotsSchemaSicherstellen(): Promise<void> {
         sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS kurs TEXT`,
         sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS notizen TEXT`,
         sql`ALTER TABLE buchungen ADD COLUMN IF NOT EXISTS kurs_name TEXT NOT NULL DEFAULT ''`,
+        sql`ALTER TABLE buchungen ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending'`,
       ];
       for (const migration of migrationen) {
         try { await mitTimeout(migration, 8000); } catch (e) { console.error("Schema-Migration fehlgeschlagen:", e); }
@@ -199,13 +200,14 @@ async function dbCountBuchungenFuerSlot(slotId: string): Promise<number> {
   return parseInt(rows[0].count, 10);
 }
 
-async function dbCreateBuchung(data: Omit<Buchung, "id" | "erstellt_am">): Promise<Buchung> {
+async function dbCreateBuchung(data: CreateBuchungData): Promise<Buchung> {
   await slotsSchemaSicherstellen();
   const sql = getDb()!;
+  const status = data.status ?? "pending";
   const rows = await sql<Buchung[]>`
-    INSERT INTO buchungen (zeitslot_id, vorname, nachname, email, telefon, name_kind, schulstufe, kind_staerken, kind_lernen, kurs_name)
+    INSERT INTO buchungen (zeitslot_id, vorname, nachname, email, telefon, name_kind, schulstufe, kind_staerken, kind_lernen, kurs_name, status)
     VALUES (${data.zeitslot_id}, ${data.vorname}, ${data.nachname}, ${data.email},
-            ${data.telefon}, ${data.name_kind}, ${data.schulstufe}, ${data.kind_staerken}, ${data.kind_lernen}, ${data.kurs_name})
+            ${data.telefon}, ${data.name_kind}, ${data.schulstufe}, ${data.kind_staerken}, ${data.kind_lernen}, ${data.kurs_name}, ${status})
     RETURNING *
   `;
   return rows[0];
@@ -443,10 +445,13 @@ async function slotVerfuegbarFuerAnmelder(
   return null;
 }
 
-async function einzelneBuchungAnlegen(data: Omit<Buchung, "id" | "erstellt_am">): Promise<Buchung> {
+export type CreateBuchungData = Omit<Buchung, "id" | "erstellt_am" | "status"> & { status?: Buchung["status"] };
+
+async function einzelneBuchungAnlegen(data: CreateBuchungData): Promise<Buchung> {
   if (isDbConfigured()) return dbCreateBuchung(data);
   const buchung: Buchung = {
     ...data,
+    status: data.status ?? "pending",
     id: crypto.randomUUID(),
     erstellt_am: new Date().toISOString(),
   };
@@ -460,7 +465,7 @@ async function einzelneBuchungAnlegen(data: Omit<Buchung, "id" | "erstellt_am">)
  * entweder alle oder keiner (jeder Termin braucht einen freien Platz).
  */
 export async function createBuchung(
-  data: Omit<Buchung, "id" | "erstellt_am">
+  data: CreateBuchungData
 ): Promise<Buchung | { error: string }> {
   const slot = await getSlot(data.zeitslot_id);
   if (!slot) return { error: "Zeitslot nicht gefunden." };
@@ -497,4 +502,26 @@ export async function getFreiePlaetze(slotId: string): Promise<number> {
   if (!slot) return 0;
   const belegt = await countBuchungenFuerSlot(slotId);
   return slot.max_teilnehmer - belegt;
+}
+
+export async function updateBuchungStatus(
+  id: string,
+  status: Buchung["status"]
+): Promise<Buchung | null> {
+  if (isDbConfigured()) {
+    try {
+      const sql = getDb()!;
+      const rows = await sql<Buchung[]>`
+        UPDATE buchungen SET status = ${status} WHERE id = ${id} RETURNING *
+      `;
+      return rows[0] ?? null;
+    } catch {
+      return null;
+    }
+  }
+  const buchung = getBuchungenMap().get(id);
+  if (!buchung) return null;
+  const updated = { ...buchung, status };
+  getBuchungenMap().set(id, updated);
+  return updated;
 }
