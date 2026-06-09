@@ -34,7 +34,7 @@ export default async function DashboardPage() {
   const naechste3Tage = futureSlotDates;
 
   const slotsByDayAndStatus = new Map<string, { gebucht: typeof slots; frei: typeof slots }>();
-  const kursNamenFuerSlot = new Map<string, string[]>();
+  const infoPrSlot = new Map<string, { kurse: string[]; namen: string[] }>();
 
   // Gruppiere Slots nach Datum und Status (gebucht/frei)
   for (const slot of slots.filter((s) => s.freigegeben && naechste3Tage.includes(s.datum))) {
@@ -45,10 +45,12 @@ export default async function DashboardPage() {
     const frei = slot.max_teilnehmer - belegt;
     const dayData = slotsByDayAndStatus.get(slot.datum)!;
 
-    // Sammle Kurs-Namen für diesen Slot
+    // Sammle Kurs-Namen und Anmelder-Namen für diesen Slot
     const slotBuchungen = buchungen.filter((b) => b.zeitslot_id === slot.id);
-    const uniqueKurse = Array.from(new Set(slotBuchungen.map((b) => b.kurs_name)));
-    kursNamenFuerSlot.set(slot.id, uniqueKurse);
+    infoPrSlot.set(slot.id, {
+      kurse: Array.from(new Set(slotBuchungen.map((b) => b.kurs_name))),
+      namen: slotBuchungen.map((b) => `${b.vorname} ${b.nachname}`),
+    });
 
     if (frei === 0) {
       dayData.gebucht.push(slot);
@@ -118,8 +120,9 @@ export default async function DashboardPage() {
                             🔴 Gebucht
                           </p>
                           {dayData.gebucht.map((slot) => {
-                            const kurse = kursNamenFuerSlot.get(slot.id) || [];
-                            const kursText = kurse.length > 0 ? kurse.join(", ") : slot.titel;
+                            const info = infoPrSlot.get(slot.id);
+                            const kursText = info?.kurse.length ? info.kurse.join(", ") : slot.titel;
+                            const namenText = info?.namen.join(", ") ?? "";
                             return (
                               <div
                                 key={slot.id}
@@ -134,7 +137,8 @@ export default async function DashboardPage() {
                                 }}
                               >
                                 <span style={{ fontWeight: 600 }}>{slot.uhrzeit_von}–{slot.uhrzeit_bis}</span>
-                                <span style={{ color: "#9ca3af", marginLeft: 8 }}>{kursText}</span>
+                                <span style={{ color: "#374151", marginLeft: 8 }}>{kursText}</span>
+                                {namenText && <span style={{ color: "#9ca3af", marginLeft: 8 }}>· {namenText}</span>}
                               </div>
                             );
                           })}
@@ -148,8 +152,6 @@ export default async function DashboardPage() {
                             🟢 Frei
                           </p>
                           {dayData.frei.map((slot) => {
-                            const kurse = kursNamenFuerSlot.get(slot.id) || [];
-                            const kursText = kurse.length > 0 ? kurse.join(", ") : slot.titel;
                             return (
                               <div
                                 key={slot.id}
@@ -164,7 +166,7 @@ export default async function DashboardPage() {
                                 }}
                               >
                                 <span style={{ fontWeight: 600 }}>{slot.uhrzeit_von}–{slot.uhrzeit_bis}</span>
-                                <span style={{ color: "#9ca3af", marginLeft: 8 }}>{kursText}</span>
+                                <span style={{ color: "#9ca3af", marginLeft: 8 }}>{slot.titel}</span>
                               </div>
                             );
                           })}
