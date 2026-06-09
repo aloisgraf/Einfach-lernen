@@ -8,8 +8,6 @@ const navItems = [
   { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/admin/slots", icon: CalendarClock, label: "Zeitslots" },
   { href: "/admin/buchungen", icon: Users, label: "Buchungen" },
-  { href: "/admin/formular", icon: FileText, label: "Buchungsformular" },
-  { href: "/admin/website-texte", icon: Type, label: "Website-Texte" },
   { href: "/admin/silbenspiel", icon: Gamepad2, label: "Silbenspiel" },
 ];
 

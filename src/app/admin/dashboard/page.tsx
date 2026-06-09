@@ -21,20 +21,25 @@ export default async function DashboardPage() {
   const heuteStr = new Date().toISOString().split("T")[0];
   const heuteSlots = slots.filter((s) => s.datum === heuteStr && s.freigegeben).length;
 
-  // Nächste 3 Tage
-  const naechste3Tage = Array.from({ length: 3 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
-    return d.toISOString().split("T")[0];
-  });
+  // Nächste 3 Tage mit Slots
+  const futureSlotDates = Array.from(
+    new Set(
+      slots
+        .filter((s) => s.freigegeben && s.datum >= heuteStr)
+        .map((s) => s.datum)
+        .sort()
+    )
+  ).slice(0, 3);
+
+  const naechste3Tage = futureSlotDates;
 
   const slotsByDayAndStatus = new Map<string, { gebucht: typeof slots; frei: typeof slots }>();
-  for (const datum of naechste3Tage) {
-    slotsByDayAndStatus.set(datum, { gebucht: [], frei: [] });
-  }
 
   // Gruppiere Slots nach Datum und Status (gebucht/frei)
   for (const slot of slots.filter((s) => s.freigegeben && naechste3Tage.includes(s.datum))) {
+    if (!slotsByDayAndStatus.has(slot.datum)) {
+      slotsByDayAndStatus.set(slot.datum, { gebucht: [], frei: [] });
+    }
     const belegt = await countBuchungenFuerSlot(slot.id);
     const frei = slot.max_teilnehmer - belegt;
     const dayData = slotsByDayAndStatus.get(slot.datum)!;
