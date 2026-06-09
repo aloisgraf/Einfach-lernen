@@ -171,12 +171,7 @@ export default async function DashboardPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {buchungen
                   .map((b) => ({ b, slot: slots.find((s) => s.id === b.zeitslot_id) }))
-                  .sort((a, b) => {
-                    const datumA = a.slot?.datum ?? "";
-                    const datumB = b.slot?.datum ?? "";
-                    if (datumA !== datumB) return datumB.localeCompare(datumA);
-                    return (b.slot?.uhrzeit_von ?? "").localeCompare(a.slot?.uhrzeit_von ?? "");
-                  })
+                  .sort((a, b) => new Date(b.b.erstellt_am).getTime() - new Date(a.b.erstellt_am).getTime())
                   .slice(0, 5)
                   .map(({ b, slot }) => {
                   return (
