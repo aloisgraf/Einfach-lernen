@@ -208,40 +208,82 @@ function CalendarGrid({ slots, ausgewaehlteSlots, ausgewaehltesDatum, onDatumCli
   const verfuegbareDaten = Array.from(new Set(slots.filter((s) => s.freie_plaetze > 0).map((s) => s.datum))).sort();
   if (verfuegbareDaten.length === 0) return <p style={{ color: "var(--soft)" }}>Keine Termine verfügbar.</p>;
 
-  const firstDate = new Date(verfuegbareDaten[0] + "T00:00:00");
-  const lastDate = new Date(verfuegbareDaten[verfuegbareDaten.length - 1] + "T00:00:00");
-  const monthYear = firstDate.toLocaleDateString("de-AT", { month: "long", year: "numeric" });
+  const ersterDatumDate = new Date(verfuegbareDaten[0] + "T00:00:00");
+  const [angezeigterMonat, setAngezeigterMonat] = useState({ year: ersterDatumDate.getFullYear(), month: ersterDatumDate.getMonth() });
 
-  const daysInMonth = new Date(firstDate.getFullYear(), firstDate.getMonth() + 1, 0).getDate();
-  const firstDayOfWeek = new Date(firstDate.getFullYear(), firstDate.getMonth(), 1).getDay();
-  const startDay = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
-
-  const calendarDays = [];
-  for (let i = 0; i < startDay; i++) calendarDays.push(null);
-  for (let day = 1; day <= daysInMonth; day++) {
-    const dateStr = `${firstDate.getFullYear()}-${String(firstDate.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    calendarDays.push(dateStr);
-  }
+  const { year, month } = angezeigterMonat;
 
   const slotsPerDatum = new Map<string, SlotMitPlaetzen[]>();
   for (const datum of verfuegbareDaten) {
     slotsPerDatum.set(datum, slots.filter((s) => s.datum === datum && s.freie_plaetze > 0).sort((a, b) => a.uhrzeit_von.localeCompare(b.uhrzeit_von)));
   }
 
+  // Kalender-Tage aufbauen: Vormonat-Füllfelder + aktueller Monat + Folge-Monat-Füllfelder
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDayOfWeek = new Date(year, month, 1).getDay();
+  const startDay = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+
+  const calendarDays: Array<{ dateStr: string; currentMonth: boolean }> = [];
+  // Füllfelder vom Vormonat
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  const prevMonthYear = month === 0 ? year - 1 : year;
+  const prevMonth = month === 0 ? 11 : month - 1;
+  for (let i = startDay - 1; i >= 0; i--) {
+    const d = daysInPrevMonth - i;
+    calendarDays.push({ dateStr: `${prevMonthYear}-${String(prevMonth + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`, currentMonth: false });
+  }
+  // Aktuelle Monatstage
+  for (let day = 1; day <= daysInMonth; day++) {
+    calendarDays.push({ dateStr: `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`, currentMonth: true });
+  }
+  // Folge-Monat-Füllfelder (bis 7er-Grid voll)
+  const nextMonthYear = month === 11 ? year + 1 : year;
+  const nextMonth = month === 11 ? 0 : month + 1;
+  const remaining = calendarDays.length % 7 === 0 ? 0 : 7 - (calendarDays.length % 7);
+  for (let day = 1; day <= remaining; day++) {
+    calendarDays.push({ dateStr: `${nextMonthYear}-${String(nextMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`, currentMonth: false });
+  }
+
+  // Gibt es Slots im Vormonat / Folgemonat?
+  const hasPrev = verfuegbareDaten.some((d) => { const dd = new Date(d + "T00:00:00"); return dd.getFullYear() < year || (dd.getFullYear() === year && dd.getMonth() < month); });
+  const hasNext = verfuegbareDaten.some((d) => { const dd = new Date(d + "T00:00:00"); return dd.getFullYear() > year || (dd.getFullYear() === year && dd.getMonth() > month); });
+
+  const monthYear = new Date(year, month, 1).toLocaleDateString("de-AT", { month: "long", year: "numeric" });
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}>
       <div>
-        <p style={{ fontWeight: 700, fontSize: ".95rem", color: "var(--ink)", margin: "0 0 .8rem", textTransform: "capitalize" }}>
-          {monthYear}
-        </p>
+        {/* Monat-Navigation */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: ".8rem" }}>
+          <button
+            type="button"
+            onClick={() => setAngezeigterMonat({ year: month === 0 ? year - 1 : year, month: month === 0 ? 11 : month - 1 })}
+            disabled={!hasPrev}
+            style={{ border: "none", background: "none", cursor: hasPrev ? "pointer" : "default", color: hasPrev ? "var(--pine)" : "var(--soft)", fontSize: "1.1rem", padding: ".2rem .5rem", borderRadius: 6 }}
+          >
+            ‹
+          </button>
+          <p style={{ fontWeight: 700, fontSize: ".95rem", color: "var(--ink)", margin: 0, textTransform: "capitalize" }}>
+            {monthYear}
+          </p>
+          <button
+            type="button"
+            onClick={() => setAngezeigterMonat({ year: month === 11 ? year + 1 : year, month: month === 11 ? 0 : month + 1 })}
+            disabled={!hasNext}
+            style={{ border: "none", background: "none", cursor: hasNext ? "pointer" : "default", color: hasNext ? "var(--pine)" : "var(--soft)", fontSize: "1.1rem", padding: ".2rem .5rem", borderRadius: 6 }}
+          >
+            ›
+          </button>
+        </div>
+
         <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: ".4rem" }}>
           {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((day) => (
             <div key={day} style={{ textAlign: "center", fontSize: ".75rem", fontWeight: 700, color: "var(--soft)", padding: ".4rem 0" }}>
               {day}
             </div>
           ))}
-          {calendarDays.map((dateStr, idx) => {
-            const slotCount = dateStr ? slotsPerDatum.get(dateStr)?.length ?? 0 : 0;
+          {calendarDays.map(({ dateStr, currentMonth }, idx) => {
+            const slotCount = slotsPerDatum.get(dateStr)?.length ?? 0;
             const hasSlots = slotCount > 0;
             const isSelected = dateStr === ausgewaehltesDatum;
             return (
@@ -249,7 +291,7 @@ function CalendarGrid({ slots, ausgewaehlteSlots, ausgewaehltesDatum, onDatumCli
                 key={idx}
                 type="button"
                 disabled={!hasSlots}
-                onClick={() => hasSlots && onDatumClick(dateStr!)}
+                onClick={() => hasSlots && onDatumClick(dateStr)}
                 style={{
                   aspectRatio: "1",
                   border: isSelected ? "2px solid var(--pine)" : "1px solid #e5e7eb",
@@ -265,12 +307,12 @@ function CalendarGrid({ slots, ausgewaehlteSlots, ausgewaehltesDatum, onDatumCli
                   alignItems: "center",
                   justifyContent: "center",
                   padding: ".2rem",
-                  opacity: !hasSlots ? 0.5 : 1,
+                  opacity: !currentMonth ? 0.35 : !hasSlots ? 0.5 : 1,
                 }}
-                title={dateStr && hasSlots ? `${slotCount} Uhrzeit${slotCount > 1 ? "en" : ""}` : ""}
+                title={hasSlots ? `${slotCount} Uhrzeit${slotCount > 1 ? "en" : ""}` : ""}
               >
-                {dateStr && <>{new Date(dateStr + "T00:00:00").getDate()}</>}
-                {dateStr && hasSlots && <div style={{ fontSize: ".6rem", color: "var(--pine)", marginTop: ".1rem" }}>●</div>}
+                {new Date(dateStr + "T00:00:00").getDate()}
+                {hasSlots && currentMonth && <div style={{ fontSize: ".6rem", color: "var(--pine)", marginTop: ".1rem" }}>●</div>}
               </button>
             );
           })}
