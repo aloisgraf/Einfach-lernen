@@ -307,12 +307,12 @@ function CalendarGrid({ slots, ausgewaehlteSlots, ausgewaehltesDatum, onDatumCli
                   alignItems: "center",
                   justifyContent: "center",
                   padding: ".2rem",
-                  opacity: !currentMonth ? 0.35 : !hasSlots ? 0.5 : 1,
+                  opacity: !currentMonth && !hasSlots ? 0.35 : !hasSlots ? 0.5 : 1,
                 }}
                 title={hasSlots ? `${slotCount} Uhrzeit${slotCount > 1 ? "en" : ""}` : ""}
               >
                 {new Date(dateStr + "T00:00:00").getDate()}
-                {hasSlots && currentMonth && <div style={{ fontSize: ".6rem", color: "var(--pine)", marginTop: ".1rem" }}>●</div>}
+                {hasSlots && <div style={{ fontSize: ".6rem", color: "var(--pine)", marginTop: ".1rem" }}>●</div>}
               </button>
             );
           })}
