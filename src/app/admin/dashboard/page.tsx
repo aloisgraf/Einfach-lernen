@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { isAdminLoggedIn } from "@/lib/auth";
 import AdminLayout from "@/components/AdminLayout";
-import { getAlleSlots, getAlleBuchungen, countBuchungenFuerSlot } from "@/lib/slots-store";
+import { getAlleSlots, getAlleBuchungen } from "@/lib/slots-store";
 import { CalendarClock, Users, CheckCircle2, Clock } from "lucide-react";
+import TermineWidget from "./TermineWidget";
 
 export const dynamic = "force-dynamic";
 
@@ -20,46 +21,6 @@ export default async function DashboardPage() {
   const freigegeben = slots.filter((s) => s.freigegeben).length;
   const heuteStr = new Date().toISOString().split("T")[0];
   const heuteSlots = slots.filter((s) => s.datum === heuteStr && s.freigegeben).length;
-
-  // Nächste 3 Tage mit Slots
-  const futureSlotDates = Array.from(
-    new Set(
-      slots
-        .filter((s) => s.freigegeben && s.datum >= heuteStr)
-        .map((s) => s.datum)
-        .sort()
-    )
-  ).slice(0, 3);
-
-  const naechste3Tage = futureSlotDates;
-
-  const slotsByDayAndStatus = new Map<string, { gebucht: typeof slots; frei: typeof slots }>();
-  const infoPrSlot = new Map<string, { kurse: string[]; namen: string[] }>();
-
-  // Gruppiere Slots nach Datum und Status (gebucht/frei)
-  for (const slot of slots.filter((s) => s.freigegeben && naechste3Tage.includes(s.datum))) {
-    if (!slotsByDayAndStatus.has(slot.datum)) {
-      slotsByDayAndStatus.set(slot.datum, { gebucht: [], frei: [] });
-    }
-    const belegt = await countBuchungenFuerSlot(slot.id);
-    const frei = slot.max_teilnehmer - belegt;
-    const dayData = slotsByDayAndStatus.get(slot.datum)!;
-
-    // Sammle Kurs-Namen und Anmelder-Namen für diesen Slot
-    const slotBuchungen = buchungen.filter((b) => b.zeitslot_id === slot.id);
-    infoPrSlot.set(slot.id, {
-      kurse: Array.from(new Set(slotBuchungen.map((b) => b.kurs_name))),
-      namen: slotBuchungen.map((b) => `${b.vorname} ${b.nachname}`),
-    });
-
-    if (frei === 0) {
-      dayData.gebucht.push(slot);
-    } else if (belegt > 0) {
-      dayData.gebucht.push(slot);
-    } else {
-      dayData.frei.push(slot);
-    }
-  }
 
   const stats = [
     { icon: CalendarClock, label: "Gesamt-Slots", value: slots.length, sub: `${freigegeben} freigegeben`, color: "#3b82f6", bg: "#eff6ff" },
@@ -89,95 +50,8 @@ export default async function DashboardPage() {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-          {/* Nächste Termine */}
-          <div style={{ ...card, padding: 24 }}>
-            <h2 style={{ fontSize: 15, fontWeight: 700, color: "#111827", margin: "0 0 20px" }}>Nächste 3 Tage</h2>
-            {naechste3Tage.every((d) => slotsByDayAndStatus.get(d)!.gebucht.length === 0 && slotsByDayAndStatus.get(d)!.frei.length === 0) ? (
-              <p style={{ color: "#9ca3af", fontSize: 13 }}>Keine bevorstehenden Termine.</p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                {naechste3Tage.map((datum) => {
-                  const dayData = slotsByDayAndStatus.get(datum)!;
-                  const allSlots = [...dayData.gebucht, ...dayData.frei];
-                  if (allSlots.length === 0) return null;
-
-                  const datumFormatted = new Date(datum + "T12:00:00").toLocaleDateString("de-AT", {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "short",
-                  });
-
-                  return (
-                    <div key={datum}>
-                      <p style={{ fontSize: 12, fontWeight: 700, color: "#374151", margin: "0 0 10px", textTransform: "capitalize" }}>
-                        {datumFormatted}
-                      </p>
-
-                      {/* Gebucht */}
-                      {dayData.gebucht.length > 0 && (
-                        <div style={{ marginBottom: 10 }}>
-                          <p style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", margin: "0 0 6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                            🔴 Gebucht
-                          </p>
-                          {dayData.gebucht.map((slot) => {
-                            const info = infoPrSlot.get(slot.id);
-                            const kursText = info?.kurse.length ? info.kurse.join(", ") : slot.titel;
-                            const namenText = info?.namen.join(", ") ?? "";
-                            return (
-                              <div
-                                key={slot.id}
-                                style={{
-                                  fontSize: 12,
-                                  color: "#374151",
-                                  padding: "6px 10px",
-                                  background: "#fef2f2",
-                                  borderLeft: "3px solid #dc2626",
-                                  marginBottom: 4,
-                                  borderRadius: 4,
-                                }}
-                              >
-                                <span style={{ fontWeight: 600 }}>{slot.uhrzeit_von}–{slot.uhrzeit_bis}</span>
-                                <span style={{ color: "#374151", marginLeft: 8 }}>{kursText}</span>
-                                {namenText && <span style={{ color: "#9ca3af", marginLeft: 8 }}>· {namenText}</span>}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-
-                      {/* Frei */}
-                      {dayData.frei.length > 0 && (
-                        <div>
-                          <p style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", margin: "0 0 6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                            🟢 Frei
-                          </p>
-                          {dayData.frei.map((slot) => {
-                            return (
-                              <div
-                                key={slot.id}
-                                style={{
-                                  fontSize: 12,
-                                  color: "#374151",
-                                  padding: "6px 10px",
-                                  background: "#f0fdf4",
-                                  borderLeft: "3px solid #16a34a",
-                                  marginBottom: 4,
-                                  borderRadius: 4,
-                                }}
-                              >
-                                <span style={{ fontWeight: 600 }}>{slot.uhrzeit_von}–{slot.uhrzeit_bis}</span>
-                                <span style={{ color: "#9ca3af", marginLeft: 8 }}>{slot.titel}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          {/* Termine Widget mit Toggle */}
+          <TermineWidget slots={slots} buchungen={buchungen} heuteStr={heuteStr} />
 
           {/* Letzte Buchungen */}
           <div style={{ ...card, padding: 24 }}>
@@ -190,8 +64,7 @@ export default async function DashboardPage() {
                   .map((b) => ({ b, slot: slots.find((s) => s.id === b.zeitslot_id) }))
                   .sort((a, b) => new Date(b.b.erstellt_am).getTime() - new Date(a.b.erstellt_am).getTime())
                   .slice(0, 5)
-                  .map(({ b, slot }) => {
-                  return (
+                  .map(({ b, slot }) => (
                     <div key={b.id} style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
                       <div style={{ minWidth: 0 }}>
                         <p style={{ fontSize: 13, fontWeight: 600, color: "#111827", margin: 0 }}>
@@ -219,8 +92,7 @@ export default async function DashboardPage() {
                         )}
                       </div>
                     </div>
-                  );
-                })}
+                  ))}
               </div>
             )}
           </div>
