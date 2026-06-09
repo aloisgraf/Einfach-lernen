@@ -74,13 +74,20 @@ export default function BuchungenList({ initialBuchungen }: Props) {
     }
   }
 
-  // Gruppe nach Person
-  const groupedByPerson = new Map<string, BuchungMitSlot[]>();
+  // Gruppe nach batch_id (selbe Einreichung) – ältere Buchungen ohne batch_id fallen auf Einzel-Einträge zurück
+  const groupedByBatch = new Map<string, BuchungMitSlot[]>();
   for (const item of buchungen) {
-    const key = `${item.buchung.vorname}|${item.buchung.nachname}|${item.buchung.email}`;
-    if (!groupedByPerson.has(key)) groupedByPerson.set(key, []);
-    groupedByPerson.get(key)!.push(item);
+    const key = item.buchung.batch_id || item.buchung.id;
+    if (!groupedByBatch.has(key)) groupedByBatch.set(key, []);
+    groupedByBatch.get(key)!.push(item);
   }
+
+  // Sortiere Gruppen nach dem neuesten erstellt_am innerhalb der Gruppe (neueste zuerst)
+  const sortedGroups = Array.from(groupedByBatch.values()).sort((a, b) => {
+    const latestA = Math.max(...a.map((i) => new Date(i.buchung.erstellt_am).getTime()));
+    const latestB = Math.max(...b.map((i) => new Date(i.buchung.erstellt_am).getTime()));
+    return latestB - latestA;
+  });
 
   if (buchungen.length === 0) {
     return <p style={{ color: "#9ca3af", fontSize: 14 }}>Noch keine Buchungen vorhanden.</p>;
@@ -88,13 +95,13 @@ export default function BuchungenList({ initialBuchungen }: Props) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      {Array.from(groupedByPerson.values()).map((items) => {
+      {sortedGroups.map((items) => {
         const person = items[0].buchung;
         const { name_kind, schulstufe, kind_lernen, kind_staerken } = person;
         const extra = parseKindStaerken(kind_staerken);
 
         return (
-          <div key={`${person.vorname}|${person.nachname}|${person.email}`}
+          <div key={items[0].buchung.batch_id || items[0].buchung.id}
             style={{ background: "#fff", borderRadius: 14, border: "1px solid #e8eceb", boxShadow: "0 1px 4px rgba(0,0,0,0.05)", overflow: "hidden" }}
           >
             {/* ── Kopfzeile: Elternteil ── */}

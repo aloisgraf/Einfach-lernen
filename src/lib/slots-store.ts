@@ -75,6 +75,7 @@ function slotsSchemaSicherstellen(): Promise<void> {
         sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS notizen TEXT`,
         sql`ALTER TABLE buchungen ADD COLUMN IF NOT EXISTS kurs_name TEXT NOT NULL DEFAULT ''`,
         sql`ALTER TABLE buchungen ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending'`,
+        sql`ALTER TABLE buchungen ADD COLUMN IF NOT EXISTS batch_id TEXT NOT NULL DEFAULT ''`,
       ];
       for (const migration of migrationen) {
         try { await mitTimeout(migration, 8000); } catch (e) { console.error("Schema-Migration fehlgeschlagen:", e); }
@@ -204,10 +205,11 @@ async function dbCreateBuchung(data: CreateBuchungData): Promise<Buchung> {
   await slotsSchemaSicherstellen();
   const sql = getDb()!;
   const status = data.status ?? "pending";
+  const batch_id = data.batch_id ?? "";
   const rows = await sql<Buchung[]>`
-    INSERT INTO buchungen (zeitslot_id, vorname, nachname, email, telefon, name_kind, schulstufe, kind_staerken, kind_lernen, kurs_name, status)
+    INSERT INTO buchungen (zeitslot_id, vorname, nachname, email, telefon, name_kind, schulstufe, kind_staerken, kind_lernen, kurs_name, status, batch_id)
     VALUES (${data.zeitslot_id}, ${data.vorname}, ${data.nachname}, ${data.email},
-            ${data.telefon}, ${data.name_kind}, ${data.schulstufe}, ${data.kind_staerken}, ${data.kind_lernen}, ${data.kurs_name}, ${status})
+            ${data.telefon}, ${data.name_kind}, ${data.schulstufe}, ${data.kind_staerken}, ${data.kind_lernen}, ${data.kurs_name}, ${status}, ${batch_id})
     RETURNING *
   `;
   return rows[0];
@@ -445,13 +447,14 @@ async function slotVerfuegbarFuerAnmelder(
   return null;
 }
 
-export type CreateBuchungData = Omit<Buchung, "id" | "erstellt_am" | "status"> & { status?: Buchung["status"] };
+export type CreateBuchungData = Omit<Buchung, "id" | "erstellt_am" | "status" | "batch_id"> & { status?: Buchung["status"]; batch_id?: string };
 
 async function einzelneBuchungAnlegen(data: CreateBuchungData): Promise<Buchung> {
   if (isDbConfigured()) return dbCreateBuchung(data);
   const buchung: Buchung = {
     ...data,
     status: data.status ?? "pending",
+    batch_id: data.batch_id ?? "",
     id: crypto.randomUUID(),
     erstellt_am: new Date().toISOString(),
   };

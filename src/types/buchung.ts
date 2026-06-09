@@ -38,6 +38,7 @@ export interface Buchung {
   kind_staerken: string;
   kind_lernen: string;
   kurs_name: string;
+  batch_id: string;
   status: "pending" | "confirmed" | "rejected";
   erstellt_am: string;
 }

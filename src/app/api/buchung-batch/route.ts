@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
 
     const results = [];
     const slots = [];
+    const batchId = crypto.randomUUID();
 
     // Erstelle alle Buchungen
     for (const booking of data.bookings) {
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest) {
         kind_lernen: booking.kind_lernen,
         kind_staerken: booking.kind_staerken,
         kurs_name: booking.kurs_name,
+        batch_id: batchId,
       });
 
       if ("error" in result) {
