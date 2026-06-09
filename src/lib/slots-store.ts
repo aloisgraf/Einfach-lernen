@@ -58,13 +58,6 @@ declare global {
   var __slotsSchemaMigriert: Promise<void> | undefined;
 }
 
-/**
- * Stellt sicher, dass alle (nachträglich hinzugekommenen) Spalten in der
- * zeitslots-Tabelle existieren – läuft einmalig pro Prozess. Ohne das würde
- * z.B. gruppe_id beim INSERT still und leise wegfallen (siehe fehlendeSpalte),
- * wodurch mehrtägige Kurse nie korrekt verknüpft werden, obwohl der Admin
- * "Mehrtägiger Kurs" angehakt hat.
- */
 function slotsSchemaSicherstellen(): Promise<void> {
   if (!global.__slotsSchemaMigriert) {
     const sql = getDb()!;
@@ -80,6 +73,7 @@ function slotsSchemaSicherstellen(): Promise<void> {
         sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS gruppe_id UUID`,
         sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS kurs TEXT`,
         sql`ALTER TABLE zeitslots ADD COLUMN IF NOT EXISTS notizen TEXT`,
+        sql`ALTER TABLE buchungen ADD COLUMN IF NOT EXISTS kurs_name TEXT NOT NULL DEFAULT ''`,
       ];
       for (const migration of migrationen) {
         try { await mitTimeout(migration, 8000); } catch (e) { console.error("Schema-Migration fehlgeschlagen:", e); }
@@ -206,6 +200,7 @@ async function dbCountBuchungenFuerSlot(slotId: string): Promise<number> {
 }
 
 async function dbCreateBuchung(data: Omit<Buchung, "id" | "erstellt_am">): Promise<Buchung> {
+  await slotsSchemaSicherstellen();
   const sql = getDb()!;
   const rows = await sql<Buchung[]>`
     INSERT INTO buchungen (zeitslot_id, vorname, nachname, email, telefon, name_kind, schulstufe, kind_staerken, kind_lernen, kurs_name)
