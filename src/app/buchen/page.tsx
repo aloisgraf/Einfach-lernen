@@ -56,7 +56,7 @@ export default async function BuchenPage() {
             <img
               src="/logo.png"
               alt="Einfach Lernen Pongau"
-              style={{ height: 70, marginBottom: "1.1rem", objectFit: "contain" }}
+              style={{ height: 70, display: "block", margin: "0 auto 1.1rem", objectFit: "contain" }}
             />
             <h1 style={{
               fontFamily: `var(--font-raleway), sans-serif`,
