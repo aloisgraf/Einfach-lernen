@@ -11,7 +11,7 @@ export function getDb() {
   if (!DATABASE_URL) return null;
   if (!global.__db) {
     global.__db = postgres(DATABASE_URL, {
-      ssl: { rejectUnauthorized: false },
+      ssl: true,
       max: 3,
       idle_timeout: 20,
       connect_timeout: 10,

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAdminLoggedIn } from "@/lib/auth";
 import { updateBuchungStatus, deleteBuchung } from "@/lib/slots-store";
 import { z } from "zod";
 
@@ -7,7 +8,17 @@ const schema = z.object({
   status: z.enum(["pending", "confirmed", "rejected"]),
 });
 
+async function guard() {
+  if (!(await isAdminLoggedIn())) {
+    return NextResponse.json({ error: "Nicht autorisiert." }, { status: 401 });
+  }
+  return null;
+}
+
 export async function PATCH(req: NextRequest) {
+  const guardError = await guard();
+  if (guardError) return guardError;
+
   try {
     const body = await req.json();
     const { buchungId, status } = schema.parse(body);
