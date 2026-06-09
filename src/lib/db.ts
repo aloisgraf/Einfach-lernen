@@ -1,4 +1,5 @@
 import postgres from "postgres";
+import tls from "tls";
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -11,7 +12,10 @@ export function getDb() {
   if (!DATABASE_URL) return null;
   if (!global.__db) {
     global.__db = postgres(DATABASE_URL, {
-      ssl: true,
+      ssl: {
+        rejectUnauthorized: true,
+        ca: tls.rootCertificates.join("\n"),
+      },
       max: 3,
       idle_timeout: 20,
       connect_timeout: 10,
