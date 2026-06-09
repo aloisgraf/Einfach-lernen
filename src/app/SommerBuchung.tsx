@@ -197,6 +197,134 @@ function getGruppenkursDatumInfo(datum: string): { titel: string; untertitel: st
   return { titel: formatDatum(datum), untertitel: null, beschreibung: "" };
 }
 
+function CalendarGrid({ slots, ausgewaehlteSlots, ausgewaehltesDatum, onDatumClick, onSlotClick, onBack }: {
+  slots: SlotMitPlaetzen[];
+  ausgewaehlteSlots: SlotMitPlaetzen[];
+  ausgewaehltesDatum: string | null;
+  onDatumClick: (datum: string) => void;
+  onSlotClick: (slot: SlotMitPlaetzen) => void;
+  onBack: () => void;
+}) {
+  const verfuegbareDaten = Array.from(new Set(slots.filter((s) => s.freie_plaetze > 0).map((s) => s.datum))).sort();
+  if (verfuegbareDaten.length === 0) return <p style={{ color: "var(--soft)" }}>Keine Termine verfügbar.</p>;
+
+  const firstDate = new Date(verfuegbareDaten[0] + "T00:00:00");
+  const lastDate = new Date(verfuegbareDaten[verfuegbareDaten.length - 1] + "T00:00:00");
+  const monthYear = firstDate.toLocaleDateString("de-AT", { month: "long", year: "numeric" });
+
+  const daysInMonth = new Date(firstDate.getFullYear(), firstDate.getMonth() + 1, 0).getDate();
+  const firstDayOfWeek = new Date(firstDate.getFullYear(), firstDate.getMonth(), 1).getDay();
+  const startDay = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+
+  const calendarDays = [];
+  for (let i = 0; i < startDay; i++) calendarDays.push(null);
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${firstDate.getFullYear()}-${String(firstDate.getMonth() + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    calendarDays.push(dateStr);
+  }
+
+  const slotsPerDatum = new Map<string, SlotMitPlaetzen[]>();
+  for (const datum of verfuegbareDaten) {
+    slotsPerDatum.set(datum, slots.filter((s) => s.datum === datum && s.freie_plaetze > 0).sort((a, b) => a.uhrzeit_von.localeCompare(b.uhrzeit_von)));
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.2rem" }}>
+      <div>
+        <p style={{ fontWeight: 700, fontSize: ".95rem", color: "var(--ink)", margin: "0 0 .8rem", textTransform: "capitalize" }}>
+          {monthYear}
+        </p>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: ".4rem" }}>
+          {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((day) => (
+            <div key={day} style={{ textAlign: "center", fontSize: ".75rem", fontWeight: 700, color: "var(--soft)", padding: ".4rem 0" }}>
+              {day}
+            </div>
+          ))}
+          {calendarDays.map((dateStr, idx) => {
+            const slotCount = dateStr ? slotsPerDatum.get(dateStr)?.length ?? 0 : 0;
+            const hasSlots = slotCount > 0;
+            const isSelected = dateStr === ausgewaehltesDatum;
+            return (
+              <button
+                key={idx}
+                type="button"
+                disabled={!hasSlots}
+                onClick={() => hasSlots && onDatumClick(dateStr!)}
+                style={{
+                  aspectRatio: "1",
+                  border: isSelected ? "2px solid var(--pine)" : "1px solid #e5e7eb",
+                  borderRadius: 8,
+                  background: isSelected ? "var(--pine-pale)" : hasSlots ? "var(--white)" : "#f9fafb",
+                  color: hasSlots ? "var(--ink)" : "var(--soft)",
+                  cursor: hasSlots ? "pointer" : "default",
+                  fontSize: ".85rem",
+                  fontWeight: 600,
+                  transition: "all .2s",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: ".2rem",
+                  opacity: !hasSlots ? 0.5 : 1,
+                }}
+                title={dateStr && hasSlots ? `${slotCount} Uhrzeit${slotCount > 1 ? "en" : ""}` : ""}
+              >
+                {dateStr && <>{new Date(dateStr + "T00:00:00").getDate()}</>}
+                {dateStr && hasSlots && <div style={{ fontSize: ".6rem", color: "var(--pine)", marginTop: ".1rem" }}>●</div>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {ausgewaehltesDatum && slotsPerDatum.get(ausgewaehltesDatum) && (
+        <div style={{ borderTop: "2px solid #e5e7eb", paddingTop: "1rem" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: ".8rem" }}>
+            <p style={{ fontWeight: 700, fontSize: ".9rem", color: "var(--ink)", margin: 0 }}>
+              {new Date(ausgewaehltesDatum + "T12:00:00").toLocaleDateString("de-AT", { day: "numeric", month: "long" })}
+            </p>
+            <button
+              type="button"
+              onClick={onBack}
+              style={{
+                padding: ".3rem .6rem",
+                fontSize: ".75rem",
+                border: "none",
+                background: "#f3f4f6",
+                borderRadius: 6,
+                cursor: "pointer",
+                color: "#6b7280",
+              }}
+            >
+              ✕ Zurück
+            </button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: ".5rem" }}>
+            {slotsPerDatum.get(ausgewaehltesDatum)!.map((slot) => {
+              const ausgewaehlt = Boolean(ausgewaehlteSlots.find((s) => s.id === slot.id));
+              const knapp = slot.freie_plaetze === 1;
+              return (
+                <button
+                  type="button"
+                  key={slot.id}
+                  className={`termin-btn${ausgewaehlt ? " on" : ""}`}
+                  onClick={() => onSlotClick(slot)}
+                  style={{ textAlign: "left" }}
+                >
+                  <strong>{slot.uhrzeit_von}–{slot.uhrzeit_bis} Uhr</strong>
+                  <span className={knapp ? "verfuegbar" : ""}>
+                    {knapp ? "1 Platz verfügbar" : ausgewaehlt ? "✓ Ausgewählt" : `${slot.freie_plaetze} Plätze frei`}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function formatDatum(datum: string) {
   return new Date(datum + "T12:00:00").toLocaleDateString("de-AT", {
     day: "numeric", month: "long",
@@ -264,7 +392,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [useCalendarView, setUseCalendarView] = useState(true);
-  const [kalenderdatum, setKalenderdatum] = useState<string | null>(null);
+  const [ausgewaehltesDatum, setAusgewaehltesDatum] = useState<string | null>(null);
 
   // ── Kurse zu Familien gruppieren (Kurs ist die Hauptüberschrift) ────────────
   const familien: KursFamilie[] = [];
@@ -716,41 +844,14 @@ export default function SommerBuchung({ slots, texte }: Props) {
                     </button>
                   </div>
                   {useCalendarView ? (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                      {Array.from(new Set(aktuelleFamilie.einzelSlots.map((s) => s.datum)))
-                        .sort()
-                        .map((datum) => {
-                          const slotsAmDatum = aktuelleFamilie.einzelSlots.filter((s) => s.datum === datum && s.freie_plaetze > 0);
-                          if (slotsAmDatum.length === 0) return null;
-                          return (
-                            <div key={datum} style={{ borderLeft: "3px solid var(--pine)", paddingLeft: ".8rem" }}>
-                              <p style={{ fontWeight: 700, fontSize: ".9rem", color: "var(--ink)", margin: "0 0 .5rem" }}>
-                                {formatDatum(datum)}
-                              </p>
-                              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                                {slotsAmDatum.map((slot) => {
-                                  const ausgewaehlt = Boolean(ausgewaehlteSlots.find((s) => s.id === slot.id));
-                                  const knapp = slot.freie_plaetze === 1;
-                                  return (
-                                    <button
-                                      type="button"
-                                      key={slot.id}
-                                      className={`termin-btn${ausgewaehlt ? " on" : ""}`}
-                                      onClick={() => paketSlotToggle(slot)}
-                                      style={{ textAlign: "left" }}
-                                    >
-                                      <strong>{slot.uhrzeit_von}–{slot.uhrzeit_bis} Uhr</strong>
-                                      <span className={knapp ? "verfuegbar" : ""}>
-                                        {knapp ? "1 Platz verfügbar" : ausgewaehlt ? "✓ Ausgewählt" : `${slot.freie_plaetze} Plätze frei`}
-                                      </span>
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          );
-                        })}
-                    </div>
+                    <CalendarGrid
+                      slots={aktuelleFamilie.einzelSlots}
+                      ausgewaehlteSlots={ausgewaehlteSlots}
+                      ausgewaehltesDatum={ausgewaehltesDatum}
+                      onDatumClick={setAusgewaehltesDatum}
+                      onSlotClick={paketSlotToggle}
+                      onBack={() => setAusgewaehltesDatum(null)}
+                    />
                   ) : (
                     <div className="termin-grid">
                     {aktuelleFamilie.einzelSlots.filter((slot) => slot.freie_plaetze > 0).map((slot) => {
