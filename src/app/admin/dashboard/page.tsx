@@ -21,14 +21,31 @@ export default async function DashboardPage() {
   const heuteStr = new Date().toISOString().split("T")[0];
   const heuteSlots = slots.filter((s) => s.datum === heuteStr && s.freigegeben).length;
 
-  const naechsteSlots = slots.filter((s) => s.freigegeben && s.datum >= heuteStr).slice(0, 5);
-  const freibePlaetzeMap = new Map<string, number>();
-  await Promise.all(
-    naechsteSlots.map(async (s) => {
-      const belegt = await countBuchungenFuerSlot(s.id);
-      freibePlaetzeMap.set(s.id, s.max_teilnehmer - belegt);
-    })
-  );
+  // Nächste 3 Tage
+  const naechste3Tage = Array.from({ length: 3 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() + i);
+    return d.toISOString().split("T")[0];
+  });
+
+  const slotsByDayAndStatus = new Map<string, { gebucht: typeof slots; frei: typeof slots }>();
+  for (const datum of naechste3Tage) {
+    slotsByDayAndStatus.set(datum, { gebucht: [], frei: [] });
+  }
+
+  // Gruppiere Slots nach Datum und Status (gebucht/frei)
+  for (const slot of slots.filter((s) => s.freigegeben && naechste3Tage.includes(s.datum))) {
+    const belegt = await countBuchungenFuerSlot(slot.id);
+    const frei = slot.max_teilnehmer - belegt;
+    const dayData = slotsByDayAndStatus.get(slot.datum)!;
+    if (frei === 0) {
+      dayData.gebucht.push(slot);
+    } else if (belegt > 0) {
+      dayData.gebucht.push(slot);
+    } else {
+      dayData.frei.push(slot);
+    }
+  }
 
   const stats = [
     { icon: CalendarClock, label: "Gesamt-Slots", value: slots.length, sub: `${freigegeben} freigegeben`, color: "#3b82f6", bg: "#eff6ff" },
@@ -60,24 +77,79 @@ export default async function DashboardPage() {
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           {/* Nächste Termine */}
           <div style={{ ...card, padding: 24 }}>
-            <h2 style={{ fontSize: 15, fontWeight: 700, color: "#111827", margin: "0 0 20px" }}>Nächste Termine</h2>
-            {naechsteSlots.length === 0 ? (
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: "#111827", margin: "0 0 20px" }}>Nächste 3 Tage</h2>
+            {naechste3Tage.every((d) => slotsByDayAndStatus.get(d)!.gebucht.length === 0 && slotsByDayAndStatus.get(d)!.frei.length === 0) ? (
               <p style={{ color: "#9ca3af", fontSize: 13 }}>Keine bevorstehenden Termine.</p>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {naechsteSlots.map((slot) => {
-                  const frei = freibePlaetzeMap.get(slot.id) ?? 0;
+              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                {naechste3Tage.map((datum) => {
+                  const dayData = slotsByDayAndStatus.get(datum)!;
+                  const allSlots = [...dayData.gebucht, ...dayData.frei];
+                  if (allSlots.length === 0) return null;
+
+                  const datumFormatted = new Date(datum + "T12:00:00").toLocaleDateString("de-AT", {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                  });
+
                   return (
-                    <div key={slot.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-                      <div>
-                        <p style={{ fontSize: 13, fontWeight: 600, color: "#111827", margin: 0 }}>{slot.titel}</p>
-                        <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>
-                          {new Date(slot.datum + "T12:00:00").toLocaleDateString("de-AT", { day: "numeric", month: "short", year: "numeric" })} · {slot.uhrzeit_von}–{slot.uhrzeit_bis}
-                        </p>
-                      </div>
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, background: frei === 0 ? "#fee2e2" : "#eaf4ef", color: frei === 0 ? "#dc2626" : "#1a5c4a", whiteSpace: "nowrap" }}>
-                        {frei === 0 ? "Ausgebucht" : `${frei} frei`}
-                      </span>
+                    <div key={datum}>
+                      <p style={{ fontSize: 12, fontWeight: 700, color: "#374151", margin: "0 0 10px", textTransform: "capitalize" }}>
+                        {datumFormatted}
+                      </p>
+
+                      {/* Gebucht */}
+                      {dayData.gebucht.length > 0 && (
+                        <div style={{ marginBottom: 10 }}>
+                          <p style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", margin: "0 0 6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                            🔴 Gebucht
+                          </p>
+                          {dayData.gebucht.map((slot) => (
+                            <div
+                              key={slot.id}
+                              style={{
+                                fontSize: 12,
+                                color: "#374151",
+                                padding: "6px 10px",
+                                background: "#fef2f2",
+                                borderLeft: "3px solid #dc2626",
+                                marginBottom: 4,
+                                borderRadius: 4,
+                              }}
+                            >
+                              <span style={{ fontWeight: 600 }}>{slot.uhrzeit_von}–{slot.uhrzeit_bis}</span>
+                              <span style={{ color: "#9ca3af", marginLeft: 8 }}>{slot.titel}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Frei */}
+                      {dayData.frei.length > 0 && (
+                        <div>
+                          <p style={{ fontSize: 11, fontWeight: 600, color: "#9ca3af", margin: "0 0 6px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                            🟢 Frei
+                          </p>
+                          {dayData.frei.map((slot) => (
+                            <div
+                              key={slot.id}
+                              style={{
+                                fontSize: 12,
+                                color: "#374151",
+                                padding: "6px 10px",
+                                background: "#f0fdf4",
+                                borderLeft: "3px solid #16a34a",
+                                marginBottom: 4,
+                                borderRadius: 4,
+                              }}
+                            >
+                              <span style={{ fontWeight: 600 }}>{slot.uhrzeit_von}–{slot.uhrzeit_bis}</span>
+                              <span style={{ color: "#9ca3af", marginLeft: 8 }}>{slot.titel}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
