@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createBuchung, getSlot } from "@/lib/slots-store";
 import { sendBuchungEmail } from "@/lib/email";
+import { textMitBuchstabe } from "@/lib/validation";
 import { z } from "zod";
 
 const schema = z.object({
   zeitslot_id: z.string().min(1),
-  vorname: z.string().min(2),
-  nachname: z.string().min(2),
+  vorname: textMitBuchstabe(2),
+  nachname: textMitBuchstabe(2),
   email: z.string().email(),
   telefon: z.string().min(7),
-  name_kind: z.string().min(2),
-  schulstufe: z.string().min(1),
-  kind_lernen: z.string().min(3),
+  name_kind: textMitBuchstabe(2),
+  schulstufe: textMitBuchstabe(1),
+  kind_lernen: textMitBuchstabe(3),
   kind_staerken: z.string().optional().default(""),
   kurs_name: z.string().optional().default("Unbekannter Kurs"),
 });
