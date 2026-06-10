@@ -309,7 +309,7 @@ function memBuchungen(): Buchung[] {
 
 export async function getAlleSlots(): Promise<Zeitslot[]> {
   if (isDbConfigured()) {
-    try { return await mitTimeout(dbGetAlleSlots()); } catch { /* fall through */ }
+    try { return await mitTimeout(dbGetAlleSlots()); } catch (e) { console.error("getAlleSlots DB-Fehler, Fallback auf Demo-Daten:", e); }
   }
   return memSlots();
 }
@@ -319,7 +319,7 @@ export async function getFreigegebeneSlots(): Promise<Zeitslot[]> {
     try {
       const sql = getDb()!;
       return await mitTimeout(sql<Zeitslot[]>`SELECT * FROM zeitslots WHERE freigegeben = true ORDER BY datum ASC, uhrzeit_von ASC`);
-    } catch { /* fall through */ }
+    } catch (e) { console.error("getFreigegebeneSlots DB-Fehler, Fallback auf Demo-Daten:", e); }
   }
   return Array.from(getSlotsMap().values()).filter((s) => s.freigegeben);
 }
@@ -361,7 +361,7 @@ export async function deleteSlot(id: string): Promise<boolean> {
 
 export async function getAlleBuchungen(): Promise<Buchung[]> {
   if (isDbConfigured()) {
-    try { return await mitTimeout(dbGetAlleBuchungen()); } catch { /* fall through */ }
+    try { return await mitTimeout(dbGetAlleBuchungen()); } catch (e) { console.error("getAlleBuchungen DB-Fehler, Fallback auf leeren Speicher:", e); }
   }
   return memBuchungen();
 }

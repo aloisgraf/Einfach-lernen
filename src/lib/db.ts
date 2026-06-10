@@ -71,7 +71,7 @@ export function isDbConfigured(): boolean {
  * würde die Seite minutenlang warten und Render würde mit 502 antworten,
  * statt auf den In-Memory-Fallback umzuschalten.
  */
-export function mitTimeout<T>(promise: Promise<T>, ms = 6000): Promise<T> {
+export function mitTimeout<T>(promise: Promise<T>, ms = 12000): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error(`DB-Timeout nach ${ms}ms`)), ms);
     promise.then(
