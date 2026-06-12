@@ -309,7 +309,10 @@ function memBuchungen(): Buchung[] {
 
 export async function getAlleSlots(): Promise<Zeitslot[]> {
   if (isDbConfigured()) {
-    try { return await mitTimeout(dbGetAlleSlots()); } catch (e) { console.error("getAlleSlots DB-Fehler, Fallback auf Demo-Daten:", e); }
+    try { return await mitTimeout(dbGetAlleSlots()); } catch (e) {
+      console.error("getAlleSlots DB-Fehler:", e);
+      return [];
+    }
   }
   return memSlots();
 }
@@ -319,7 +322,10 @@ export async function getFreigegebeneSlots(): Promise<Zeitslot[]> {
     try {
       const sql = getDb()!;
       return await mitTimeout(sql<Zeitslot[]>`SELECT * FROM zeitslots WHERE freigegeben = true ORDER BY datum ASC, uhrzeit_von ASC`);
-    } catch (e) { console.error("getFreigegebeneSlots DB-Fehler, Fallback auf Demo-Daten:", e); }
+    } catch (e) {
+      console.error("getFreigegebeneSlots DB-Fehler:", e);
+      return [];
+    }
   }
   return Array.from(getSlotsMap().values()).filter((s) => s.freigegeben);
 }
@@ -495,7 +501,7 @@ export async function createBuchung(
 
 export async function deleteBuchung(id: string): Promise<boolean> {
   if (isDbConfigured()) {
-    try { return await dbDeleteBuchung(id); } catch { /* fall through */ }
+    try { return await dbDeleteBuchung(id); } catch (e) { console.error("deleteBuchung DB-Fehler:", e); }
   }
   return getBuchungenMap().delete(id);
 }
@@ -518,7 +524,8 @@ export async function updateBuchungStatus(
         UPDATE buchungen SET status = ${status} WHERE id = ${id} RETURNING *
       `;
       return rows[0] ?? null;
-    } catch {
+    } catch (e) {
+      console.error("updateBuchungStatus DB-Fehler:", e);
       return null;
     }
   }
