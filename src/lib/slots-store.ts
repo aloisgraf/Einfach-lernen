@@ -418,7 +418,10 @@ async function einzelnesSlotPruefen(slot: Zeitslot): Promise<string | null> {
 /** Prüft, ob ein Slot für einen bestimmten Anmelder verfügbar ist.
  *  - Wenn noch kein Anmelder gebucht hat: verfügbar
  *  - Wenn der gleiche Anmelder bereits gebucht hat: verfügbar (kann mehr Kinder hinzufügen)
- *  - Wenn ein anderer Anmelder bereits gebucht hat: ausgebucht
+ *  - Einzelstunde (kein gruppe_id): exklusiv für eine Familie – hat ein anderer Anmelder
+ *    bereits gebucht, ist der Termin ausgebucht.
+ *  - Gruppenkurs (gruppe_id gesetzt): mehrere Familien können buchen, bis max_teilnehmer
+ *    erreicht ist.
  */
 async function slotVerfuegbarFuerAnmelder(
   slot: Zeitslot,
@@ -444,7 +447,16 @@ async function slotVerfuegbarFuerAnmelder(
     return null; // Ich kann noch mehr Kinder hinzufügen
   }
 
-  // Wenn ich noch nicht gebucht habe, prüfe, ob jemand anderes bereits gebucht hat
+  if (slot.gruppe_id) {
+    // Gruppenkurs: mehrere Familien teilen sich die max_teilnehmer Plätze
+    const belegt = await countBuchungenFuerSlot(slot.id);
+    if (belegt >= slot.max_teilnehmer) {
+      return "Dieser Termin ist bereits ausgebucht.";
+    }
+    return null;
+  }
+
+  // Einzelstunde: Wenn ich noch nicht gebucht habe, prüfe, ob jemand anderes bereits gebucht hat
   const andereAnmelder = await countAnmeldernFuerSlot(slot.id);
   if (andereAnmelder > 0) {
     return "Dieser Termin ist bereits von einer anderen Familie gebucht.";
