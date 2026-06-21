@@ -50,7 +50,7 @@
  */
 
 import { Buchung, Zeitslot } from "@/types/buchung";
-import { getDb, isDbConfigured, mitTimeout } from "./db";
+import { getDb, resetDb, isDbConfigured, mitTimeout } from "./db";
 
 // ── Schema-Migration ──────────────────────────────────────────────────────────
 
@@ -311,6 +311,7 @@ export async function getAlleSlots(): Promise<Zeitslot[]> {
   if (isDbConfigured()) {
     try { return await mitTimeout(dbGetAlleSlots()); } catch (e) {
       console.error("getAlleSlots DB-Fehler:", e);
+      resetDb();
       return [];
     }
   }
@@ -324,6 +325,7 @@ export async function getFreigegebeneSlots(): Promise<Zeitslot[]> {
       return await mitTimeout(sql<Zeitslot[]>`SELECT * FROM zeitslots WHERE freigegeben = true ORDER BY datum ASC, uhrzeit_von ASC`);
     } catch (e) {
       console.error("getFreigegebeneSlots DB-Fehler:", e);
+      resetDb();
       return [];
     }
   }
@@ -367,7 +369,10 @@ export async function deleteSlot(id: string): Promise<boolean> {
 
 export async function getAlleBuchungen(): Promise<Buchung[]> {
   if (isDbConfigured()) {
-    try { return await mitTimeout(dbGetAlleBuchungen()); } catch (e) { console.error("getAlleBuchungen DB-Fehler, Fallback auf leeren Speicher:", e); }
+    try { return await mitTimeout(dbGetAlleBuchungen()); } catch (e) {
+      console.error("getAlleBuchungen DB-Fehler:", e);
+      resetDb();
+    }
   }
   return memBuchungen();
 }
