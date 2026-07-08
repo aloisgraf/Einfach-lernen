@@ -679,12 +679,13 @@ export default function SommerBuchung({ slots, texte }: Props) {
                     </p>
                   ) : null;
                 })()}
-                <p className="cc-info">
-                  {familie.istGruppenKurs
-                    ? `${terminAnzahl} zusammengehörige Termine`
-                    : terminAnzahl === 1 ? "1 Termin verfügbar" : `${terminAnzahl} Termine verfügbar`}
-                  {alleSlots[0]?.notizen ? ` · ${alleSlots[0].notizen}` : alleSlots[0]?.beschreibung ? ` · ${alleSlots[0].beschreibung}` : ""}
-                </p>
+                {(() => {
+                  const zusatz = alleSlots[0]?.notizen || alleSlots[0]?.beschreibung || "";
+                  const text = familie.istGruppenKurs
+                    ? `${terminAnzahl} zusammengehörige Termine${zusatz ? ` · ${zusatz}` : ""}`
+                    : zusatz;
+                  return text ? <p className="cc-info">{text}</p> : null;
+                })()}
                 <div className="cc-footer">
                   <span className={`cc-spots${gesamtPlaetze <= 0 ? " full" : ""}`}>
                     {gesamtPlaetze <= 0 ? "Ausgebucht" : "Termine ansehen →"}
