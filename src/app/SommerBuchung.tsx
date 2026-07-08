@@ -432,6 +432,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
   const [ausgewaehlteSlots, setAusgewaehlteSlots] = useState<SlotMitPlaetzen[]>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const [gebuchteEmail, setGebuchteEmail] = useState("");
   const [useCalendarView, setUseCalendarView] = useState(true);
   const [ausgewaehltesDatum, setAusgewaehltesDatum] = useState<string | null>(null);
 
@@ -596,6 +597,7 @@ export default function SommerBuchung({ slots, texte }: Props) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Fehler");
 
+      setGebuchteEmail(data.email);
       setSlotsState((prev) => prev.map((s) => {
         const betroffen = ausgewaehlteSlots.find((a) => (a.gruppe_id ? s.gruppe_id === a.gruppe_id : s.id === a.id));
         return betroffen ? { ...s, freie_plaetze: Math.max(0, s.freie_plaetze - 1) } : s;
@@ -617,8 +619,8 @@ export default function SommerBuchung({ slots, texte }: Props) {
   if (status === "success") {
     return (
       <div className="book-ok" style={{ display: "block" }}>
-        <strong>🎉 Anfrage gesendet!</strong>
-        <p>Ich melde mich innerhalb von 24 Stunden bei euch.</p>
+        <strong>🎉 Kurs gebucht!</strong>
+        <p>Eine Bestätigungsmail wird an {gebuchteEmail ? <strong>{gebuchteEmail}</strong> : "deine Mailadresse"} gesendet.</p>
         {ausgewaehlteSlots.length > 0 && (
           <div style={{ marginTop: 12 }}>
             <p style={{ fontWeight: 700, margin: "0 0 .6rem" }}>

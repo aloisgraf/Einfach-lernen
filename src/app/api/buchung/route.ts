@@ -21,7 +21,10 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const data = schema.parse(body);
-    const result = await createBuchung({ ...data, batch_id: crypto.randomUUID() });
+    // Online-Buchungen sind sofort verbindlich (der Kunde erhält direkt eine
+    // Bestätigungsmail) – daher gleich als "confirmed" anlegen, kein manueller
+    // Bestätigungsschritt im Admin nötig.
+    const result = await createBuchung({ ...data, batch_id: crypto.randomUUID(), status: "confirmed" });
 
     if ("error" in result) {
       return NextResponse.json({ error: result.error }, { status: 409 });

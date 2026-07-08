@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
         kind_staerken: booking.kind_staerken,
         kurs_name: booking.kurs_name,
         batch_id: batchId,
+        status: "confirmed",
       });
 
       if ("error" in result) {

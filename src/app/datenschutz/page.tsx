@@ -92,11 +92,12 @@ export default function Datenschutz() {
                   </a>
                 </li>
                 <li>
-                  <strong>Resend Inc.</strong> (USA) – E-Mail-Dienst zur Weiterleitung
-                  von Buchungsbenachrichtigungen an uns. Dabei werden Name, E-Mail
-                  und Buchungsdetails übermittelt. Datenschutzinformationen:{" "}
-                  <a href="https://resend.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-[#2d6a4f] underline">
-                    resend.com/legal/privacy-policy
+                  <strong>helloly® (Österreich)</strong> – E-Mail-Dienst
+                  (Postfach und Versandserver) zur Zustellung von Buchungsbestätigungen
+                  an Kundinnen und Kunden sowie Benachrichtigungen an uns. Dabei werden
+                  Name, E-Mail und Buchungsdetails verarbeitet. Datenschutzinformationen:{" "}
+                  <a href="https://www.helloly.com/datenschutz" target="_blank" rel="noopener noreferrer" className="text-[#2d6a4f] underline">
+                    helloly.com/datenschutz
                   </a>
                 </li>
                 <li>

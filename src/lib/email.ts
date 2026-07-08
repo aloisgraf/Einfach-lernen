@@ -1,15 +1,12 @@
-import { Resend } from "resend";
 import nodemailer from "nodemailer";
 import { Buchung, Zeitslot } from "@/types/buchung";
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-const FROM_EMAIL = process.env.FROM_EMAIL ?? "onboarding@resend.dev";
 
 // ── SMTP (Webhost-Postfach) ───────────────────────────────────────────────────
-// Wenn SMTP_HOST gesetzt ist, wird das eigene Postfach des Webhosters per SMTP
-// zum Versand genutzt (bevorzugt vor Resend). Benötigte Env-Variablen:
-//   SMTP_HOST   z.B. smtp.deinanbieter.at
+// Versand erfolgt über das eigene Postfach des Webhosters per SMTP.
+// Benötigte Env-Variablen:
+//   SMTP_HOST   z.B. mail.einfachlernen-pongau.at
 //   SMTP_PORT   465 (SSL) oder 587 (STARTTLS) – Standard 465
 //   SMTP_USER   vollständige Mailadresse / Benutzername
 //   SMTP_PASS   Passwort des Postfachs
@@ -33,35 +30,17 @@ const smtpTransport =
     : null;
 
 /**
- * Versendet eine Mail an eine beliebige Adresse – bevorzugt per SMTP (eigenes
- * Postfach), fällt sonst auf Resend zurück. Gibt still zurück, wenn nichts
- * konfiguriert ist.
+ * Versendet eine Mail an eine beliebige Adresse per SMTP (eigenes Postfach).
+ * Gibt still zurück, wenn SMTP nicht konfiguriert ist.
  */
 async function sendMail(to: string, subject: string, html: string): Promise<void> {
-  if (!to) return;
+  if (!to || !smtpTransport) return;
 
-  if (smtpTransport) {
-    try {
-      await smtpTransport.sendMail({ from: SMTP_FROM, to, subject, html });
-      console.log("Email (SMTP) gesendet an", to);
-      return;
-    } catch (e) {
-      console.error("SMTP senden fehlgeschlagen:", e);
-      // Fällt danach ggf. auf Resend zurück
-    }
-  }
-
-  if (resend) {
-    try {
-      const result = await resend.emails.send({ from: FROM_EMAIL, to, subject, html });
-      if ("error" in result && result.error) {
-        console.error("Resend Fehler:", result.error);
-      } else {
-        console.log("Email (Resend) gesendet an", to);
-      }
-    } catch (e) {
-      console.error("Email senden fehlgeschlagen:", e);
-    }
+  try {
+    await smtpTransport.sendMail({ from: SMTP_FROM, to, subject, html });
+    console.log("Email (SMTP) gesendet an", to);
+  } catch (e) {
+    console.error("SMTP senden fehlgeschlagen:", e);
   }
 }
 
@@ -103,7 +82,7 @@ function kundenBestaetigungHtml(vorname: string, kursName: string, termine: Zeit
     <div style="padding: 28px;">
       <p style="font-size: 15px; color: #111827; margin: 0 0 14px;">Liebe/r ${esc(vorname)},</p>
       <p style="font-size: 14px; color: #374151; line-height: 1.6; margin: 0 0 20px;">
-        vielen Dank für deine Buchung! Wir haben deine Anmeldung für
+        vielen Dank für deine Buchung! Ich habe deine Anmeldung für
         <strong>${esc(kursName)}</strong> erhalten. Hier deine Termine im Überblick:
       </p>
 
@@ -111,12 +90,21 @@ function kundenBestaetigungHtml(vorname: string, kursName: string, termine: Zeit
         ${termineHtml}
       </ul>
 
-      <p style="font-size: 14px; color: #374151; line-height: 1.6; margin: 0 0 6px;">
+      <p style="font-size: 14px; color: #374151; line-height: 1.6; margin: 0 0 20px;">
         Solltest du Fragen haben oder einen Termin ändern müssen, antworte einfach auf diese E-Mail.
       </p>
-      <p style="font-size: 14px; color: #374151; line-height: 1.6; margin: 0;">
-        Herzliche Grüße<br/>Einfach Lernen Pongau
-      </p>
+
+      <div style="font-size: 14px; color: #374151; line-height: 1.6; border-top: 1px solid #e8eceb; padding-top: 18px;">
+        <p style="margin: 0 0 14px;">Liebe Grüße<br/>Anna Reichsöllner</p>
+        <p style="margin: 0 0 2px; font-weight: 700; color: #1a5c4a;">Anna Reichsöllner, BEd MEd</p>
+        <p style="margin: 0; font-weight: 700;">Einfach Lernen Pongau</p>
+        <p style="margin: 0 0 12px; color: #6b7280;">Beratung | Förderung | Legasthenie &amp; Dyskalkulie</p>
+        <p style="margin: 0;">📞 +43 670 190 26 04</p>
+        <p style="margin: 0;">✉️ <a href="mailto:info@einfachlernen-pongau.at" style="color: #1a5c4a;">info@einfachlernen-pongau.at</a></p>
+        <p style="margin: 0;">🌐 <a href="https://www.einfachlernen-pongau.at" style="color: #1a5c4a;">www.einfachlernen-pongau.at</a></p>
+        <p style="margin: 0 0 12px;">📷 @einfachlernen_pongau</p>
+        <p style="margin: 0; color: #6b7280;">Bauernschmiedgasse 380<br/>5531 Eben im Pongau</p>
+      </div>
     </div>
 
     <div style="padding: 16px 28px; border-top: 1px solid #e8eceb; text-align: center;">
@@ -128,7 +116,7 @@ function kundenBestaetigungHtml(vorname: string, kursName: string, termine: Zeit
 }
 
 export async function sendBuchungEmail(buchung: Buchung, slot: Zeitslot | null) {
-  if (!ADMIN_EMAIL || (!smtpTransport && !resend)) return;
+  if (!ADMIN_EMAIL || !smtpTransport) return;
 
   const datum = slot
     ? new Date(slot.datum + "T12:00:00").toLocaleDateString("de-AT", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
@@ -214,7 +202,7 @@ export async function sendBuchungEmail(buchung: Buchung, slot: Zeitslot | null) 
 }
 
 export async function sendBuchungEmailBatch(buchungen: Buchung[], slots: Zeitslot[], vorname: string, nachname: string) {
-  if (!ADMIN_EMAIL || (!smtpTransport && !resend)) return;
+  if (!ADMIN_EMAIL || !smtpTransport) return;
 
   const slotsByBuchung: Record<string, Zeitslot> = {};
   for (const slot of slots) {
