@@ -33,17 +33,17 @@ const smtpTransport =
     : null;
 
 /**
- * Versendet eine Mail an die Admin-Adresse – bevorzugt per SMTP (eigenes
+ * Versendet eine Mail an eine beliebige Adresse – bevorzugt per SMTP (eigenes
  * Postfach), fällt sonst auf Resend zurück. Gibt still zurück, wenn nichts
  * konfiguriert ist.
  */
-async function sendMail(subject: string, html: string): Promise<void> {
-  if (!ADMIN_EMAIL) return;
+async function sendMail(to: string, subject: string, html: string): Promise<void> {
+  if (!to) return;
 
   if (smtpTransport) {
     try {
-      await smtpTransport.sendMail({ from: SMTP_FROM, to: ADMIN_EMAIL, subject, html });
-      console.log("Email (SMTP) gesendet an", ADMIN_EMAIL);
+      await smtpTransport.sendMail({ from: SMTP_FROM, to, subject, html });
+      console.log("Email (SMTP) gesendet an", to);
       return;
     } catch (e) {
       console.error("SMTP senden fehlgeschlagen:", e);
@@ -53,11 +53,11 @@ async function sendMail(subject: string, html: string): Promise<void> {
 
   if (resend) {
     try {
-      const result = await resend.emails.send({ from: FROM_EMAIL, to: ADMIN_EMAIL, subject, html });
+      const result = await resend.emails.send({ from: FROM_EMAIL, to, subject, html });
       if ("error" in result && result.error) {
         console.error("Resend Fehler:", result.error);
       } else {
-        console.log("Email (Resend) gesendet an", ADMIN_EMAIL);
+        console.log("Email (Resend) gesendet an", to);
       }
     } catch (e) {
       console.error("Email senden fehlgeschlagen:", e);
@@ -67,6 +67,64 @@ async function sendMail(subject: string, html: string): Promise<void> {
 
 function esc(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] ?? c));
+}
+
+function formatSlotDatum(slot: Zeitslot): string {
+  return new Date(slot.datum + "T12:00:00").toLocaleDateString("de-AT", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
+}
+
+/**
+ * Baut die Buchungsbestätigung für den Kunden (an die im Formular angegebene
+ * E-Mail-Adresse). Freundlicher Ton, listet die gebuchten Termine auf.
+ */
+function kundenBestaetigungHtml(vorname: string, kursName: string, termine: Zeitslot[]): string {
+  const termineHtml = termine
+    .map((slot) => `
+      <li style="margin-bottom: 8px; padding: 10px 14px; background: #eaf4ef; border-radius: 8px; list-style: none;">
+        <span style="font-weight: 700; color: #1a5c4a;">${esc(formatSlotDatum(slot))}</span><br/>
+        <span style="color: #374151;">${slot.uhrzeit_von}–${slot.uhrzeit_bis} Uhr</span>
+      </li>`)
+    .join("");
+
+  return `
+<!DOCTYPE html>
+<html lang="de">
+<head><meta charset="UTF-8"></head>
+<body style="font-family: Arial, sans-serif; background: #f4f6f5; margin: 0; padding: 24px;">
+  <div style="max-width: 560px; margin: 0 auto; background: #fff; border-radius: 12px; border: 1px solid #e8eceb; overflow: hidden;">
+
+    <div style="background: #1a5c4a; padding: 24px 28px;">
+      <p style="color: #fff; font-size: 20px; font-weight: 800; margin: 0;">Buchungsbestätigung</p>
+      <p style="color: rgba(255,255,255,0.75); font-size: 13px; margin: 4px 0 0;">Einfach Lernen Pongau</p>
+    </div>
+
+    <div style="padding: 28px;">
+      <p style="font-size: 15px; color: #111827; margin: 0 0 14px;">Liebe/r ${esc(vorname)},</p>
+      <p style="font-size: 14px; color: #374151; line-height: 1.6; margin: 0 0 20px;">
+        vielen Dank für deine Buchung! Wir haben deine Anmeldung für
+        <strong>${esc(kursName)}</strong> erhalten. Hier deine Termine im Überblick:
+      </p>
+
+      <ul style="margin: 0 0 20px; padding: 0;">
+        ${termineHtml}
+      </ul>
+
+      <p style="font-size: 14px; color: #374151; line-height: 1.6; margin: 0 0 6px;">
+        Solltest du Fragen haben oder einen Termin ändern müssen, antworte einfach auf diese E-Mail.
+      </p>
+      <p style="font-size: 14px; color: #374151; line-height: 1.6; margin: 0;">
+        Herzliche Grüße<br/>Einfach Lernen Pongau
+      </p>
+    </div>
+
+    <div style="padding: 16px 28px; border-top: 1px solid #e8eceb; text-align: center;">
+      <p style="font-size: 11px; color: #9ca3af; margin: 0;">Einfach Lernen Pongau · Automatische Bestätigung</p>
+    </div>
+  </div>
+</body>
+</html>`;
 }
 
 export async function sendBuchungEmail(buchung: Buchung, slot: Zeitslot | null) {
@@ -145,7 +203,14 @@ export async function sendBuchungEmail(buchung: Buchung, slot: Zeitslot | null) 
 </body>
 </html>`;
 
-  await sendMail(`Neue Buchung: ${buchung.name_kind} – ${slot?.titel ?? ""}`, html);
+  // Benachrichtigung an den Betreiber
+  await sendMail(ADMIN_EMAIL, `Neue Buchung: ${buchung.name_kind} – ${slot?.titel ?? ""}`, html);
+
+  // Bestätigung an den Kunden (E-Mail aus dem Formular)
+  if (buchung.email) {
+    const kundeHtml = kundenBestaetigungHtml(buchung.vorname, buchung.kurs_name, slot ? [slot] : []);
+    await sendMail(buchung.email, `Buchungsbestätigung – ${buchung.kurs_name}`, kundeHtml);
+  }
 }
 
 export async function sendBuchungEmailBatch(buchungen: Buchung[], slots: Zeitslot[], vorname: string, nachname: string) {
@@ -243,8 +308,17 @@ export async function sendBuchungEmailBatch(buchungen: Buchung[], slots: Zeitslo
 </body>
 </html>`;
 
+  // Benachrichtigung an den Betreiber
   await sendMail(
+    ADMIN_EMAIL,
     `Neue Buchung${buchungen.length > 1 ? "en" : ""}: ${buchungen.map((b) => b.name_kind).join(", ")} – ${slots[0]?.titel ?? ""}`,
     html
   );
+
+  // Bestätigung an den Kunden (E-Mail aus dem Formular) – alle Termine der Buchung
+  const kundenEmail = buchungen[0]?.email;
+  if (kundenEmail) {
+    const kundeHtml = kundenBestaetigungHtml(vorname, buchungen[0].kurs_name, slots);
+    await sendMail(kundenEmail, `Buchungsbestätigung – ${buchungen[0].kurs_name}`, kundeHtml);
+  }
 }
