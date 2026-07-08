@@ -48,6 +48,7 @@ function FormRow({ label, children }: { label: string; children: React.ReactNode
 export default function BuchungenList({ initialBuchungen }: Props) {
   const [buchungen, setBuchungen] = useState(initialBuchungen);
   const [loadingIds, setLoadingIds] = useState<Set<string>>(new Set());
+  const [ansicht, setAnsicht] = useState<"kompakt" | "detail">("kompakt");
 
   async function handleStatusUpdate(buchungId: string, newStatus: "confirmed" | "rejected") {
     setLoadingIds((prev) => new Set(prev).add(buchungId));
@@ -89,11 +90,89 @@ export default function BuchungenList({ initialBuchungen }: Props) {
     return latestB - latestA;
   });
 
+  // Kompakt-Ansicht: gruppiere nach Person (Anmelder), liste alle Termine darunter
+  const groupedByPerson = new Map<string, BuchungMitSlot[]>();
+  for (const item of buchungen) {
+    const b = item.buchung;
+    const key = `${b.vorname.trim().toLowerCase()}|${b.nachname.trim().toLowerCase()}|${b.email.trim().toLowerCase()}`;
+    if (!groupedByPerson.has(key)) groupedByPerson.set(key, []);
+    groupedByPerson.get(key)!.push(item);
+  }
+  const sortedPersonen = Array.from(groupedByPerson.values()).sort((a, b) => {
+    const latestA = Math.max(...a.map((i) => new Date(i.buchung.erstellt_am).getTime()));
+    const latestB = Math.max(...b.map((i) => new Date(i.buchung.erstellt_am).getTime()));
+    return latestB - latestA;
+  });
+
   if (buchungen.length === 0) {
     return <p style={{ color: "#9ca3af", fontSize: 14 }}>Noch keine Buchungen vorhanden.</p>;
   }
 
+  const toggle = (
+    <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 20 }}>
+      <div style={{ display: "flex", background: "#f3f4f6", borderRadius: 8, padding: 2, gap: 2 }}>
+        {(["kompakt", "detail"] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setAnsicht(v)}
+            style={{
+              padding: "5px 14px", borderRadius: 6, border: "none", fontSize: 12, fontWeight: 700,
+              cursor: "pointer",
+              background: ansicht === v ? "#fff" : "transparent",
+              color: ansicht === v ? "#111827" : "#9ca3af",
+              boxShadow: ansicht === v ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+              transition: "all .15s",
+            }}
+          >
+            {v === "kompakt" ? "Kompakt" : "Detail"}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (ansicht === "kompakt") {
+    return (
+      <div>
+        {toggle}
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {sortedPersonen.map((items) => {
+            const person = items[0].buchung;
+            const termine = items
+              .slice()
+              .sort((a, b) => (a.slot?.datum ?? "").localeCompare(b.slot?.datum ?? "") || (a.slot?.uhrzeit_von ?? "").localeCompare(b.slot?.uhrzeit_von ?? ""));
+            return (
+              <div key={`${person.vorname}|${person.nachname}|${person.email}`}
+                style={{ background: "#fff", borderRadius: 12, border: "1px solid #e8eceb", boxShadow: "0 1px 4px rgba(0,0,0,0.05)", padding: "16px 20px" }}
+              >
+                <p style={{ fontSize: 15, fontWeight: 700, color: "#111827", margin: "0 0 10px" }}>
+                  {person.vorname} {person.nachname}
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {termine.map(({ buchung: b, slot }) => (
+                    <div key={b.id} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13 }}>
+                      <span style={{
+                        display: "inline-block", width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+                        background: b.status === "confirmed" ? "#16a34a" : b.status === "rejected" ? "#dc2626" : "#f59e0b",
+                      }} />
+                      <span style={{ color: "#111827", fontWeight: 600 }}>
+                        {slot ? `${formatDatum(slot.datum)} · ${slot.uhrzeit_von}–${slot.uhrzeit_bis} Uhr` : "Slot gelöscht"}
+                      </span>
+                      <span style={{ color: "#6b7280" }}>{b.kurs_name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
+    <div>
+    {toggle}
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {sortedGroups.map((items) => {
         const person = items[0].buchung;
@@ -262,6 +341,7 @@ export default function BuchungenList({ initialBuchungen }: Props) {
           </div>
         );
       })}
+    </div>
     </div>
   );
 }

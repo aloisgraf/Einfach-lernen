@@ -1,16 +1,76 @@
 import { Resend } from "resend";
+import nodemailer from "nodemailer";
 import { Buchung, Zeitslot } from "@/types/buchung";
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const FROM_EMAIL = process.env.FROM_EMAIL ?? "onboarding@resend.dev";
 
+// ── SMTP (Webhost-Postfach) ───────────────────────────────────────────────────
+// Wenn SMTP_HOST gesetzt ist, wird das eigene Postfach des Webhosters per SMTP
+// zum Versand genutzt (bevorzugt vor Resend). Benötigte Env-Variablen:
+//   SMTP_HOST   z.B. smtp.deinanbieter.at
+//   SMTP_PORT   465 (SSL) oder 587 (STARTTLS) – Standard 465
+//   SMTP_USER   vollständige Mailadresse / Benutzername
+//   SMTP_PASS   Passwort des Postfachs
+//   SMTP_FROM   Absenderadresse (optional, sonst SMTP_USER)
+//   SMTP_SECURE "true"/"false" (optional, sonst true bei Port 465)
+const SMTP_HOST = process.env.SMTP_HOST;
+const SMTP_PORT = Number(process.env.SMTP_PORT ?? 465);
+const SMTP_USER = process.env.SMTP_USER;
+const SMTP_PASS = process.env.SMTP_PASS;
+const SMTP_FROM = process.env.SMTP_FROM ?? SMTP_USER;
+const SMTP_SECURE = process.env.SMTP_SECURE ? process.env.SMTP_SECURE === "true" : SMTP_PORT === 465;
+
+const smtpTransport =
+  SMTP_HOST && SMTP_USER && SMTP_PASS
+    ? nodemailer.createTransport({
+        host: SMTP_HOST,
+        port: SMTP_PORT,
+        secure: SMTP_SECURE,
+        auth: { user: SMTP_USER, pass: SMTP_PASS },
+      })
+    : null;
+
+/**
+ * Versendet eine Mail an die Admin-Adresse – bevorzugt per SMTP (eigenes
+ * Postfach), fällt sonst auf Resend zurück. Gibt still zurück, wenn nichts
+ * konfiguriert ist.
+ */
+async function sendMail(subject: string, html: string): Promise<void> {
+  if (!ADMIN_EMAIL) return;
+
+  if (smtpTransport) {
+    try {
+      await smtpTransport.sendMail({ from: SMTP_FROM, to: ADMIN_EMAIL, subject, html });
+      console.log("Email (SMTP) gesendet an", ADMIN_EMAIL);
+      return;
+    } catch (e) {
+      console.error("SMTP senden fehlgeschlagen:", e);
+      // Fällt danach ggf. auf Resend zurück
+    }
+  }
+
+  if (resend) {
+    try {
+      const result = await resend.emails.send({ from: FROM_EMAIL, to: ADMIN_EMAIL, subject, html });
+      if ("error" in result && result.error) {
+        console.error("Resend Fehler:", result.error);
+      } else {
+        console.log("Email (Resend) gesendet an", ADMIN_EMAIL);
+      }
+    } catch (e) {
+      console.error("Email senden fehlgeschlagen:", e);
+    }
+  }
+}
+
 function esc(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] ?? c));
 }
 
 export async function sendBuchungEmail(buchung: Buchung, slot: Zeitslot | null) {
-  if (!resend || !ADMIN_EMAIL) return;
+  if (!ADMIN_EMAIL || (!smtpTransport && !resend)) return;
 
   const datum = slot
     ? new Date(slot.datum + "T12:00:00").toLocaleDateString("de-AT", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
@@ -85,25 +145,11 @@ export async function sendBuchungEmail(buchung: Buchung, slot: Zeitslot | null) 
 </body>
 </html>`;
 
-  try {
-    const result = await resend.emails.send({
-      from: FROM_EMAIL,
-      to: ADMIN_EMAIL,
-      subject: `Neue Buchung: ${buchung.name_kind} – ${slot?.titel ?? ""}`,
-      html,
-    });
-    if ("error" in result && result.error) {
-      console.error("Resend Fehler:", result.error);
-    } else {
-      console.log("Email gesendet an", ADMIN_EMAIL);
-    }
-  } catch (e) {
-    console.error("Email senden fehlgeschlagen:", e);
-  }
+  await sendMail(`Neue Buchung: ${buchung.name_kind} – ${slot?.titel ?? ""}`, html);
 }
 
 export async function sendBuchungEmailBatch(buchungen: Buchung[], slots: Zeitslot[], vorname: string, nachname: string) {
-  if (!resend || !ADMIN_EMAIL) return;
+  if (!ADMIN_EMAIL || (!smtpTransport && !resend)) return;
 
   const slotsByBuchung: Record<string, Zeitslot> = {};
   for (const slot of slots) {
@@ -197,19 +243,8 @@ export async function sendBuchungEmailBatch(buchungen: Buchung[], slots: Zeitslo
 </body>
 </html>`;
 
-  try {
-    const result = await resend.emails.send({
-      from: FROM_EMAIL,
-      to: ADMIN_EMAIL,
-      subject: `Neue Buchung${buchungen.length > 1 ? "en" : ""}: ${buchungen.map((b) => b.name_kind).join(", ")} – ${slots[0]?.titel ?? ""}`,
-      html,
-    });
-    if ("error" in result && result.error) {
-      console.error("Resend Fehler:", result.error);
-    } else {
-      console.log("Sammel-Email gesendet an", ADMIN_EMAIL);
-    }
-  } catch (e) {
-    console.error("Email senden fehlgeschlagen:", e);
-  }
+  await sendMail(
+    `Neue Buchung${buchungen.length > 1 ? "en" : ""}: ${buchungen.map((b) => b.name_kind).join(", ")} – ${slots[0]?.titel ?? ""}`,
+    html
+  );
 }

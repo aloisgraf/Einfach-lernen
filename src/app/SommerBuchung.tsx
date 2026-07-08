@@ -344,7 +344,6 @@ function CalendarGrid({ slots, ausgewaehlteSlots, ausgewaehltesDatum, onDatumCli
           <div style={{ display: "flex", flexDirection: "column", gap: ".5rem" }}>
             {slotsPerDatum.get(ausgewaehltesDatum)!.map((slot) => {
               const ausgewaehlt = Boolean(ausgewaehlteSlots.find((s) => s.id === slot.id));
-              const knapp = slot.freie_plaetze === 1;
               return (
                 <button
                   type="button"
@@ -354,8 +353,8 @@ function CalendarGrid({ slots, ausgewaehlteSlots, ausgewaehltesDatum, onDatumCli
                   style={{ textAlign: "left" }}
                 >
                   <strong>{slot.uhrzeit_von}–{slot.uhrzeit_bis} Uhr</strong>
-                  <span className={knapp ? "verfuegbar" : ""}>
-                    {knapp ? "1 Platz verfügbar" : ausgewaehlt ? "✓ Ausgewählt" : `${slot.freie_plaetze} Plätze frei`}
+                  <span className={ausgewaehlt ? "verfuegbar" : ""}>
+                    {ausgewaehlt ? "✓ Ausgewählt" : "Auswählen"}
                   </span>
                 </button>
               );
@@ -722,7 +721,6 @@ export default function SommerBuchung({ slots, texte }: Props) {
                         const varianten = aktuelleFamilie.varianten.filter((v) => v.slots[0]?.datum === datum);
                         const gesamtPlaetze = Math.min(...varianten.flatMap((v) => v.slots.map((s) => s.freie_plaetze)));
                         const kursInfo = getGruppenkursDatumInfo(datum);
-                        const knapp = gesamtPlaetze === 1;
                         return (
                           <button
                             type="button"
@@ -740,7 +738,6 @@ export default function SommerBuchung({ slots, texte }: Props) {
                             <span style={{ fontSize: ".82rem", lineHeight: 1.5 }}>{kursInfo.beschreibung}</span>
                             <span style={{ fontSize: ".8rem", marginTop: ".3rem", display: "block" }}>
                               Start: {formatDatum(datum)} · {varianten.length === 1 ? "1 Uhrzeit" : `${varianten.length} Uhrzeiten`} verfügbar
-                              {knapp && <span className="verfuegbar"> · 1 Platz verfügbar</span>}
                             </span>
                           </button>
                         );
@@ -762,7 +759,6 @@ export default function SommerBuchung({ slots, texte }: Props) {
                       const tag1Slot = variante.slots[0];
                       const weitereTage = variante.slots.slice(1);
                       const gesamtPlaetze = Math.min(...variante.slots.map((s) => s.freie_plaetze));
-                      const knapp = gesamtPlaetze === 1;
                       return (
                         <button
                           type="button"
@@ -772,11 +768,10 @@ export default function SommerBuchung({ slots, texte }: Props) {
                           style={{ width: "100%", textAlign: "left" }}
                         >
                           <strong>{tag1Slot.uhrzeit_von}–{tag1Slot.uhrzeit_bis} Uhr</strong>
-                          <span className={knapp ? "verfuegbar" : ""}>
+                          <span>
                             Weitere Termine: {weitereTage.map((s, i) => (
                               <span key={s.id}>{i > 0 ? ", " : ""}{formatDatumKurz(s.datum)} {s.uhrzeit_von}–{s.uhrzeit_bis}</span>
                             ))}
-                            {knapp && " · 1 Platz verfügbar"}
                           </span>
                         </button>
                       );
@@ -899,7 +894,6 @@ export default function SommerBuchung({ slots, texte }: Props) {
                     <div className="termin-grid">
                     {aktuelleFamilie.einzelSlots.filter((slot) => slot.freie_plaetze > 0).map((slot) => {
                       const ausgewaehlt = Boolean(ausgewaehlteSlots.find((s) => s.id === slot.id));
-                      const knapp = slot.freie_plaetze === 1;
                       return (
                         <button
                           type="button"
@@ -908,8 +902,8 @@ export default function SommerBuchung({ slots, texte }: Props) {
                           onClick={() => paketSlotToggle(slot)}
                         >
                           <strong>{formatDatum(slot.datum)} · {slot.uhrzeit_von}–{slot.uhrzeit_bis} Uhr</strong>
-                          <span className={knapp ? "verfuegbar" : ""}>
-                            {knapp ? "1 Platz verfügbar" : ausgewaehlt ? "✓ Ausgewählt" : `${slot.freie_plaetze} Plätze frei`}
+                          <span className={ausgewaehlt ? "verfuegbar" : ""}>
+                            {ausgewaehlt ? "✓ Ausgewählt" : "Auswählen"}
                           </span>
                         </button>
                       );
